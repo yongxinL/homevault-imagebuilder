@@ -1,0 +1,38 @@
+# =============================================================================
+#
+# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# =============================================================================
+
+---
+- name: check basefs squashfs image
+  stat:
+    path: "{{ build_image_root }}/casper/{{ build_base_image }}"
+  register: baseimage_file
+
+- fail:
+    msg: "Whoops! base squashfs image does not exist"
+  when: baseimage_file.stat.exists == False
+
+- name: create overlay directories
+  file:
+    name: "{{ item }}"
+    state: directory
+  with_items:
+    - "{{ build_rootfs }}"
+    - "{{ build_lower_dir }}"
+    - "{{ build_upper_dir }}"
+    - "{{ build_work_dir }}"
+
+- name: mount read-only base image in build directory
+  mount:
+    name: "{{ build_lower_dir }}"
+    src: "{{ build_image_root }}/casper/{{ build_base_image }}"
+    fstype: squashfs
+    state: mounted
+    opts: "loop"

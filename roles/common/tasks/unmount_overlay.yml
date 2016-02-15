@@ -1,0 +1,53 @@
+# =============================================================================
+#
+# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# =============================================================================
+
+---
+- name: un-mount if directory is mounted
+  mount: 
+    name: "{{ build_root }}/{{ item }}"
+    src: none
+    fstype: none
+    state: unmounted
+  with_items:
+    - dev/pts
+    - dev
+    - proc
+
+- name: un-mount any existing image in build directory
+  mount:
+    name: "{{ build_lower_dir }}"
+    src: "{{ build_image_root }}/casper/{{ build_base_image }}"
+    fstype: squashfs
+    state: unmounted
+
+- name: un-mount any existing overlay in build directory
+  mount:
+    name: "{{ build_root }}"
+    src: "overlay"
+    fstype: overlay
+    state: unmounted
+
+- name: un-mount build directory
+  mount: 
+    name: "{{ build_root }}"
+    src: tmpfs
+    fstype: tmpfs
+    state: unmounted
+
+- name: remove build directory
+  file: 
+    path: "{{ item }}"
+    state: absent
+  with_items:
+    - "{{ build_lower_dir }}"
+    - "{{ build_upper_dir }}"
+    - "{{ build_work_dir }}"
+    - "{{ build_root }}"
