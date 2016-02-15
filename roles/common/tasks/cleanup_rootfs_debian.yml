@@ -1,0 +1,57 @@
+# =============================================================================
+#
+# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# =============================================================================m
+
+- name: uninstall Linux kernel image and dependency
+  apt: 
+    name: "linux-image-{{ build_kernel_version }}"
+    state: absent
+  when: uninstall_build_kernel is defined and uninstall_build_kernel == "yes"
+
+- name: install Linux kernel image extra for physical machine support
+  apt: 
+    name: "linux-image-extra-{{ build_kernel_version }}"
+    state: absent
+  when: uninstall_build_kernel is defined and uninstall_build_kernel == "yes"
+
+- name: upload rootfs cleanup script
+  template: 
+    src: "{{ playbook_dir }}/templates/{{ item.name }}"
+    dest: "/tmp/{{ item.dest }}"
+    owner: root
+    group: root
+    mode: 0755
+  with_items:
+    - { name: "cleanup_rootfs_debian.sh.j2", dest: "cleanup_rootfs_debian.sh" }
+    - { name: "cleanup_rootfs_kernel.sh.j2", dest: "cleanup_rootfs_kernel.sh" }
+
+- name: cleanup rootfs and remove unwanted files
+  shell: "/tmp/{{ item }}"
+  with_items:
+    - cleanup_rootfs_kernel.sh
+    - cleanup_rootfs_debian.sh
+
+- name: check if persistent marker exist
+  stat: 
+    path: "/tmp/persistent/persistent.stamp"
+  register: persistent
+
+- name: restore files from backup storage
+  command: rsync -r --exclude 'persistent.stamp' /tmp/persistent/ /
+  when: persistent is defined and persistent.stat.exists == true
+
+- name: remove rootfs cleanup script
+  file:
+    path: "/tmp/{{ item }}"
+    state: absent
+  with_items:
+    - cleanup_rootfs_kernel.sh
+    - cleanup_rootfs_debian.sh
+    - persistent
