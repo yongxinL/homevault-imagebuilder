@@ -1,0 +1,125 @@
+#!/usr/bin/env bash
+# =============================================================================
+#
+# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# =============================================================================
+
+echo -n "cleanup unwanted Kernel module and driver - Video ..."
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/gpu/drm/nouveau    #nVidia
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/gpu/drm/radeon     #ATI Radeon
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/gpu/drm/amd
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/gpu/drm/ast
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/gpu/drm/gma500
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/gpu/drm/i2c
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/gpu/drm/i810
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/gpu/drm/i915
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/gpu/drm/mga
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/gpu/drm/qxl
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/gpu/drm/savage
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/gpu/drm/sis
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/gpu/drm/tdfx
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/gpu/drm/vgem
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/gpu/drm/via
+echo "done!"
+
+echo -n "cleanup unwanted Kernel module and driver - Multimedia ..."
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/sound
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/media
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/staging/media
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/staging/speakup
+echo "done!"
+
+echo -n "cleanup unwanted Kernel module and driver - Filesystem ... "
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/fs/9p
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/fs/adfs
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/fs/affs
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/fs/afs
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/fs/bfs
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/fs/coda
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/fs/ocfs2
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/scsi/bfa
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/scsi/lpfc
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/scsi/qla2xxx
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/scsi/aic7xxx
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/scsi/qla4xxx
+echo "done!"
+
+echo -n "cleanup unwanted Kernel module and driver - Network ..."
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/bluetooth
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/firewire
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/net/appletalk
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/net/arcnet
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/net/caif
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/net/can
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/net/ethernet/mellanox
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/net/ethernet/qlogic
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/net/fddi
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/net/hamradio
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/net/ieee802154
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/net/irda
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/net/plip
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/net/usb
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/net/wan
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/net/wimax
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/net/wireless
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/isdn
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/net/6lowpan
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/net/appletalk
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/net/atm
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/net/ax25
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/net/batman-adv
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/net/bluetooth
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/net/caif
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/net/can
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/net/ceph
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/net/irda
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/net/mac80211
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/net/wireless
+echo "done!"
+
+echo -n "cleanup unwanted Kernel module and driver - Misc ..."
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/atm
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/auxdisplay
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/bcma
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/dca
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/dma
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/extcon
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/hsi
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/ipack
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/leds
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/macintosh
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/mailbox
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/mcb
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/memstick
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/mfd
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/nfc
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/ntb
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/nvdimm
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/parport
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/pcmcia
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/pinctrl
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/rapidio
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/regulator
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/remoteproc
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/rtc
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/spi
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/spmi
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/ssb
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/thunderbolt
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/vme
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/w1
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/staging/comedi
+rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/staging/lustre
+echo "done!"
+
+echo -n  "Handle dependency for loadable kernel modules"
+for i in `ls /lib/modules/`; do
+    depmod $i
+done
+echo "done!"
