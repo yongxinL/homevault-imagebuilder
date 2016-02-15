@@ -1,0 +1,19 @@
+# =============================================================================
+#
+# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# =============================================================================
+
+---
+- name: mount rootfs in build directory
+  mount: 
+    name: "{{ build_root }}"
+    src: tmpfs
+    fstype: tmpfs
+    opts: "size={{ build_root_size }}"
+    state: mounted

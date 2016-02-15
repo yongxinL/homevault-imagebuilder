@@ -1,0 +1,34 @@
+# =============================================================================
+#
+# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# =============================================================================
+
+---
+- name: un-mount rootfs in build directory
+  mount: 
+    name: "{{ build_root }}/{{ item }}"
+    src: none
+    fstype: none
+    state: unmounted
+  with_items:
+    - dev/pts
+    - dev
+    - proc
+
+- name: un-mount if build directory is mounted
+  mount: 
+    name: "{{ build_root }}"
+    src: tmpfs
+    fstype: tmpfs
+    state: unmounted
+
+- name: remove build directory
+  file: 
+    path: "{{ build_root }}"
+    state: absent
