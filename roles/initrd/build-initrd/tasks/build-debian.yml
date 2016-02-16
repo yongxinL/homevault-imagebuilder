@@ -1,0 +1,108 @@
+# =============================================================================
+#
+# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# =============================================================================
+
+---
+- name: update repository cache
+  apt:
+    update_cache: yes
+
+- name: install Linux kernel image and dependency
+  apt:
+    name: "linux-image-{{ build_kernel_version }}"
+
+- name: install Linux kernel image extra for physical machine support
+  apt:
+    name: "linux-image-extra-{{ build_kernel_version }}"
+
+- name: install extra packages
+  apt:
+    name: "{{ item.package }}={{ item.version }}"
+    install_recommends: no
+    update_cache: yes
+  register: install_pkgs
+  until: install_pkgs|success
+  retries: 2
+  delay: 5
+  with_flattened:
+    - "{{ initrd_base_packages }}"
+    - "{{ initrd_packages }}"
+
+- name: update casper script for removing autologin
+  replace:
+    dest: "/usr/share/initramfs-tools/scripts/casper-bottom/25configure_init"
+    regexp: '-n "\$USERNAME"'
+    replace: '-n ""'
+
+- name: update casper script for adding domain name
+  replace:
+    dest: "/usr/share/initramfs-tools/scripts/casper-bottom/18hostname"
+    regexp: '127.0.1.1 \$HOST'
+    replace: '127.0.1.1 $HOST.{{ target_host_domain }}    $HOST'
+
+- name: update initramfs and copying customized scripts
+  template:
+    src: "{{ item }}"
+    dest: "/usr/share/initramfs-tools/scripts/{{ item }}"
+    owner: root
+    group: root
+    mode: 0755
+  with_items: "{{ initrd_custom_casper_script }}"
+  when: initrd_custom_casper_script is defined
+
+- name: update initramfs and removing casper scripts
+  file:
+    path: "/usr/share/initramfs-tools{{ item.name }}"
+    state: absent
+  with_items: "{{ initrd_script_removal_list }}"
+  when: initrd_script_removal_list is defined
+
+- name: update initramfs and removing casper scripts
+  lineinfile: 
+    dest: "/usr/share/initramfs-tools/scripts/{{ item.dest }}"
+    line: "{{ item.name }}"
+    state: absent
+  with_items: "{{ initrd_script_removal_list }}"
+  when: initrd_script_removal_list is defined
+
+- name: update initramfs and adding extra modules
+  shell: "echo {{ item }} >> /etc/initramfs-tools/modules"
+  with_items: 
+    - squashfs
+
+- name: upload kernel cleanup script
+  template: 
+    src: "{{ playbook_dir }}/templates/{{ item.name }}"
+    dest: "/tmp/{{ item.dest }}"
+    owner: "{{ item.owner|default('root') }}"
+    group: "{{ item.group|default('root') }}"
+    mode: "{{ item.mode|default('0755') }}"
+  with_items:
+    - { name: "cleanup_rootfs_kernel.sh.j2", dest: "cleanup_rootfs_kernel.sh" }
+
+- name: cleanup kernel and remove unwanted modules and drivers
+  shell: >
+    /tmp/cleanup_rootfs_kernel.sh
+
+- name: remove rootfs cleanup script
+  file:
+    path: "/tmp/{{ item }}"
+    state: absent
+  with_items:
+    - cleanup_rootfs_kernel.sh
+
+- name: update modules and drivers for initramfs
+  shell: >
+    update-initramfs -u
+
+- name: rebuild initramfs image
+  shell: >
+    mkinitramfs -v -o
+    /boot/initrd.img-{{ build_kernel_version }} {{ build_kernel_version }}
