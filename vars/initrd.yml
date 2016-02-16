@@ -1,0 +1,52 @@
+# =============================================================================
+#
+# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# =============================================================================
+
+# Default playbook variables
+# =================
+
+# .. contents:: Sections
+#    :local:
+#
+# ------------------------------------
+#   Linux kernel packages and installation
+# ------------------------------------
+
+# .. envvar:: build_root
+# .. envvar:: build_root_size
+#
+# Specify chroot mount point and size for building Linux kernel images
+build_root: '{{ initrd_rootfs }}'
+build_root_size: 1000m
+
+# .. envvar:: initrd_exclude_packages
+#
+# List of packages that will no be include in debootstrap
+initrd_exclude_packages: 'grub-common,grub-gfxpayload-lists,grub-pc,grub-pc-bin,grub2-common'
+
+# .. envvar:: initrd_base_packages
+#
+# List of base packages to install with Linux kernel image.
+initrd_base_packages:
+  - { package: 'casper', version: '*' }
+  - { package: 'lupin-casper', version: '*' }
+
+# .. envvar:: initrd_packages
+#
+# List of additional packages to install with Linux kernel image.
+initrd_packages:
+  - { package: 'aufs-tools', version: '*' }
+  - { package: 'biosdevname', version: '*' }
+  - { package: 'btrfs-tools', version: '*' }
+  - { package: 'dosfstools', version: '*' }
+  - { package: 'exfat-fuse', version: '*' }
+  - { package: 'mdadm', version: '*' }
+  - { package: 'lvm2',  version: '*' }
+  - { package: 'ntfs-3g', version: '*' }

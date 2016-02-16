@@ -1,0 +1,53 @@
+# =============================================================================
+#
+# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# =============================================================================
+
+# Default variables
+# =================
+
+# .. contents:: Sections
+#    :local:
+#
+# .. envvar:: target_device_label_1
+# .. envvar:: target_device_root_1
+#
+# Specify partition label and mount point will be mount when image booting up,
+# this will be configured in script/casper-bottom/12fstab
+target_device_label_1: data1
+target_device_root_1: /yongxin
+
+# .. envvar:: target_device_label_2
+# .. envvar:: target_device_root_2
+#
+# Specify partition label and mount point will be mount when image booting up,
+# this will be configured in script/casper-bottom/12fstab
+target_device_label_2: data2
+target_device_root_2: "{{ target_device_root_1 }}/archive"
+
+# .. envvar:: initrd_custom_casper_script
+#
+# List of custom casper sciprt will be copy into target image
+initrd_custom_casper_script:
+  - casper-bottom/12fstab
+
+# .. envvar:: initrd_script_removal_list
+#
+# List of casper sciprt will be remove
+initrd_script_removal_list:
+  - { dest: "casper-bottom/ORDER", name: "/scripts/casper-bottom/25adduser" }
+  - { dest: "casper-bottom/ORDER", name: "/scripts/casper-bottom/30accessibility" }
+  - { dest: "casper-bottom/ORDER", name: "/scripts/casper-bottom/31disable_update_notifier" }
+  - { dest: "casper-bottom/ORDER", name: "/scripts/casper-bottom/32disable_hibernation" }
+  - { dest: "casper-bottom/ORDER", name: "/scripts/casper-bottom/33enable_apport_crashes" }
+  - { dest: "casper-bottom/ORDER", name: "/scripts/casper-bottom/34disable_kde_services" }
+  - { dest: "casper-bottom/ORDER", name: "/scripts/casper-bottom/36disable_trackerd" }
+  - { dest: "casper-bottom/ORDER", name: "/scripts/casper-bottom/48kubuntu_disable_restart_notifications" }
+  - { dest: "casper-bottom/ORDER", name: "/scripts/casper-bottom/49kubuntu_mobile_session" }
+  - { dest: "casper-bottom/ORDER", name: "/scripts/casper-bottom/50ubiquity-bluetooth-agent" }
