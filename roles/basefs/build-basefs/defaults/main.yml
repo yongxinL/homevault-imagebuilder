@@ -1,0 +1,62 @@
+# =============================================================================
+#
+# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# =============================================================================
+
+# Default variables
+# =================
+
+# .. contents:: Sections
+#    :local:
+#
+# .. envvar:: private_overlay_root
+#
+# Specify the folder that will be use to mount as overlay
+private_overlay_root: '/private'
+
+# .. envvar:: private_overlay_default
+#
+# List of folders that will be overlay when booting up
+private_overlay_default: '/etc /home /root'
+
+# .. envvar:: target_root_password
+#
+# Specify root password
+target_root_password: '$1$d2CU5cZA$lPuFwM.cwWMNuWhiDMGEe0'
+
+# .. envvar:: target_additional_users
+#
+# List of user that will be add into system.
+target_additional_users:
+  georgel:
+    comment: 'George.Li'
+    password: '$6$SALT$Gu9J3UTsqRHAKYsnwFjji05Oit2nd9VjDz74CFYdUkUtEihlMZ.qYuwJV.W7CN/5qd7djRsSKCp3B1decdZQ0/'
+    group: 'root'
+    groups: 'sudo,adm'
+    shell: '/bin/bash'
+    system: 'yes'
+
+# .. envvar:: basefs_config_files
+#
+# List of configuration file will be copy to Linux base filesystems
+basefs_config_files:
+    - { name: "interfaces.j2", dest: "/etc/network/interfaces" }
+    - { name: "vmware.cfg.j2", dest: "/etc/network/interfaces.d/vmware.cfg" }
+
+# .. envvar:: uninstall_build_kernel
+#
+# Set below param to yes if you don't want kernel modules in the Linux base filesystems
+uninstall_build_kernel: 'no'
+
+# .. envvar:: persistent_files
+#
+# List of files will be remain after cleaning up kernel and base filesystems
+persistent_files:
+  - '/lib/modules/{{ build_kernel_version }}/modules.dep.bin'
+  - '/lib/modules/{{ build_kernel_version }}/kernel/fs/nls/nls_iso8859-1.ko'
