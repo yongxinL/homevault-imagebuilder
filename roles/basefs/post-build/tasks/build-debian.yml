@@ -1,0 +1,69 @@
+# =============================================================================
+#
+# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# =============================================================================
+
+---
+- name: create target output directory
+  file:
+    path: "{{ build_image_root }}/casper"
+    state: directory
+
+- name: unmount rootfs in build directory
+  mount: 
+    name: "{{ build_root }}/{{ item }}"
+    src: none
+    fstype: none
+    state: unmounted
+  with_items:
+    - proc
+    - dev
+    - dev/pts
+
+- name: remove dpkg policy from rootfs
+  file:
+    path: "{{ build_root }}/usr/sbin/policy-rc.d"
+    state: absent
+
+- name: remove repository list from rootfs
+  file:
+    path: "{{ build_root }}/{{ item.dest }}"
+    state: absent
+  with_flattened:
+    - "{{ ubuntu_repo_lists }}"
+    - "{{ debian_repo_lists }}"
+
+- name: update repository list to rootfs
+  lineinfile:
+    dest: "{{ build_root }}/{{ item.dest }}"
+    line: "{{ item.line }}"
+    state: present
+    create: yes
+  with_items:
+    - { dest: '/etc/apt/sources.list', line: 'deb http://au.archive.ubuntu.com/ubuntu/ {{ debstrap_suite }} main' }
+  when: debstrap_dist == "ubuntu"
+
+- name: update repository list to rootfs
+  lineinfile:
+    dest: "{{ build_root }}/{{ item.dest }}"
+    line: "{{ item.line }}"
+    state: present
+    create: yes
+  with_items:
+    - { dest: '/etc/apt/sources.list', line: 'deb http://httpredir.debian.org/debian {{ debstrap_suite }} main' }
+  when: debstrap_dist == "debian"
+
+- name: remove squashfs image if it exists
+  file: 
+    path: "{{ build_image_root }}/casper/{{ build_base_image }}"
+    state: absent
+
+- name: create squashfs image from chroot
+  command: >
+    mksquashfs {{ build_root }} {{ build_image_root }}/casper/{{ build_base_image }} -e boot -noappend

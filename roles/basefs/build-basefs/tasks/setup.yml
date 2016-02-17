@@ -1,0 +1,74 @@
+# =============================================================================
+#
+# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# =============================================================================
+
+---
+- name: update root password
+  user:
+    name: root
+    password: "{{ target_root_password }}"
+
+- name: update system and add additinal user
+  user:
+    name: "{{ item.key }}"
+    comment: "{{ item.value.comment }}"
+    password: "{{ item.value.password }}"
+    group: "{{ item.value.group }}"
+    groups: "{{ item.value.groups }}"
+    shell: "{{ item.value.shell|default('/bin/bash') }}"
+    system: "{{ item.value.system|default('no') }}"
+  with_dict: "{{ target_additional_users }}"
+  when: target_additional_users is defined
+
+- name: update Locale to default profile
+  lineinfile:
+    dest: "/etc/profile.d/setenv.sh"
+    line: "{{ item }}"
+    create: yes
+    state: present
+    mode: 0755
+  with_items:
+    - "export LC_ALL=C"
+    - "export DEBIAN_FRONTEND=noninteractive"
+  when: ansible_os_family == "Debian"
+
+- name: setup network interface
+  template:
+    src: "{{ item.name }}"
+    dest: "{{ item.dest }}"
+    owner: "{{ item.owner|default('root') }}"
+    group: "{{ item.group|default('root') }}"
+    mode: "{{ item.mode|default('0644') }}"
+  with_items: "{{ basefs_config_files }}"
+  when: ansible_distribution_release == "trusty"
+
+- name: change waiting for network configure time
+  replace:
+    dest: "/etc/init/failsafe.conf"
+    regexp: "[245][039]$"
+    replace: "3"
+  when: ansible_distribution_release == "trusty"
+
+- name: update system and copy init.d script
+  template:
+    src: "{{ item.name }}"
+    dest: "{{ item.dest }}"
+    owner: root
+    group: root
+    mode: 0755
+  with_items:
+    - { name: "mountall-overlay-private.j2", dest: "/etc/init.d/mountall-overlay-private" }
+  when: private_overlay_root is defined and private_overlay_default is defined
+
+- name: update system and add script into booting
+  command: update-rc.d {{ item }} defaults
+  with_items:
+    - mountall-overlay-private
+  when: private_overlay_root is defined and private_overlay_default is defined
