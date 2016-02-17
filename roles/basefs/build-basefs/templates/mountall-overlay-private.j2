@@ -1,0 +1,109 @@
+#!/bin/sh -e
+### BEGIN INIT INFO
+# Provides:          mountall-overlay-private
+# Required-Start:    $local_fs
+# Required-Stop:     $local_fs
+# Default-Start:     S
+# Default-Stop:      0 6
+# Short-Description: mount private overlay filesystem
+# Description:       Prepare read-write device and overlay /etc
+### END INIT INFO
+
+. /lib/lsb/init-functions
+
+# generic settings
+ROOT_RW_DEVICE="{{ private_overlay_root }}"
+WORK_RW_DEVICE="${ROOT_RW_DEVICE}/tmp"
+ROOT_OVERLAY_DEFAULT="{{ private_overlay_default }}"
+
+# parse kernel boot command line
+ROOT_OVERLAY_DRIVER=
+DISABLE_OVERLAY=
+
+for CMD_PARAM in $(cat /proc/cmdline); do
+  case ${CMD_PARAM} in
+    disable_overlay=*)
+      DISABLE_OVERLAY=${CMD_PARAM#disable_overlay=}
+      ;;
+    root_overlay_drive=*)
+      ROOT_OVERLAY_DRIVER=${CMD_PARAM#root_overlay_drive=}
+      ;;
+  esac
+done
+
+# check if overlay root is disabled
+if [ ! -z "${DISABLE_OVERLAY}" ]; then
+  echo " * overlay is disabled, found boot parameter disable_overlay=${DISABLE_OVERLAY}"
+  exit 0
+fi
+
+if [ ! -z "${ROOT_OVERLAY_DRIVER}" ]; then
+  ROOT_OVERLAY_DRIVER="${ROOT_OVERLAY_DEFAULT} ${ROOT_OVERLAY_DRIVER}"
+else
+  ROOT_OVERLAY_DRIVER="${ROOT_OVERLAY_DEFAULT}"
+fi
+
+# create $WORK_RW_DEVICE folder if no exist
+[ ! -d ${WORK_RW_DEVICE} ] && mkdir -p ${WORK_RW_DEVICE}
+
+do_mount() {
+  local root_ro_device=$1
+
+  # check if $root_ro_device is mounted
+  if [ $(cat /proc/self/mounts | grep -c "overlay.*${root_ro_device}") != 0 ]; then
+    log_failure_msg "Drive ${root_ro_device} is mounted!"
+  elif [ ! -d ${root_ro_device} ]; then
+    log_failure_msg "Drive ${root_ro_device} does not exist!"
+  else
+    log_begin_msg "Starting Mount filesystems on ${root_ro_device}"
+    if [ ! -d "${ROOT_RW_DEVICE}/${root_ro_device##*/}" ]; then
+      mkdir -p "${ROOT_RW_DEVICE}/${root_ro_device##*/}"
+      rsync --archive --quiet --no-links "${root_ro_device}" "${ROOT_RW_DEVICE}/"
+    else
+      rsync --archive --update --quiet --no-links --ignore-existing "${root_ro_device}" "${ROOT_RW_DEVICE}/"
+    fi
+    # update rc.local to latest if booting from new version of ROM
+    if [ "${root_ro_device}" = "/etc" ]; then
+      rsync --relative --update --quiet "${root_ro_device}/rc.local" "${ROOT_RW_DEVICE}/" >> /var/log/private-overlay.log
+    fi
+    mount -t overlay overlay -o rw,lowerdir=${root_ro_device},upperdir=${ROOT_RW_DEVICE}/${root_ro_device##*/},workdir=${WORK_RW_DEVICE} ${root_ro_device}
+    log_end_msg 0
+  fi
+}
+
+do_unmount() {
+  local root_ro_device=$1
+
+  # check if $root_ro_device is mounted
+  if [ $(cat /proc/self/mounts | grep -c "overlay.*${root_ro_device}") != 0 ]; then
+    log_begin_msg "Satrting Unmount filesystems on ${root_ro_device}"
+    umount "${root_ro_device}"
+    log_end_msg 0
+  fi
+}
+
+case "$1" in
+  start)
+        if [ ! -z "${ROOT_OVERLAY_DRIVER}" ]; then
+          for ro_device in ${ROOT_OVERLAY_DRIVER}; do
+            do_mount $ro_device
+          done
+        fi
+        ;;
+  restart|reload|force-reload)
+        echo "Error: argument '$1' not supported" >&2
+        exit 3
+        ;;
+  stop)
+        if [ ! -z "${ROOT_OVERLAY_DRIVER}" ]; then
+          for ro_device in ${ROOT_OVERLAY_DRIVER}; do
+            do_unmount $ro_device
+          done
+        fi
+        ;;
+  *)
+        echo "Usage: $0 start|stop" >&2
+        exit 3
+        ;;
+esac
+:
