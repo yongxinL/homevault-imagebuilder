@@ -1,0 +1,76 @@
+# =============================================================================
+#
+# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# =============================================================================
+
+# Default playbook variables
+# =================
+
+# .. contents:: Sections
+#    :local:
+#
+# ------------------------------------
+#   Linux base filesystems and installation
+# ------------------------------------
+# .. envvar:: build_root
+# .. envvar:: build_root_size
+#
+# Specify chroot mount point and size for building Linux base filesystems
+build_root: '{{ basefs_rootfs }}'
+build_root_size: '1250m'
+
+# .. envvar:: basefs_exclude_packages
+#
+# List of packages that will no be include in debootstrap
+basefs_exclude_packages: 'initramfs-tools,initramfs-tools-bin,busybox-initramfs,\
+                          grub-common,grub-gfxpayload-lists,grub-pc,grub-pc-bin,grub2-common,\
+                          busybox-initramfs'
+
+# .. envvar:: basefs_base_packages
+#
+# List of base packages to install with Linux base filesystems.
+basefs_base_packages:
+  - { package: 'apt-utils', version: '*' }
+  - { package: 'btrfs-tools', version: '*' }
+  - { package: 'console-setup', version: '*' }
+  - { package: 'curl', version: '*' }
+  - { package: 'dosfstools', version: '*' }
+  - { package: 'exfat-fuse', version: '*' }
+  - { package: 'exfat-utils', version: '*' }
+  - { package: 'iproute2', version: '*' }
+  - { package: 'iptables', version: '*' }
+  - { package: 'iputils-ping', version: '*' }
+  - { package: 'isc-dhcp-client', version: '*' }
+  - { package: 'mtools', version: '*' }
+  - { package: 'lshw',  version: '*' }
+  - { package: 'nano', version: '*' }
+  - { package: 'net-tools', version: '*' }
+  - { package: 'netbase', version: '*' }
+  - { package: 'ntfs-3g', version: '*' }
+  - { package: 'parted', version: '*' }
+  - { package: 'pciutils', version: '*' }
+  - { package: 'rsync', version: '*' }
+  - { package: 'sudo', version: '*' }
+  - { package: 'wget', version: '*' }
+  - { package: 'xz-utils', version: '*' }
+
+# .. envvar:: basefs_packages
+#
+# List of additional packages to install with Linux base filesystems.
+basefs_packages:
+  - { package: 'at', version: '*' }
+  - { package: 'apt-show-versions', version: '*' }
+  - { package: 'biosdevname', version: '*' }  
+  - { package: 'cron', version: '*' }
+  - { package: 'logrotate', version: '*' }
+  - { package: 'lvm2',  version: '*' }
+  - { package: 'mdadm', version: '*' }
+  - { package: 'tcptrack', version: '*' }
+  - { package: 'tcpdump', version: '*' }
+  - { package: "lsof", version: "*" }
