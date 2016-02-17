@@ -1,0 +1,64 @@
+# =============================================================================
+#
+# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# =============================================================================
+
+---
+- name: unmount rootfs in build directory
+  mount: 
+    name: "{{ build_root }}/{{ item }}"
+    src: none
+    fstype: none
+    state: unmounted
+  with_items:
+    - proc
+    - dev
+    - dev/pts
+
+- name: create target output directory
+  file:
+    path: "{{ build_image_root }}/{{ item }}"
+    state: directory
+  with_items:
+    - isolinux
+    - syslinux
+
+- name: download hardware detection tool (PCIID) from source
+  get_url:
+    url: "{{ pciid_base_mirror }}"
+    dest: "{{ build_image_root }}/syslinux/pci.ids"
+    force: yes
+
+- name: download syslinux packages from chroot filesystems
+  command: cp "{{ build_root }}/usr/lib/{{ item }}" "{{ build_image_root }}/syslinux"
+  with_flattened:
+    - "{{ syslinux_base_packages }}"
+
+- name: download syslinux packages from chroot filesystems
+  command: cp "{{ build_root }}/{{ item }}" "{{ build_image_root }}/syslinux"
+  with_flattened:
+    - "{{ syslinux_packages }}"
+
+- name: copy syslinux menu configuration to output directory
+  template:
+    src={{ item.name }}
+    dest={{ build_image_root }}/{{ item.dest }}
+  with_items: "{{ syslinux_config_files }}"
+
+- name: remove squashfs image if it exists
+  file: 
+    path: "/tmp/{{ build_image_iso }}"
+    state: absent
+
+- name: generate iso image {{ build_image_iso }} in /tmp
+  command: >
+    genisoimage -V {{ target_host_name }} -quiet -l -r -J -input-charset utf-8 \
+    -o /tmp/{{ build_image_iso }} \
+    -b syslinux/isolinux.bin -c syslinux/boot.cat \
+    -no-emul-boot -boot-load-size 4 -boot-info-table {{ build_image_root }}

@@ -1,0 +1,28 @@
+#!/bin/bash
+# =============================================================================
+#
+# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# =============================================================================
+
+
+# todo:  this is just simply step to create partition on target hard driver,
+#        will update it later
+parted -a optimal -s /dev/sda mklabel msdos -- mkpart primary fat32 1 1000
+parted -s /dev/sda -- mkpart primary ext4 1000 1800
+parted -s /dev/sda -- mkpart primary ext4 1800 -1
+dd bs=440 count=1 if="/cdrom/syslinux/mbr.bin" of=/dev/sdb
+parted -s /dev/sda set 1 boot on
+mkfs -t vfat -F 32 /dev/sda1
+mkfs -t ext4 /dev/sda2
+e2label /dev/sda2 data1
+mkfs -t ext4 /dev/sda3
+e2label /dev/sda3 data2
+/cdrom/syslinux/syslinux -f -i /dev/sda1
+mount -o loop /dev/sda1 /mnt
+cp /cdrom/* /mnt -R

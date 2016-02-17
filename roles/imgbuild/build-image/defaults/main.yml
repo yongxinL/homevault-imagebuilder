@@ -1,0 +1,46 @@
+# =============================================================================
+#
+# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# =============================================================================
+
+# Default group variables
+# =================
+
+# .. contents:: Sections
+#    :local:
+#
+# .. envvar:: build_base_packages
+#
+# List of base packages to install with Linux kernel image.
+build_base_packages:
+  - { package: 'mtools', version: '*' }
+
+# .. envvar:: build_packages
+#
+# List of additional packages to install with Linux kernel image.
+build_packages: []
+
+# .. envvar:: debstrap_arch
+#
+# Specify target debootstrap will be build
+debstrap_arch: 'amd64'
+
+# .. envvar:: syslinux_ubuntu_packages
+#
+# Specify syslinux package for Ubuntu
+syslinux_ubuntu_packages:
+  - 'syslinux_6.03+dfsg-11ubuntu1_{{ debstrap_arch }}.deb'
+  - 'syslinux-common_6.03+dfsg-11ubuntu1_all.deb'
+  - 'isolinux_6.03+dfsg-11ubuntu1_all.deb'
+
+# .. envvar:: syslinux_debian_packages
+#
+# Specify syslinux package for Debian
+syslinux_debian_packages:
+
