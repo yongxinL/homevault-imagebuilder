@@ -1,0 +1,37 @@
+# =============================================================================
+#
+# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# =============================================================================
+
+---
+- name: install extra packages
+  apt:
+    name: "{{ item.package }}={{ item.version }}"
+    install_recommends: no
+    update_cache: yes
+  register: install_pkgs
+  until: install_pkgs|success
+  retries: 2
+  delay: 5
+  with_flattened:
+    - "{{ build_base_packages }}"
+    - "{{ build_packages }}"
+
+- name: download syslinux from repository
+  get_url: 
+    url: "{{ debstrap_mirror }}/pool/main/s/syslinux/{{ item }}"
+    dest: "/tmp/{{ item }}"
+    force: yes
+  with_items: "{{ syslinux_ubuntu_packages }}"
+  when: ansible_distribution == "Ubuntu"
+
+- name: install syslinux packages
+  command: "dpkg -i /tmp/{{ item }}"
+  with_items: "{{ syslinux_ubuntu_packages }}"
+  when: ansible_distribution == "Ubuntu"
