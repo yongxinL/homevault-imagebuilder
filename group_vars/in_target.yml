@@ -26,44 +26,45 @@ target_host_domain: 'yongxin.info'
 # .. envvar:: target_root_password
 #
 # Specify root password
-target_root_password: '$1$d2CU5cZA$lPuFwM.cwWMNuWhiDMGEe0'
+target_root_password: 'secret'
 
-# .. envvar:: target_device_label_1
-# .. envvar:: target_device_root_1
+# .. envvar:: target_timezone
 #
-# Specify partition label and mount point will be mount when image booting up,
-# this will be configured in script/casper-bottom/12fstab
-target_device_label_1: 'data1'
-target_device_root_1: '/yongxin'
+# Specify timezone in target host
+target_timezone: 'Australia/Sydney'
 
-# .. envvar:: target_device_label_2
-# .. envvar:: target_device_root_2
+# .. envvar:: target_mount_device
 #
-# Specify partition label and mount point will be mount when image booting up,
-# this will be configured in script/casper-bottom/12fstab
-target_device_label_2: 'data2'
-target_device_root_2: '{{ target_device_root_1 }}/archive'
+# List of Disk label and mountas will be use to mount partition when booting up
+# this will be setup in script/casper-bottom/12fstab
+target_mount_device:
+  - { label: 'data1', mountas: '/yongxin' }
+  - { label: 'data2', mountas: '/yongxin/archive' }
+
+# .. envvar:: target_data_root
+#
+# Specify folder that will be use as root of data directory
+target_data_root: '/yongxin'
+
+# .. envvar:: target_appdata_root
+#
+# Specify folder that will be use as new location of application data files
+# in case if you want to collect all appdata files in one
+target_appdata_root: '/yongxin/private/var'
 
 # .. envvar:: private_overlay_root
 #
 # Specify the folder that will be use to mount as overlay
-private_overlay_root: '{{ target_device_root_1 }}/private'
+overylay_private_root: '/yongxin/private'
 
 # .. envvar:: private_overlay_default
 #
-# List of folders that will be overlay when booting up, don't overlay /var
-private_overlay_default: '/etc /home /root'
-
-# .. envvar:: private_config_root
-#
-# Specify directory that will be use as root of configuration
-# in case if you want to collect all configuration in one
-private_config_root: '{{ target_device_root_1 }}/private/var'
+# List of folders that will be overlay when booting up
+overylay_private_folder: '/etc /home /root'
 
 # .. envvar:: build_image_initrd
 # .. envvar:: build_image_vmlinuz
 # .. envvar:: build_base_image
-# .. envvar:: build_overlay_image
 #
 # Specify file name for initrd, vmlinuz, base and overlay squashfs
 build_image_initrd: 'initrd.lz'
@@ -79,10 +80,8 @@ build_image_iso: 'homevault_{{ debstrap_dist }}_{{ debstrap_suite }}.iso'
 #
 # Specify Linux kernel version will be use in the target image.
 # Available version for ubuntu
-# - 4.2.0-27-generic
+# - 4.2.0-30-generic
 # - 3.16.0-60-generic
-# also available version for Debian
-# - 3.16.0-4-amd64
 build_kernel_version: '4.2.0-30-generic'
 
 # .. envvar:: debstrap_dist
@@ -96,7 +95,7 @@ debstrap_suite: 'trusty'
 
 # .. envvar:: apt_proxy
 #
-# Specify apt proxy link, like 'x.x.x.x:3142'
+# Specify apt cacher / proxy link, like 'x.x.x.x:3142/'
 apt_proxy:
 
 # .. envvar:: debstrap_base_mirror
@@ -118,11 +117,3 @@ ubuntu_repo_lists:
   - { dest: '/etc/apt/sources.list.d/updates.list', line: 'deb {{ debstrap_mirror }} {{ debstrap_suite }}-updates main' }
   - { dest: '/etc/apt/sources.list.d/universe.list', line: 'deb {{ debstrap_mirror }} {{ debstrap_suite }} universe' }
   - { dest: '/etc/apt/sources.list.d/updatesuniverse.list', line: 'deb {{ debstrap_mirror }} {{ debstrap_suite }}-updates universe' }
-
-# .. envvar:: debian_repo_lists
-#
-# Specify apt repository for debian
-debian_repo_lists:
-  - { dest: '/etc/apt/sources.list', line: 'deb {{ debstrap_mirror }} {{ debstrap_suite }} main' }
-  - { dest: '/etc/apt/sources.list.d/contrib.list', line: 'deb {{ debstrap_mirror }} {{ debstrap_suite }} contrib' }
-  - { dest: '/etc/apt/sources.list.d/non-free.list', line: 'deb {{ debstrap_mirror }} {{ debstrap_suite }} non-free' }
