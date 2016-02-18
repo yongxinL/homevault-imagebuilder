@@ -28,30 +28,12 @@ EOF
 
 rm -f /root/etc/rcS.d/S*checkroot.sh
 
-{% if target_device_label_1 is defined and target_device_root_1 is defined %}
-if ls -l /dev/disk/by-label | grep {{ target_device_label_1 }} > /dev/null; then
-  echo "LABEL={{ target_device_label_1 }}   {{ target_device_root_1 }}        ext4    defaults  0  0" >> $FSTAB
+{% if target_mount_device is defined and target_mount_device %}
+  {% for item in target_mount_device %}
+if ls -l /dev/disk/by-label | grep {{ item.label }} > /dev/null; then
+  echo "LABEL={{ item.label }}   {{ item.mountas }}        ext4    defaults  0  0" >> $FSTAB
 fi
-{% endif %}
-{% if target_device_label_2 is defined and target_device_root_2 is defined %}
-if ls -l /dev/disk/by-label | grep {{ target_device_label_2 }} > /dev/null; then
-  echo "LABEL={{ target_device_label_2 }}   {{ target_device_root_2 }}        ext4    defaults  0  0" >> $FSTAB
-fi
-{% endif %}
-{% if target_device_label_3 is defined and target_device_root_3 is defined %}
-if ls -l /dev/disk/by-label | grep {{ target_device_label_3 }} > /dev/null; then
-  echo "LABEL={{ target_device_label_3 }}   {{ target_device_root_3 }}        ext4    defaults  0  0" >> $FSTAB
-fi
-{% endif %}
-{% if target_device_label_4 is defined and target_device_root_4 is defined %}
-if ls -l /dev/disk/by-label | grep {{ target_device_label_4 }} > /dev/null; then
-  echo "LABEL={{ target_device_label_4 }}   {{ target_device_root_4 }}        ext4    defaults  0  0" >> $FSTAB
-fi
-{% endif %}
-{% if target_device_label_5 is defined and target_device_root_5 is defined %}
-if ls -l /dev/disk/by-label | grep {{ target_device_label_5 }} > /dev/null; then
-  echo "LABEL={{ target_device_label_5 }}   {{ target_device_root_5 }}        ext4    defaults  0  0" >> $FSTAB
-fi
+  {% endfor %}
 {% endif %}
 
 log_end_msg
