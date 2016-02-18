@@ -10,5 +10,5 @@
 # =============================================================================
 
 ---
-- include: build-debian.yml
-  when: debstrap_dist == "ubuntu" or debstrap_dist == "debian"
+- include: build.yml
+- include: setup.yml
