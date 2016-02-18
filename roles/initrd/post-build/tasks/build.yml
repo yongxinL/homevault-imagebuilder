@@ -10,12 +10,12 @@
 # =============================================================================
 
 ---
-- name: create target output directory
+- name: update local and create target directory
   file:
     path: "{{ build_image_root }}/casper"
     state: directory
 
-- name: create target output directory
+- name: update local and create target directory
   file:
     path: "{{ build_image_root }}/casper/{{ item }}"
     state: absent
@@ -23,7 +23,7 @@
     - "{{ build_image_initrd }}"
     - "{{ build_image_vmlinuz }}"
 
-- name: copy linux kernel to target output directory
+- name: update local copy to target directory
   command: >
     cp {{ build_root }}/boot/{{ item.src }} {{ build_image_root }}/casper/{{ item.dest }}
   with_items:
