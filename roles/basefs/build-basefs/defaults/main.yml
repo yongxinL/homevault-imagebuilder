@@ -15,37 +15,30 @@
 # .. contents:: Sections
 #    :local:
 #
+# .. envvar:: target_root_password
+#
+# Specify root password
+target_root_password: 'secret'
+
+# .. envvar:: target_timezone
+#
+# Specify timezone in target host
+target_timezone: 'Australia/Sydney'
+
 # .. envvar:: private_overlay_root
 #
 # Specify the folder that will be use to mount as overlay
-private_overlay_root: '/private'
+overylay_private_root: '/yongxin/private'
 
 # .. envvar:: private_overlay_default
 #
 # List of folders that will be overlay when booting up
-private_overlay_default: '/etc /home /root'
+overylay_private_folder: '/etc /home /root'
 
-# .. envvar:: target_root_password
-#
-# Specify root password
-target_root_password: '$1$d2CU5cZA$lPuFwM.cwWMNuWhiDMGEe0'
-
-# .. envvar:: target_additional_users
-#
-# List of user that will be add into system.
-target_additional_users:
-  georgel:
-    comment: 'George.Li'
-    password: '$6$SALT$Gu9J3UTsqRHAKYsnwFjji05Oit2nd9VjDz74CFYdUkUtEihlMZ.qYuwJV.W7CN/5qd7djRsSKCp3B1decdZQ0/'
-    group: 'root'
-    groups: 'sudo,adm'
-    shell: '/bin/bash'
-    system: 'yes'
-
-# .. envvar:: basefs_config_files
+# .. envvar:: basefs_configuration
 #
 # List of configuration file will be copy to Linux base filesystems
-basefs_config_files:
+basefs_configuration:
     - { name: "interfaces.j2", dest: "/etc/network/interfaces" }
     - { name: "vmware.cfg.j2", dest: "/etc/network/interfaces.d/vmware.cfg" }
 
@@ -53,6 +46,12 @@ basefs_config_files:
 #
 # Set below param to yes if you don't want kernel modules in the Linux base filesystems
 uninstall_build_kernel: 'no'
+
+# .. envvar:: basefs_init_script
+#
+# List of scripts will be copy and executed when system booting up
+basefs_init_script:
+  - { name: "etc-init.d-mountall-overlay-private.j2", dest: "mountall-overlay-private", mode: '0755' }
 
 # .. envvar:: persistent_files
 #
