@@ -10,19 +10,19 @@
 # =============================================================================
 
 ---
-- name: update repository cache
+- name: update target and update repository cache
   apt:
     update_cache: yes
 
-- name: install Linux kernel image and dependency
+- name: update target and install Linux kernel
   apt:
     name: "linux-image-{{ build_kernel_version }}"
 
-- name: install Linux kernel image extra for physical machine support
+- name: update target and install Linux kernel extra
   apt:
     name: "linux-image-extra-{{ build_kernel_version }}"
 
-- name: install extra packages
+- name: update target and install extra packages
   apt:
     name: "{{ item.package }}={{ item.version }}"
     install_recommends: no
@@ -35,19 +35,8 @@
     - "{{ basefs_base_packages }}"
     - "{{ basefs_packages }}"
 
-- name: run distribution upgrade
+- name: update target and run distribution upgrade
   apt:
     upgrade: dist
     update_cache: yes
     dpkg_options: 'force-confold,force-confdef'
-
-- name: copy presistent files to backup storage
-  command: rsync -R {{ item }} /tmp/persistent
-  with_items: "{{ persistent_files }}"
-  when: persistent_files is defined and persistent_files
-
-- name: create presistent marker in backup storage
-  file:
-    path: "/tmp/persistent/persistent.stamp"
-    state: touch
-  when: persistent_files is defined and persistent_files
