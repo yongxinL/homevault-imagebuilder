@@ -71,6 +71,11 @@ basefs_packages:
   - { package: 'logrotate', version: '*' }
   - { package: 'lvm2',  version: '*' }
   - { package: 'mdadm', version: '*' }
+  - { package: 'ntp', version: '*' }
+  - { package: 'ntpdate', version: '*' }
   - { package: 'tcptrack', version: '*' }
   - { package: 'tcpdump', version: '*' }
   - { package: "lsof", version: "*" }
+  - { package: "unzip", version: "*" }
+  - { package: "whois", version: "*" }
+  - { package: "zip", version: "*" }
