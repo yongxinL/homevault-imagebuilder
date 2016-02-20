@@ -1,0 +1,119 @@
+# =============================================================================
+#
+# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# =============================================================================
+
+# Default group variables
+# =================
+
+# .. contents:: Sections
+#    :local:
+#
+# .. envvar:: apt_proxy
+#
+# Specify apt cacher / proxy link, like 'x.x.x.x:3142/'
+apt_proxy:
+
+# .. envvar:: pciid_base_mirror
+#
+# Specify download mirror link for pciid tool
+pciid_base_mirror: 'http://pciids.sourceforge.net/v2.2/pci.ids'
+
+# .. envvar:: syslinux_configuration
+#
+# List of configuration file will be copy to Linux base filesystems
+syslinux_configuration:
+  - { name: 'syslinux.cfg.j2', dest: 'syslinux/syslinux.cfg' }
+  - { name: 'isolinux.cfg.j2', dest: 'isolinux/isolinux.cfg' }
+  - { name: 'install.sh.j2', dest: 'syslinux/install.sh' }
+
+# .. envvar:: syslinux_package_root
+#
+# Specify package root directory in ubuntu
+syslinux_package_root: '/usr/lib'
+
+# .. envvar:: syslinux_base_packages
+#
+# List of syslinux packages will copy to iso image
+syslinux_base_packages:
+  - syslinux/modules/bios/menu.c32
+  - syslinux/modules/bios/vesa.c32
+  - syslinux/modules/bios/debug.c32
+  - syslinux/modules/bios/kbdmap.c32
+  - syslinux/modules/bios/ls.c32
+  - syslinux/modules/bios/dhcp.c32
+  - syslinux/modules/bios/sanboot.c32
+  - syslinux/modules/bios/dmitest.c32
+  - syslinux/modules/bios/zzjson.c32
+  - syslinux/modules/bios/libgpl.c32
+  - syslinux/modules/bios/cpuid.c32
+  - syslinux/modules/bios/ethersel.c32
+  - syslinux/modules/bios/pwd.c32
+  - syslinux/modules/bios/rosh.c32
+  - syslinux/modules/bios/lua.c32
+  - syslinux/modules/bios/chain.c32
+  - syslinux/modules/bios/hdt.c32
+  - syslinux/modules/bios/ifcpu.c32
+  - syslinux/modules/bios/lfs.c32
+  - syslinux/modules/bios/pxechn.c32
+  - syslinux/modules/bios/reboot.c32
+  - syslinux/modules/bios/syslinux.c32
+  - syslinux/modules/bios/prdhcp.c32
+  - syslinux/modules/bios/host.c32
+  - syslinux/modules/bios/cptime.c32
+  - syslinux/modules/bios/cmenu.c32
+  - syslinux/modules/bios/cat.c32
+  - syslinux/modules/bios/poweroff.c32
+  - syslinux/modules/bios/kontron_wdt.c32
+  - syslinux/modules/bios/ifcpu64.c32
+  - syslinux/modules/bios/gfxboot.c32
+  - syslinux/modules/bios/pcitest.c32
+  - syslinux/modules/bios/cpuidtest.c32
+  - syslinux/modules/bios/meminfo.c32
+  - syslinux/modules/bios/vesainfo.c32
+  - syslinux/modules/bios/elf.c32
+  - syslinux/modules/bios/pci.c32
+  - syslinux/modules/bios/cmd.c32
+  - syslinux/modules/bios/disk.c32
+  - syslinux/modules/bios/libcom32.c32
+  - syslinux/modules/bios/cpu.c32
+  - syslinux/modules/bios/liblua.c32
+  - syslinux/modules/bios/pmload.c32
+  - syslinux/modules/bios/sysdump.c32
+  - syslinux/modules/bios/hexdump.c32
+  - syslinux/modules/bios/vpdtest.c32
+  - syslinux/modules/bios/gpxecmd.c32
+  - syslinux/modules/bios/mboot.c32
+  - syslinux/modules/bios/ifplop.c32
+  - syslinux/modules/bios/vesamenu.c32
+  - syslinux/modules/bios/config.c32
+  - syslinux/modules/bios/dmi.c32
+  - syslinux/modules/bios/whichsys.c32
+  - syslinux/modules/bios/libutil.c32
+  - syslinux/modules/bios/linux.c32
+  - syslinux/modules/bios/ldlinux.c32
+  - syslinux/modules/bios/ifmemdsk.c32
+  - syslinux/modules/bios/libmenu.c32
+  - syslinux/modules/bios/sdi.c32
+  - syslinux/mbr/altmbr.bin
+  - syslinux/mbr/mbr.bin
+  - syslinux/mbr/gptmbr.bin
+  - ISOLINUX/isolinux.bin
+  - ISOLINUX/isohdpfx.bin
+  - ISOLINUX/isohdppx.bin
+
+# .. envvar:: syslinux_packages
+#
+# List of syslinux packages will copy to iso image
+syslinux_packages:
+  - bin/cpio
+  - usr/bin/mcopy
+  - usr/bin/mtools
+  - usr/bin/mattrib
+  - usr/bin/syslinux
