@@ -19,7 +19,7 @@
     msg: "Whoops! base squashfs image does not exist"
   when: baseimage_file.stat.exists == False
 
-- name: create overlay directories
+- name: update local and create overlay directories
   file:
     name: "{{ item }}"
     state: directory
@@ -36,3 +36,11 @@
     fstype: squashfs
     state: mounted
     opts: "loop"
+
+- name: mount overlay with read-only base image in build directory
+  mount:
+    name: "{{ build_rootfs }}"
+    src: overlay
+    fstype: overlay
+    opts: "rw,lowerdir={{ build_lower_dir }},upperdir={{ build_upper_dir }},workdir={{ build_work_dir }}"
+    state: mounted
