@@ -48,6 +48,7 @@ rm -rf /var/cache/apt-show-versions/*
 rm -rf /var/lib/apt/lists/*
 rm -rf /var/lib/{cache,log}
 rm -rf /usr/src/*
+rm -rf /etc/resolv.conf
 echo "done!"
 
 echo -n "cleanup all extra Log files and zero out the rest ..."
@@ -56,4 +57,11 @@ find /var/log -type f | while read file
 do
     cat /dev/null | tee $file
 done
+echo "done!"
+
+echo -n "restore files from backup storage ..."
+if [ -f /tmp/persistent/persistent.stamp ]; then
+  rsync -r --exclude 'persistent.stamp' /tmp/persistent/ /
+  rm -rf /tmp/persistent
+fi
 echo "done!"
