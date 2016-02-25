@@ -15,21 +15,18 @@
 # .. contents:: Sections
 #    :local:
 #
-# .. envvar:: target_device_label_1
-# .. envvar:: target_device_root_1
+# .. envvar:: target_mount_device
 #
-# Specify partition label and mount point will be mount when image booting up,
-# this will be configured in script/casper-bottom/12fstab
-target_device_label_1: data1
-target_device_root_1: /yongxin
+# List of Disk label and mountas will be use to mount partition when booting up
+# this will be setup in script/casper-bottom/12fstab
+target_mount_device:
+  - { label: 'data1', mountas: '/yongxin' }
+  - { label: 'data2', mountas: '/yongxin/archive' }
 
-# .. envvar:: target_device_label_2
-# .. envvar:: target_device_root_2
+# .. envvar:: target_host_domain
 #
-# Specify partition label and mount point will be mount when image booting up,
-# this will be configured in script/casper-bottom/12fstab
-target_device_label_2: data2
-target_device_root_2: "{{ target_device_root_1 }}/archive"
+# Specify hostname and domain that should be set in the target image.
+target_host_domain: 'yongxin.info'
 
 # .. envvar:: initrd_custom_casper_script
 #
@@ -51,3 +48,9 @@ initrd_script_removal_list:
   - { dest: "casper-bottom/ORDER", name: "/scripts/casper-bottom/48kubuntu_disable_restart_notifications" }
   - { dest: "casper-bottom/ORDER", name: "/scripts/casper-bottom/49kubuntu_mobile_session" }
   - { dest: "casper-bottom/ORDER", name: "/scripts/casper-bottom/50ubiquity-bluetooth-agent" }
+
+# .. envvar:: initrd_cleanup_script
+#
+# List of sciprt will be execute in initrd rootfs
+initrd_cleanup_script:
+  - { name: "cleanup_rootfs_kernel.sh.j2", dest: "cleanup_rootfs_kernel.sh", mode: '0755' }

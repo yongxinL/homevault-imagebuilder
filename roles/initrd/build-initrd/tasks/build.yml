@@ -1,0 +1,42 @@
+# =============================================================================
+#
+# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# =============================================================================
+
+---
+- name: update target and update repository cache
+  apt:
+    update_cache: yes
+
+- name: update target and install Linux kernel
+  apt:
+    name: "linux-image-{{ build_kernel_version }}"
+
+- name: update target and install Linux kernel extra
+  apt:
+    name: "linux-image-extra-{{ build_kernel_version }}"
+
+- name: update target and install extra packages
+  apt:
+    name: "{{ item.package }}={{ item.version }}"
+    install_recommends: no
+    update_cache: yes
+  register: install_pkgs
+  until: install_pkgs|success
+  retries: 2
+  delay: 5
+  with_flattened:
+    - "{{ initrd_base_packages }}"
+    - "{{ initrd_packages }}"
+
+- name: update target and run distribution upgrade
+  apt:
+    upgrade: dist
+    update_cache: yes
+    dpkg_options: 'force-confold,force-confdef'
