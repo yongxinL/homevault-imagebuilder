@@ -19,8 +19,8 @@
 - name: update target and set casper for adding domain name
   replace:
     dest: "/usr/share/initramfs-tools/scripts/casper-bottom/18hostname"
-    regexp: '127.0.1.1 \$HOST'
-    replace: '127.0.1.1 $HOST.{{ target_host_domain }}    $HOST'
+    regexp: '127.0.0.1 \$HOST'
+    replace: '127.0.0.1 $HOST.{{ target_host_domain }}    $HOST'
 
 - name: update target and copy custom casper scripts
   template:
