@@ -10,24 +10,17 @@
 # =============================================================================
 
 ---
-- name: update root password
+- name: encrypt password hash for root user
+  command: >
+    mkpasswd --method=sha-512 {{ target_root_password }}
+  register: root_password_hash
+
+- name: update target and set root password
   user:
     name: root
-    password: "{{ target_root_password }}"
+    password: "{{ root_password_hash.stdout }}"
 
-- name: update system and add additinal user
-  user:
-    name: "{{ item.key }}"
-    comment: "{{ item.value.comment }}"
-    password: "{{ item.value.password }}"
-    group: "{{ item.value.group }}"
-    groups: "{{ item.value.groups }}"
-    shell: "{{ item.value.shell|default('/bin/bash') }}"
-    system: "{{ item.value.system|default('no') }}"
-  with_dict: "{{ target_additional_users }}"
-  when: target_additional_users is defined
-
-- name: update Locale to default profile
+- name: update target and set locale to default profile
   lineinfile:
     dest: "/etc/profile.d/setenv.sh"
     line: "{{ item }}"
@@ -39,36 +32,70 @@
     - "export DEBIAN_FRONTEND=noninteractive"
   when: ansible_os_family == "Debian"
 
-- name: setup network interface
+- name: update target and setup network interface
   template:
     src: "{{ item.name }}"
     dest: "{{ item.dest }}"
-    owner: "{{ item.owner|default('root') }}"
-    group: "{{ item.group|default('root') }}"
+    owner: root
+    group: root
     mode: "{{ item.mode|default('0644') }}"
-  with_items: "{{ basefs_config_files }}"
+  with_items: "{{ basefs_configuration }}"
   when: ansible_distribution_release == "trusty"
 
-- name: change waiting for network configure time
+- name: update target and change network waiting time
   replace:
     dest: "/etc/init/failsafe.conf"
     regexp: "[245][039]$"
     replace: "3"
   when: ansible_distribution_release == "trusty"
 
-- name: update system and copy init.d script
+- name: update target and change NTP servers pool
+  lineinfile:
+    dest: "/etc/ntp.conf"
+    regexp: "{{ item.regxp }}"
+    line: "{{ item.line }}"
+    create: yes
+    state: present
+    mode: 0644
+  with_items:
+    - { regxp: '^server 0.*', line: 'server 0.au.pool.ntp.org' }
+    - { regxp: '^server 1.*', line: 'server 1.au.pool.ntp.org' }
+    - { regxp: '^server 2.*', line: 'server 2.au.pool.ntp.org' }
+    - { regxp: '^server 3.*', line: 'server 3.au.pool.ntp.org' }
+
+- name: update target and copy init.d script
   template:
     src: "{{ item.name }}"
-    dest: "{{ item.dest }}"
+    dest: "/etc/init.d/{{ item.dest }}"
     owner: root
     group: root
-    mode: 0755
-  with_items:
-    - { name: "mountall-overlay-private.j2", dest: "/etc/init.d/mountall-overlay-private" }
-  when: private_overlay_root is defined and private_overlay_default is defined
+    mode: "{{ item.mode|default('0644') }}"
+  with_items: "{{ basefs_init_script }}"
 
-- name: update system and add script into booting
-  command: update-rc.d {{ item }} defaults
-  with_items:
-    - mountall-overlay-private
-  when: private_overlay_root is defined and private_overlay_default is defined
+- name: update target and add script into booting
+  command: >
+    update-rc.d {{ item.dest }} defaults
+  with_items: "{{ basefs_init_script }}"
+
+- name: update target and set timezone variables
+  copy:
+    content: "{{ target_timezone }}"
+    dest: "/etc/timezone"
+    owner: root
+    group: root
+    mode: 0644
+
+- name: update target and update timezone
+  command: >
+    /usr/sbin/dpkg-reconfigure --frontend noninteractive tzdata
+
+- name: copy presistent files to backup storage
+  command: rsync -R {{ item }} /tmp/persistent
+  with_items: "{{ persistent_files }}"
+  when: uninstall_build_kernel == "yes" and persistent_files is defined
+
+- name: create presistent marker in backup storage
+  file:
+    path: "/tmp/persistent/persistent.stamp"
+    state: touch
+  when: uninstall_build_kernel == "yes" and persistent_files is defined
