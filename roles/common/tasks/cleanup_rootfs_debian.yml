@@ -38,15 +38,6 @@
     - cleanup_rootfs_kernel.sh
     - cleanup_rootfs_debian.sh
 
-- name: check if persistent marker exist
-  stat: 
-    path: "/tmp/persistent/persistent.stamp"
-  register: persistent
-
-- name: restore files from backup storage
-  command: rsync -r --exclude 'persistent.stamp' /tmp/persistent/ /
-  when: persistent is defined and persistent.stat.exists == true
-
 - name: remove rootfs cleanup script
   file:
     path: "/tmp/{{ item }}"
@@ -54,4 +45,3 @@
   with_items:
     - cleanup_rootfs_kernel.sh
     - cleanup_rootfs_debian.sh
-    - persistent
