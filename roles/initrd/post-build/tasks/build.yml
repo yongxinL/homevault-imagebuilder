@@ -10,18 +10,24 @@
 # =============================================================================
 
 ---
-- name: update local and create target directory
+- name: update local and create image directory
   file:
-    path: "{{ build_image_root }}/casper"
+    path: "{{ build_image_root }}/{{ item }}"
     state: directory
+  with_items:
+    - casper
 
-- name: update local and create target directory
+- name: update target and remove unused files before creating image
   file:
-    path: "{{ build_image_root }}/casper/{{ item }}"
+    path: "{{ item }}"
     state: absent
-  with_flattened:
-    - "{{ build_image_initrd }}"
-    - "{{ build_image_vmlinuz }}"
+  with_items:
+    - "{{ build_root }}/usr/sbin/policy-rc.d"
+    - "{{ build_root }}/etc/hostname"
+    - "{{ build_root }}/etc/hosts"
+    - "{{ build_root }}/etc/resolv.conf"
+    - "{{ build_image_root }}/casper/{{ build_image_initrd }}"
+    - "{{ build_image_root }}/casper/{{ build_image_vmlinuz }}"
 
 - name: update local copy to target directory
   command: >
