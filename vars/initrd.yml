@@ -19,11 +19,10 @@
 #   Linux kernel packages and installation
 # ------------------------------------
 
-# .. envvar:: build_root
 # .. envvar:: build_root_size
 #
 # Specify chroot mount point and size for building Linux kernel images
-build_root: '{{ initrd_rootfs }}'
+build_root: '{{ build_rootfs }}'
 build_root_size: 1000m
 
 # .. envvar:: initrd_exclude_packages
