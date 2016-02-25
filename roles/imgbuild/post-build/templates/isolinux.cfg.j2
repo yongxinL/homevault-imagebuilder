@@ -34,14 +34,6 @@ LABEL USR-A
 USR-A Active / passtive Partition (Kernal and initrd) Holding by {{ debstrap_dist }}
     ENDTEXT
 
-LABEL USR-B
-    MENU LABEL {{ debstrap_dist }}-{{ debstrap_suite }} Debug (USR-B)
-    KERNEL /casper/vmlinuz
-    APPEND boot=casper hostname={{ target_host_name }} initrd=/casper/initrd.lz ip=frommedia debug=cv
-    TEXT HELP
-USR-A Active / passtive Partition (Kernal and initrd) Holding by {{ debstrap_dist }}
-    ENDTEXT
-
 LABEL bootlocal
     MENU LABEL Boot first BIOS disk
     localboot 0x80

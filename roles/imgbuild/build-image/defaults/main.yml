@@ -17,13 +17,13 @@
 #
 # .. envvar:: build_base_packages
 #
-# List of base packages to install with Linux kernel image.
+# List of base packages to install by Ansible
 build_base_packages:
   - { package: 'mtools', version: '*' }
 
 # .. envvar:: build_packages
 #
-# List of additional packages to install with Linux kernel image.
+# List of additional packages to install by Ansible
 build_packages: []
 
 # .. envvar:: debstrap_arch
@@ -38,9 +38,3 @@ syslinux_ubuntu_packages:
   - 'syslinux_6.03+dfsg-11ubuntu1_{{ debstrap_arch }}.deb'
   - 'syslinux-common_6.03+dfsg-11ubuntu1_all.deb'
   - 'isolinux_6.03+dfsg-11ubuntu1_all.deb'
-
-# .. envvar:: syslinux_debian_packages
-#
-# Specify syslinux package for Debian
-syslinux_debian_packages:
-

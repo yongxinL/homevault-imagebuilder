@@ -21,7 +21,7 @@
     - dev
     - dev/pts
 
-- name: create target output directory
+- name: update local and create target directory
   file:
     path: "{{ build_image_root }}/{{ item }}"
     state: directory
@@ -29,29 +29,29 @@
     - isolinux
     - syslinux
 
-- name: download hardware detection tool (PCIID) from source
+- name: update local and download hardware detection tool (PCIID)
   get_url:
     url: "{{ pciid_base_mirror }}"
     dest: "{{ build_image_root }}/syslinux/pci.ids"
     force: yes
 
-- name: download syslinux packages from chroot filesystems
+- name: update local and download base syslinux packages
   command: cp "{{ build_root }}/usr/lib/{{ item }}" "{{ build_image_root }}/syslinux"
   with_flattened:
     - "{{ syslinux_base_packages }}"
 
-- name: download syslinux packages from chroot filesystems
+- name: update local and download syslinux packages
   command: cp "{{ build_root }}/{{ item }}" "{{ build_image_root }}/syslinux"
   with_flattened:
     - "{{ syslinux_packages }}"
 
-- name: copy syslinux menu configuration to output directory
+- name: update local and copy syslinux menu
   template:
     src={{ item.name }}
     dest={{ build_image_root }}/{{ item.dest }}
-  with_items: "{{ syslinux_config_files }}"
+  with_items: "{{ syslinux_configuration }}"
 
-- name: remove squashfs image if it exists
+- name: update local and remove squashfs image if it exists
   file: 
     path: "/tmp/{{ build_image_iso }}"
     state: absent

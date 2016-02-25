@@ -10,17 +10,41 @@
 # =============================================================================
 
 ---
-- name: install build dependencies
-  apt: 
-    name: "{{ item }}" 
-    state: present
-    install_recommends: no
-    update_cache: yes
-  register: install_pkgs
-  until: install_pkgs|success
-  retries: 2
-  delay: 5
+- name: update target and set to stop bg processes when installing
+  blockinfile:
+    dest: "{{ build_root }}/usr/sbin/policy-rc.d"
+    owner: root
+    group: root
+    mode: 0755
+    create: yes
+    block: "#!/bin/sh\n
+           exit 101"
+
+- name: update target and update repository list
+  lineinfile:
+    dest: "{{ build_root }}/{{ item.dest }}"
+    line: "{{ item.line }}"
+    state: absent
+    create: yes
   with_items:
-    - genisoimage
-    - squashfs-tools
-  when: ansible_os_family == "Debian"
+    - { dest: '/etc/apt/sources.list', line: 'deb http://au.archive.ubuntu.com/ubuntu/ {{ debstrap_suite }} main' }
+    - { dest: '/etc/apt/sources.list.d/universe.list', line: 'deb http://au.archive.ubuntu.com/ubuntu/ {{ debstrap_suite }} universe' }
+
+- name: update target and copy repository list
+  lineinfile:
+    dest: "{{ build_root }}/{{ item.dest }}"
+    line: "{{ item.line }}"
+    state: present
+    create: yes
+  with_items: "{{ ubuntu_repo_lists }}"
+
+- name: bind mount to chroot environment
+  mount:
+    name: "{{ build_root }}/{{ item }}"
+    src: "/{{ item }}"
+    fstype: none
+    opts: "bind"
+    state: mounted
+  with_items:
+    - proc
+    - dev

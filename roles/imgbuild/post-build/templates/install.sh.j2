@@ -10,9 +10,6 @@
 #
 # =============================================================================
 
-
-# todo:  this is just simply step to create partition on target hard driver,
-#        will update it later
 parted -a optimal -s /dev/sda mklabel msdos -- mkpart primary fat32 1 1000
 parted -s /dev/sda -- mkpart primary ext4 1000 1800
 parted -s /dev/sda -- mkpart primary ext4 1800 -1

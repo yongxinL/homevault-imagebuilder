@@ -10,5 +10,17 @@
 # =============================================================================
 
 ---
-- include: build.yml
-- include: setup.yml
+- name: update local and install build dependencies
+  apt: 
+    name: "{{ item }}" 
+    state: present
+    install_recommends: no
+    update_cache: yes
+  register: install_pkgs
+  until: install_pkgs|success
+  retries: 2
+  delay: 5
+  with_items:
+    - genisoimage
+    - squashfs-tools
+  when: ansible_os_family == "Debian"

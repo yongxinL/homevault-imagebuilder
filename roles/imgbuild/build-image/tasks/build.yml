@@ -10,7 +10,7 @@
 # =============================================================================
 
 ---
-- name: install extra packages
+- name: update target and install extra packages
   apt:
     name: "{{ item.package }}={{ item.version }}"
     install_recommends: no
@@ -23,7 +23,7 @@
     - "{{ build_base_packages }}"
     - "{{ build_packages }}"
 
-- name: download syslinux from repository
+- name: update target and download syslinux from repository
   get_url: 
     url: "{{ debstrap_mirror }}/pool/main/s/syslinux/{{ item }}"
     dest: "/tmp/{{ item }}"
@@ -31,7 +31,7 @@
   with_items: "{{ syslinux_ubuntu_packages }}"
   when: ansible_distribution == "Ubuntu"
 
-- name: install syslinux packages
+- name: update target and install syslinux packages
   command: "dpkg -i /tmp/{{ item }}"
   with_items: "{{ syslinux_ubuntu_packages }}"
   when: ansible_distribution == "Ubuntu"
