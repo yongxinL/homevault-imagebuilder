@@ -22,8 +22,8 @@
 # .. envvar:: build_root_size
 #
 # Specify chroot mount point and size for building Linux base filesystems
-build_root: '{{ basefs_rootfs }}'
-build_root_size: '1250m'
+build_root: '{{ build_rootfs }}'
+build_root_size: '1000m'
 
 # .. envvar:: basefs_exclude_packages
 #
@@ -56,6 +56,7 @@ basefs_base_packages:
   - { package: 'parted', version: '*' }
   - { package: 'pciutils', version: '*' }
   - { package: 'rsync', version: '*' }
+  - { package: 'rsyslog', version: '*' }
   - { package: 'sudo', version: '*' }
   - { package: 'wget', version: '*' }
   - { package: 'xz-utils', version: '*' }
