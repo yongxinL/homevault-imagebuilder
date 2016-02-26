@@ -10,10 +10,12 @@
 # =============================================================================
 
 ---
-- name: update local and create target directory
+- name: update local and create image directory
   file:
-    path: "{{ build_image_root }}/casper"
+    path: "{{ build_image_root }}/{{ item }}"
     state: directory
+  with_items:
+    - casper
 
 - name: update local and unmount rootfs in build directory
   mount: 
@@ -26,19 +28,14 @@
     - dev
     - dev/pts
 
-- name: update target and remove dpkg policy from rootfs
-  file:
-    path: "{{ build_root }}/usr/sbin/policy-rc.d"
-    state: absent
-
-- name: update target and remove repository list from rootfs
+- name: update target and remove repository list from target rootfs
   file:
     path: "{{ build_root }}/{{ item.dest }}"
     state: absent
   with_flattened:
     - "{{ ubuntu_repo_lists }}"
 
-- name: update target and update repository list to rootfs
+- name: update target and update repository list to target rootfs
   lineinfile:
     dest: "{{ build_root }}/{{ item.dest }}"
     line: "{{ item.line }}"
@@ -48,10 +45,16 @@
     - { dest: '/etc/apt/sources.list', line: 'deb http://au.archive.ubuntu.com/ubuntu/ {{ debstrap_suite }} main' }
     - { dest: '/etc/apt/sources.list.d/universe.list', line: 'deb http://au.archive.ubuntu.com/ubuntu/ {{ debstrap_suite }} universe' }
 
-- name: update local and remove squashfs image if it exists
-  file: 
-    path: "{{ build_image_root }}/casper/{{ build_base_image }}"
+- name: update target and remove unused files before creating image
+  file:
+    path: "{{ item }}"
     state: absent
+  with_items:
+    - "{{ build_root }}/usr/sbin/policy-rc.d"
+    - "{{ build_root }}/etc/hostname"
+    - "{{ build_root }}/etc/hosts"
+    - "{{ build_root }}/etc/resolv.conf"
+    - "{{ build_image_root }}/casper/{{ build_base_image }}"
 
 - name: create squashfs image from chroot
   command: >
