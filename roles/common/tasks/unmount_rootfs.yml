@@ -10,7 +10,7 @@
 # =============================================================================
 
 ---
-- name: un-mount rootfs in build directory
+- name: un-mount rootfs in build directory {{ build_root }}
   mount: 
     name: "{{ build_root }}/{{ item }}"
     src: none
@@ -21,14 +21,14 @@
     - dev
     - proc
 
-- name: un-mount if build directory is mounted
+- name: un-mount if build directory {{ build_root }} is mounted
   mount: 
     name: "{{ build_root }}"
     src: tmpfs
     fstype: tmpfs
     state: unmounted
 
-- name: remove build directory
+- name: remove build directory {{ build_root }}
   file: 
     path: "{{ build_root }}"
     state: absent
