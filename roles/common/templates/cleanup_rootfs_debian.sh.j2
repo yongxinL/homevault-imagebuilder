@@ -35,8 +35,8 @@ unlink /vmlinuz
 echo "done!"
 
 echo -n "cleanup unnecessary locale files ..."
-find /usr/share/locale -mindepth 1 -maxdepth 1 ! -name 'en' |xargs rm -rf
-find /usr/share/i18n/charmaps -mindepth 1 -maxdepth 1 |xargs rm -r
+#find /usr/share/locale -mindepth 1 -maxdepth 1 ! -name 'en' |xargs rm -rf
+#find /usr/share/i18n/charmaps -mindepth 1 -maxdepth 1 |xargs rm -r
 echo "done!"
 
 echo -n "cleanup unnecessary APT cache and compress files ..."
