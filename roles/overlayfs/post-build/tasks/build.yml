@@ -1,0 +1,61 @@
+# =============================================================================
+#
+# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# =============================================================================
+
+---
+- name: update local and create image directory
+  file:
+    path: "{{ build_image_root }}/{{ item }}"
+    state: directory
+  with_items:
+    - casper
+
+- name: update local and unmount rootfs in build directory
+  mount: 
+    name: "{{ build_root }}/{{ item }}"
+    src: none
+    fstype: none
+    state: unmounted
+  with_items:
+    - proc
+    - dev
+    - dev/pts
+
+- name: update target and remove repository list from target rootfs
+  file:
+    path: "{{ build_root }}/{{ item.dest }}"
+    state: absent
+  with_flattened:
+    - "{{ ubuntu_repo_lists }}"
+
+- name: update target and update repository list to target rootfs
+  lineinfile:
+    dest: "{{ build_root }}/{{ item.dest }}"
+    line: "{{ item.line }}"
+    state: present
+    create: yes
+  with_items:
+    - { dest: '/etc/apt/sources.list', line: 'deb http://au.archive.ubuntu.com/ubuntu/ {{ debstrap_suite }} main' }
+    - { dest: '/etc/apt/sources.list.d/universe.list', line: 'deb http://au.archive.ubuntu.com/ubuntu/ {{ debstrap_suite }} universe' }
+
+- name: update target and remove unused files before creating image
+  file:
+    path: "{{ item }}"
+    state: absent
+  with_items:
+    - "{{ build_root }}/usr/sbin/policy-rc.d"
+    - "{{ build_root }}/etc/hostname"
+    - "{{ build_root }}/etc/hosts"
+    - "{{ build_root }}/etc/resolv.conf"
+    - "{{ build_image_root }}/casper/{{ build_overlay_image }}"
+
+- name: create squashfs image from chroot
+  command: >
+    mksquashfs {{ build_root }} {{ build_image_root }}/casper/{{ build_overlay_image }} -e boot -noappend
