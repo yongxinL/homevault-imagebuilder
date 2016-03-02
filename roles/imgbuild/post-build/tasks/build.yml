@@ -10,7 +10,16 @@
 # =============================================================================
 
 ---
-- name: unmount rootfs in build directory
+- name: update local and create image directory
+  file:
+    path: "{{ build_image_root }}/{{ item }}"
+    state: directory
+  with_items:
+    - casper
+    - isolinux
+    - syslinux    
+
+- name: update local and unmount rootfs in build directory
   mount: 
     name: "{{ build_root }}/{{ item }}"
     src: none
@@ -20,14 +29,6 @@
     - proc
     - dev
     - dev/pts
-
-- name: update local and create target directory
-  file:
-    path: "{{ build_image_root }}/{{ item }}"
-    state: directory
-  with_items:
-    - isolinux
-    - syslinux
 
 - name: update local and download hardware detection tool (PCIID)
   get_url:
@@ -51,10 +52,19 @@
     dest={{ build_image_root }}/{{ item.dest }}
   with_items: "{{ syslinux_configuration }}"
 
-- name: update local and remove squashfs image if it exists
-  file: 
-    path: "/tmp/{{ build_image_iso }}"
+- name: update target and remove unused files before creating image
+  file:
+    path: "{{ item }}"
     state: absent
+  with_items:
+    - "{{ build_root }}/usr/sbin/policy-rc.d"
+    - "{{ build_root }}/etc/hostname"
+    - "{{ build_root }}/etc/hosts"
+    - "{{ build_root }}/etc/resolv.conf"
+    - "/tmp/{{ build_image_iso }}"
+
+- name: update target and exclude base squashfs from image
+  command:  mv "{{ build_image_root }}/casper/{{ build_base_image }}" /tmp
 
 - name: generate iso image {{ build_image_iso }} in /tmp
   command: >
