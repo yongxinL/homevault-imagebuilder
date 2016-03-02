@@ -69,7 +69,8 @@ overylay_private_folder: '/etc /home /root'
 # Specify file name for initrd, vmlinuz, base and overlay squashfs
 build_image_initrd: 'initrd.lz'
 build_image_vmlinuz: 'vmlinuz'
-build_base_image: 'filesystem.squashfs'
+build_base_image: 'basefs.squashfs'
+build_overlay_image: 'filesystem.squashfs'
 
 # .. envvar:: build_image_iso
 #
