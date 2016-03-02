@@ -20,6 +20,29 @@
            {{ build_root }}
            {{ debstrap_mirror }}
 
+- name: update target and setup hostname and network services
+  file:
+    path: "{{ build_root }}/{{ item }}"
+    state: absent
+  with_items:
+    - /etc/hostname
+    - /etc/hosts
+    - /etc/resolv.conf
+
+- name: update target and setup hostname and network services
+  lineinfile:
+    dest: "{{ build_root }}/{{ item.dest }}"
+    line: "{{ item.line }}"
+    state: present
+    create: yes
+  with_items:
+    - { dest: '/etc/hostname', line: '{{ target_host_name }}.{{ target_host_domain }}' }
+    - { dest: '/etc/hosts', line: '127.0.0.1  localhost' }
+    - { dest: '/etc/hosts', line: '127.0.0.1  {{ target_host_name }}  {{ target_host_name }}.{{ target_host_domain }}' }
+    - { dest: '/etc/resolv.conf', line: 'domain {{ target_host_domain }}' }
+    - { dest: '/etc/resolv.conf', line: 'search {{ target_host_domain }}' }
+    - { dest: '/etc/resolv.conf', line: 'nameserver 8.8.8.8' }
+
 - name: update target and copy dpkg to exclude unwant items
   copy:
     src: "{{ playbook_dir }}/files/{{ item.name }}"
