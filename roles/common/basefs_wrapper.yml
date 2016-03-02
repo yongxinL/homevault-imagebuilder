@@ -19,7 +19,7 @@
   roles:
     - ../basefs/pre-build
 
-- hosts: basefs_rootfs
+- hosts: build_rootfs
   vars_files:
     - ../../{{ config_file }}
   roles:
