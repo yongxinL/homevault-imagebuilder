@@ -9,6 +9,7 @@
 #
 # =============================================================================m
 
+---
 - name: uninstall Linux kernel image and dependency
   apt: 
     name: "linux-image-{{ build_kernel_version }}"

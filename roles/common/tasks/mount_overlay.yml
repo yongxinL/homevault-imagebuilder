@@ -10,14 +10,14 @@
 # =============================================================================
 
 ---
-- name: check basefs squashfs image
+- name: environment check - base squashfs image
   stat:
     path: "{{ build_image_root }}/casper/{{ build_base_image }}"
-  register: baseimage_file
+  register: squashfs_exist
 
 - fail:
     msg: "Whoops! base squashfs image does not exist"
-  when: baseimage_file.stat.exists == False
+  when: squashfs_exist.stat.exists == False
 
 - name: update local and create overlay directories
   file:

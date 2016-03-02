@@ -10,7 +10,7 @@
 # =============================================================================
 
 ---
-- name: mount rootfs in build directory
+- name: mount rootfs in build directory {{ build_root }}
   mount: 
     name: "{{ build_root }}"
     src: tmpfs
