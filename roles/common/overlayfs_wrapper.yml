@@ -1,0 +1,37 @@
+# =============================================================================
+#
+# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# =============================================================================
+
+---
+- hosts: build_local
+  vars_files:
+    - ../../{{ config_file }}
+  pre_tasks:
+    - include: tasks/unmount_rootfs.yml
+    - include: tasks/unmount_overlay.yml
+    - include: tasks/mount_overlay.yml
+  roles:
+    - ../overlayfs/pre-build
+
+- hosts: build_rootfs
+  vars_files:
+    - ../../{{ config_file }}
+  roles:
+    #- ../extra/example
+  post_tasks:
+    - include: tasks/cleanup_rootfs_debian.yml
+
+- hosts: build_local
+  vars_files:
+    - ../../{{ config_file }}
+  roles:
+    - ../overlayfs/post-build
+  post_tasks:
+    - include: tasks/unmount_overlay.yml
