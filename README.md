@@ -12,7 +12,7 @@ create bootable image or livecd for home network server
 Requirements
 ---------------
 - Any Debian/Ubuntu base system
-- Ansible is installed
-- Internet access or network access to an apt cache/proxy server from the build machine.
+- Ansible 1.9 or above is installed
+- Internet access or network access to an apt cache/proxy server from the build machine.(you might can setup a apt-cacher-ng server in your network to reduce the internet access
 
 <br>
