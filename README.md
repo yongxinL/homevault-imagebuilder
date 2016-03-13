@@ -1,4 +1,4 @@
-# homevault-imagebuilder
+homevault-imagebuilder
 ===============
 
 Copyright (C) 2010-2016     George Li <yongxinl@outlook.com>
