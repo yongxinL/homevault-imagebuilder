@@ -1,0 +1,171 @@
+#
+# openLDAP  configuration file for Debian GNU/Linux.
+#
+#=======================openLDAP Settings =======================
+#
+## Global directives
+dn: cn=config
+objectClass: olcGlobal
+cn: config
+## Where the pid file is put. The init.d script will not stop the 
+#  server if you change this.
+olcPidFile: /var/run/slapd/slapd.pid
+## List of arguments that were passed to the server
+olcArgsFile: /var/run/slapd/slapd.args
+## Log level.
+#   -1:   enable all debugging
+#    0:   no debugging
+#   128:  access control list processing
+#   256:  stats log connections/operations/results
+olcLogLevel: 393
+# The tool-threads parameter sets the actual amount of cpu's that is used for indexing.
+olcToolThreads: 1
+
+## Frontend settings
+dn: olcDatabase={-1}frontend,cn=config
+objectClass: olcDatabaseConfig
+objectClass: olcFrontendConfig
+olcDatabase: {-1}frontend
+# The maximum number of entries that is returned for a search operation
+olcSizeLimit: 500
+# Allow unlimited access to local connection from the local root user
+olcAccess: {0}to * by dn.exact=gidNumber=0+uidNumber=0,cn=peercred,cn=external,cn=auth manage by * break
+# Allow unauthenticated read access for schema and base DN autodiscovery
+olcAccess: {1}to dn.exact="" by * read
+olcAccess: {2}to dn.base="cn=Subschema" by * read
+
+## Config db settings
+dn: olcDatabase=config,cn=config
+objectClass: olcDatabaseConfig
+olcDatabase: config
+# Allow unlimited access to local connection from the local root user
+olcAccess: to * by dn.exact=gidNumber=0+uidNumber=0,cn=peercred,cn=external,cn=auth manage by * break
+
+# Load schemas
+dn: cn=schema,cn=config
+objectClass: olcSchemaConfig
+cn: schema
+
+## Specifies that slapd should read additional configuration
+#  commonly used to include files containing shema specifications.
+include: file:///etc/ldap/schema/core.ldif
+include: file:///etc/ldap/schema/corba.ldif
+include: file:///etc/ldap/schema/cosine.ldif
+include: file:///etc/ldap/schema/inetorgperson.ldif
+include: file:///etc/ldap/schema/nis.ldif
+include: file:///etc/ldap/schema/amavis.ldif
+include: file:///etc/ldap/schema/openldap.ldif
+include: file:///etc/ldap/schema/pmi.ldif
+include: file:///etc/ldap/schema/postfix.ldif
+include: file:///etc/ldap/schema/ppolicy.ldif
+include: file:///etc/ldap/schema/samba.ldif
+
+# Load module
+dn: cn=module{0},cn=config
+objectClass: olcModuleList
+cn: module{0}
+olcModulePath: /usr/lib/ldap
+olcModuleLoad: back_@BACKEND@
+
+# Set defaults for the backend
+dn: olcBackend=@BACKEND@,cn=config
+objectClass: olcBackendConfig
+olcBackend: @BACKEND@
+
+# The database definition.
+dn: olcDatabase=@BACKEND@,cn=config
+objectClass: olcDatabaseConfig
+objectClass: @BACKENDOBJECTCLASS@
+olcDatabase: @BACKEND@
+olcDbCheckpoint: 512 30
+olcDbConfig: set_cachesize 0 2097152 0
+olcDbConfig: set_lk_max_objects 1500
+olcDbConfig: set_lk_max_locks 1500
+olcDbConfig: set_lk_max_lockers 1500
+olcLastMod: TRUE
+olcSuffix: @SUFFIX@
+olcDbDirectory: {{ target_appdata_root }}/{{ install_role_name }}
+olcRootDN: cn=admin,@SUFFIX@
+olcRootPW: @PASSWORD@
+## Indexing options for database #1
+olcDbIndex: objectClass   eq,pres
+olcDbIndex: uidNumber,gidNumber,uid,memberUid,loginShell    eq,pres
+olcDbIndex: ou,cn,mail,surname,givenname,displayName    pres,eq,approx,sub
+olcDbIndex: homeDirectory,mailMessageStore    eq,pres
+olcDbIndex: nisMapName,nisMapEntry    eq,pres,sub
+olcDbIndex: shadowLastChange    eq,pres
+## Indexing options for Domain object
+olcDbIndex: domainName,mtaTransport,accountStatus,enabledService,disabledService  eq,pres,sub
+olcDbIndex: domainAliasName    eq,pres,sub
+olcDbIndex: domainMaxUserNumber   eq,pres
+olcDbIndex: domainAdmin,domainGlobalAdmin,domainBackupMX    eq,pres,sub
+olcDbIndex: domainSenderBccAddress,domainRecipientBccAddress    eq,pres,sub
+## Indexing options for Group object
+olcDbIndex: accessPolicy,hasMember,listAllowedUser   eq,pres,sub
+## Indexing options for User object
+olcDbIndex: mailForwardingAddress,shadowAddress   eq,pres,sub
+olcDbIndex: backupMailAddress,memberOfGroup   eq,pres,sub
+olcDbIndex: userRecipientBccAddress,userSenderBccAddress  eq,pres,sub
+## Access Control
+#  allow users to change their own passwords and mail forwarding addresses.
+olcAccess: to attrs=userPassword,shadowLastChange,mailForwardingAddress,storageBaseDirectory,homeDirectory,mailMessageStore
+  by anonymous  auth
+  by self write
+  by dn.base="cn=proxyuser,ou=Roles,@SUFFIX@" read
+  by dn.base="cn=admin,@SUFFIX@" write
+  by * none
+#  allow to read others public info.
+olcAccess: to attrs=cn,sn,gn,givenName,telephoneNumber
+  by anonymous auth
+  by self write
+  by dn.base="cn=proxyuser,ou=Roles,@SUFFIX@" read
+  by dn.base="cn=admin,@SUFFIX@" write
+  by users read
+#  allow to read Domain attrs
+olcAccess: to attrs=objectclass,mtaTransport,enabledService,domainSenderBccAddress,domainRecipientBccAddress,domainBackupMX,domainMaxQuotaSize,domainMaxUserNumber
+  by anonymous auth
+  by self read
+  by dn.base="cn=proxyuser,ou=Roles,@SUFFIX@" read
+  by dn.base="cn=admin,@SUFFIX@" write
+  by users read
+#  allow to read Domain attrs
+olcAccess: to attrs=domainSenderBccAddress,domainRecipientBccAddress
+  by anonymous auth
+  by self read
+  by dn.base="cn=proxyuser,ou=Roles,@SUFFIX@" read
+  by dn.base="cn=admin,@SUFFIX@" write
+  by users none
+#  allow to read User attrs
+olcAccess: to attrs=mail,accountStatus,userSenderBccAddress,userRecipientBccAddress,mailQuota,backupMailAddress,shadowAddress,memberOfGroup
+  by anonymous auth
+  by self read
+  by dn.base="cn=proxyuser,ou=Roles,@SUFFIX@" read
+  by dn.base="cn=admin,@SUFFIX@" write
+  by users read
+## set ACL for proxyuser/admin.
+olcAccess: to dn.base="cn=proxyuser,ou=Roles,@SUFFIX@"
+  by anonymous auth
+  by self write
+  by users none
+olcAccess: to dn.base="cn=admin,@SUFFIX@"
+  by anonymous auth
+  by self write
+  by users none
+## grant correct privileges to proxyuser/admin.
+olcAccess: to dn.subtree="ou=domains,@SUFFIX@"
+  by anonymous auth
+  by self write
+  by dn.base="cn=proxyuser,ou=Roles,@SUFFIX@" read
+  by dn.base="cn=admin,@SUFFIX@" write
+  by users none
+## set permission for "cn=*,dc={{ target_host_domain.split('.')[0] }},dc={{ target_host_domain.split('.')[1] }}".
+olcAccess: to dn.regex="cn=[^,]+,@SUFFIX@"
+  by anonymous auth
+  by self write
+  by users none
+## Set default permission
+olcAccess: to *
+  by dn.base="cn=admin,@SUFFIX@" write
+  by anonymous auth
+  by self write
+  by * read

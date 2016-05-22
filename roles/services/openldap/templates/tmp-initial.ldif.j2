@@ -1,0 +1,129 @@
+# SAMBA LDAP PRELOAD
+# Subsitute SID SS-1-5-21-2517623661-1638834621-3956637530 with your domain SID
+# Be sure to leave the SID group mapping.
+# Subsitute dc={{ target_host_domain.split('.')[0] }},dc={{ target_host_domain.split('.')[1] }} with your fully qualified domain name.
+# Subsitute sambaDomainName: {{ target_host_name }} with your Samba Domain Name
+
+# The user to bind Samba to LDAP is defined in our smb.conf; 
+# [root@node]#  smbpasswd -w SambaAdmin)
+# [root@node]#  smbpasswd -w SambaAdmin)
+
+dn: ou=Domains,dc={{ target_host_domain.split('.')[0] }},dc={{ target_host_domain.split('.')[1] }}
+objectClass: top
+objectClass: organizationalUnit
+ou: Domains
+description: Domains
+
+dn: ou=Groups,dc={{ target_host_domain.split('.')[0] }},dc={{ target_host_domain.split('.')[1] }}
+objectClass: top
+objectClass: organizationalUnit
+ou: Groups
+description: Domain Groups
+
+dn: ou=Users,dc={{ target_host_domain.split('.')[0] }},dc={{ target_host_domain.split('.')[1] }}
+objectClass: top
+objectClass: organizationalUnit
+ou: Users
+description: Domain Users
+
+dn: ou=Roles,dc={{ target_host_domain.split('.')[0] }},dc={{ target_host_domain.split('.')[1] }}
+objectClass: top
+objectClass: organizationalUnit
+ou: Roles
+description: Domain Roles
+
+dn: sambaDomainName={{ target_host_name }},ou=Domains,dc={{ target_host_domain.split('.')[0] }},dc={{ target_host_domain.split('.')[1] }}
+objectClass: sambaDomain
+objectClass: sambaUnixIdPool
+uidNumber: 1000
+gidNumber: 1000
+sambaDomainName: {{ target_host_name }}
+sambaSID: SS-1-5-21-2517623661-1638834621-3956637530
+sambaAlgorithmicRidBase: 1000
+
+dn: cn=Domain Admins,ou=Groups,dc={{ target_host_domain.split('.')[0] }},dc={{ target_host_domain.split('.')[1] }}
+objectClass: posixGroup
+objectClass: sambaGroupMapping
+cn: Domain Admins
+sambaGroupType: 2
+displayName: Domain Admins
+description: Domain Administrators
+gidNumber: 601
+sambaSID: SS-1-5-21-2517623661-1638834621-3956637530-601
+
+dn: cn=Domain Users,ou=Groups,dc={{ target_host_domain.split('.')[0] }},dc={{ target_host_domain.split('.')[1] }}
+objectClass: posixGroup
+objectClass: sambaGroupMapping
+cn: Domain Users
+sambaGroupType: 2
+displayName: Domain Users
+description: Domain Users
+gidNumber: 602
+sambaSID: SS-1-5-21-2517623661-1638834621-3956637530-602
+
+dn: cn=Domain Guests,ou=Groups,dc={{ target_host_domain.split('.')[0] }},dc={{ target_host_domain.split('.')[1] }}
+objectClass: posixGroup
+objectClass: sambaGroupMapping
+cn: Domain Guests
+sambaGroupType: 2
+displayName: Domain Guests
+description: Domain Guests
+gidNumber: 603
+sambaSID: SS-1-5-21-2517623661-1638834621-3956637530-603
+
+dn: cn=proxyuser,ou=Roles,dc={{ target_host_domain.split('.')[0] }},dc={{ target_host_domain.split('.')[1] }}
+objectClass: top
+objectClass: inetOrgPerson
+objectClass: posixAccount
+objectClass: shadowAccount
+cn: proxyuser
+givenName: proxy
+sn: user
+uid: proxyuser
+uidNumber: 1001
+gidNumber: 603
+homeDirectory: /home/nologin
+loginShell: /sbin/nologin
+displayName: proxyuser
+description: Account for read-only access
+userPassword: {SHA}5en6G6MezRroT3XKqkdPOmY/BfQ=
+
+dn: uid=postmaster,ou=Roles,dc={{ target_host_domain.split('.')[0] }},dc={{ target_host_domain.split('.')[1] }}
+objectClass: top
+objectClass: inetOrgPerson
+objectClass: amavisAccount
+objectClass: shadowAccount
+objectClass: mailUser
+description: Account for mailbox postmaster
+cn: postmaster
+givenName: post
+sn: master
+uid: postmaster
+mail: postmaster@{{ target_host_domain }}
+mailQuota: 10485760
+accountStatus: active
+enabledService: displayedInGlobalAddressBook
+enabledService: lmtp
+enabledService: lib-storage
+amavisLocal: TRUE
+enabledService: recipientbcc
+enabledService: sievesecured
+enabledService: smtp
+enabledService: deliver
+enabledService: managesieve
+enabledService: forward
+enabledService: lda
+enabledService: pop3
+enabledService: indexer-worker
+enabledService: smtpsecured
+enabledService: dsync
+enabledService: mail
+enabledService: pop3secured
+enabledService: imapsecured
+enabledService: sieve
+enabledService: senderbcc
+enabledService: internal
+enabledService: shadowaddress
+enabledService: managesievesecured
+enabledService: doveadm
+enabledService: imap
