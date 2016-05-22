@@ -1,0 +1,58 @@
+# =============================================================================
+#
+# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# =============================================================================
+
+# Default variables
+# =================
+
+# .. contents:: Sections
+#    :local:
+#
+# ------------------------------------
+#   Packages and installation
+# ------------------------------------
+install_role_name: 'java8'
+
+# .. envvar:: apt_proxy
+#
+# Specify apt cacher / proxy link, like 'x.x.x.x:3142/'
+apt_proxy:
+
+# .. envvar:: ansible_repo_keyserver
+# .. envvar:: ansible_repo_keyid
+#
+# APT GPG key server and id used to sign the ansible packages.
+java_repo_keyserver: 'keyserver.ubuntu.com'
+java_repo_keyid: 'EEA14886'
+
+# .. envvar:: ansible_repository
+#
+# Address of the ansible APT repository.
+java_repository:
+  - { dest: '/etc/apt/sources.list.d/{{ install_role_name }}.list', line: 'deb http://{{ apt_proxy }}ppa.launchpad.net/webupd8team/java/{{ ansible_distribution | lower }} {{ ansible_distribution_release }} main' }
+
+# .. envvar:: ansible_base_packages
+#
+# List of base packages to install by Ansible
+# package: package will be installed
+# version: package version, default is '*'
+# example: - { package: 'package', version: '1.2' }
+java_base_packages:
+  - { package: 'oracle-java8-installer' }
+  - { package: 'oracle-java8-set-default' }
+
+# .. envvar:: ansible_packages
+#
+# List of additional packages to install by Ansible
+# package: package will be installed
+# version: package version, default is '*'
+# example: - { package: 'package', version: '1.2' }
+java_packages:
+  - { package: 'ca-certificates' }

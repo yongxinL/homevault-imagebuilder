@@ -1,0 +1,110 @@
+{% macro generate_output(hash) %}
+  {% for key, value in hash.iteritems() %}
+  {{"%-25s" | format(key) }} = {{ value }}
+  {% endfor %}
+{% endmacro %}
+#
+# MariaDB database server configuration file.
+#
+# For explanations see
+# http://dev.mysql.com/doc/mysql/en/server-system-variables.html
+#
+#======================= MariaDB Settings =======================
+[client]
+    port                      = 3306
+    socket                    = /var/run/mysqld/mysqld.sock
+
+# This was formally known as [safe_mysqld]. Both versions are currently parsed.
+[mysqld_safe]
+    socket                    = /var/run/mysqld/mysqld.sock
+    nice                      = 0
+
+[mysqld]
+    # * Basic Settings
+    pid-file                  = /var/run/mysqld/mysqld.pid
+    socket                    = /var/run/mysqld/mysqld.sock
+    basedir                   = /usr
+    tmpdir                    = /tmp
+    lc_messages_dir           = /usr/share/mysql
+    lc_messages               = en_US
+    skip-external-locking
+
+    # * Fine Tuning
+    # Managed by ansible
+
+    # * MyISAM
+    myisam_recover            = BACKUP
+    key_buffer_size           = 128M
+    #open-files-limit         = 2000
+    table_open_cache          = 400
+    myisam_sort_buffer_size   = 512M
+    concurrent_insert         = 2
+    read_buffer_size          = 2M
+    read_rnd_buffer_size      = 1M
+
+    # * Query Cache Configuration
+    # Managed by ansible
+
+    # * Logging and Replication
+    # Be aware that this log type is a performance killer.
+    # As of 5.1 you can enable the log at runtime!
+    #general_log_file        = /var/log/mysql/mysql.log
+    #general_log             = 1
+
+    # Error logging goes to syslog due to /etc/mysql/conf.d/mysqld_safe_syslog.cnf.
+    log_warnings    = 2
+
+    # Enable the slow query log to see queries with especially long duration
+    #slow_query_log[={0|1}]
+    slow_query_log_file = /var/log/mysql/mariadb-slow.log
+    long_query_time = 10
+    #log_slow_rate_limit  = 1000
+    log_slow_verbosity  = query_plan
+
+    # The following can be used as easy to replay backup logs or for replication.
+    # note: if you are setting up a replication slave, see README.Debian about
+    #       other settings you may need to change.
+    #server-id    = 1
+    #report_host    = master1
+    #auto_increment_increment = 2
+    #auto_increment_offset  = 1
+    #log_bin     = /var/log/mysql/mariadb-bin
+    #log_bin_index   = /var/log/mysql/mariadb-bin.index
+    # not fab for performance, but safer
+    #sync_binlog    = 1
+    #expire_logs_days  = 10
+    #max_binlog_size         = 100M
+
+    # * InnoDB
+    # InnoDB is enabled by default with a 10MB datafile in /var/lib/mysql/.
+    # Read the manual for more InnoDB related options. There are many!
+    # Managed by ansible
+
+    # For generating SSL certificates I recommend the OpenSSL GUI "tinyca".
+    #
+    # ssl-ca=/etc/mysql/cacert.pem
+    # ssl-cert=/etc/mysql/server-cert.pem
+    # ssl-key=/etc/mysql/server-key.pem
+
+    # BEGIN MANAGED mariadb BLOCK
+{% if mariadb_mysqld_conf is defined and mariadb_mysqld_conf %}
+{{ generate_output(hash=mariadb_mysqld_conf) }}
+{% endif %}
+    # END MANAGED mariadb BLOCK
+
+[mysqldump]
+    quick
+    quote-names
+    max_allowed_packet        = 16M
+
+[mysql]
+    #no-auto-rehash # faster start of mysql but no tab completition
+
+[isamchk]
+    key_buffer                = 16M
+
+#
+# * IMPORTANT: Additional settings that can override those from this file!
+#   The files must end with '.cnf', otherwise they'll be ignored.
+#
+!includedir /etc/mysql/conf.d/

@@ -1,0 +1,44 @@
+# =============================================================================
+#
+# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# =============================================================================
+
+---
+- name: update target and add {{ install_role_name }} repository key
+  apt_key: 
+    url: "{{ nodejs_repo_key }}"
+    state: present
+
+- name: update target and add {{ install_role_name }} repository list
+  lineinfile: 
+    dest: "{{ item.dest }}"
+    line: "{{ item.line }}"
+    create: yes
+    state: present
+  with_items: "{{ nodejs_repository }}"
+
+- name: update target and install required {{ install_role_name }} packages
+  apt: 
+    name: "{{ item.package }}={{ item.version|default('*') }}"
+    install_recommends: no
+    update_cache: yes
+  register: install_pkgs
+  until: install_pkgs|success
+  retries: 2
+  delay: 5
+  with_flattened:
+    - "{{ nodejs_base_packages }}"
+    - "{{ nodejs_packages }}"
+
+- name: update target and remove {{ install_role_name }} repository list
+  file: 
+    path: "{{ item.dest }}"
+    state: absent
+  with_flattened:
+    - "{{ nodejs_repository }}"

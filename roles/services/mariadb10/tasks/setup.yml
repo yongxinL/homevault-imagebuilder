@@ -1,0 +1,105 @@
+# =============================================================================
+#
+# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# =============================================================================
+
+---
+- name: check directory status in target
+  stat:
+    path: "/var/lib/mysql"
+  register: check_path_mysqldb
+
+- name: update target and create {{ install_role_name }} database dump
+  command: "{{ item }} chdir=/var/lib"
+  with_items:
+    - rm -rf /var/lib/mysql/ib_logfile*
+    - tar -czf /etc/mysql/mysqldb_init.tar.gz mysql
+
+- name: update target and temporary starting {{ install_role_name }} service
+  service:
+    name: mysql
+    state: started
+
+- name: encrypt password hash for {{ install_role_name }} root 
+  command: >
+    mysql -NBe "select password('{{ target_root_password }}')"
+  register: mysql_password_hash
+
+- name: update target and stopping {{ install_role_name }} service
+  service:
+    name: mysql
+    state: stopped
+
+- name: update target and remove {{ install_role_name }} database
+  file:
+    path: "/var/lib/mysql"
+    state: absent
+
+- name: update target and copy {{ install_role_name }} configure files
+  template:
+    src: "{{ item.name }}"
+    dest: "{{ item.dest }}"
+    owner: root
+    group: root
+    mode: "{{ item.mode|default('0644') }}"
+  with_items: "{{ mariadb_configuration }}"
+
+- name: update target and remove {{ install_role_name }} services from booting
+  command: update-rc.d -f {{ item }} remove
+  with_items:
+    - mysql
+  when: ansible_os_family == "Debian"
+
+- name: update target and include init-functions into rc.local
+  lineinfile:
+    dest: "/etc/rc.local"
+    line: ". /lib/lsb/init-functions"
+    insertafter: "# By default this script does nothing."
+    owner: root
+    group: root
+    mode: 0755
+    state: present
+    create: yes
+
+- name: update target and start {{ install_role_name }} from rc.local
+  blockinfile:
+    dest: "/etc/rc.local"
+    insertbefore: "exit 0"
+    marker: "# {mark} MANAGED {{ install_role_name }} BLOCK"
+    owner: root
+    group: root
+    mode: 0755
+    state: present
+    create: yes 
+    block: |
+      if [ ! -f "/etc/setup_{{ install_role_name }}.done" ]; then
+        log_begin_msg "Initializing {{ install_role_name }} environment"
+        #MARK_{{ install_role_name }}_DATA
+        tar -xvf /etc/mysql/mysqldb_init.tar.gz -C {{ target_appdata_root }} > /dev/null
+        echo "UPDATE mysql.user SET Password='{{ mysql_password_hash.stdout}}' WHERE User='root';" | mysqld --bootstrap > /dev/null
+        touch "/etc/setup_{{ install_role_name }}.done"
+        log_end_msg 0
+      fi
+
+      if [ $(ps -ef | grep -c mysql) != 1 ]; then
+        service mysql restart
+      else
+        service mysql start
+      fi
+  when: ansible_os_family == "Debian"
+
+- name: update target and start {{ install_role_name }} from rc.local
+  lineinfile:
+    dest: "/etc/rc.local"
+    line: "{{ item }}"
+    insertafter: "#MARK_{{ install_role_name }}_DATA"
+    state: present
+  with_items:
+    - '  [ ! -d "{{ target_appdata_root }}/mysql" ] && { mkdir -p "{{ target_appdata_root }}/mysql" && chmod -R 644 "{{ target_appdata_root }}/mysql"; }'
+  when: target_appdata_root is defined and target_appdata_root

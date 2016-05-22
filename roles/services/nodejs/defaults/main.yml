@@ -1,0 +1,66 @@
+# =============================================================================
+#
+# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# =============================================================================
+
+# Default variables
+# =================
+
+# .. contents:: Sections
+#    :local:
+#
+# ------------------------------------
+#   Packages and installation
+# ------------------------------------
+install_role_name: 'nodejs'
+
+# .. envvar:: target_appdata_root
+#
+# Specify folder that will be use as new location of application data files
+# in case if you want to collect all appdata files in one
+target_appdata_root:
+
+# .. envvar:: nodejs_repo_key
+#
+# APT GPG key server and id used to sign the Docker packages.
+nodejs_repo_key: 'https://deb.nodesource.com/gpgkey/nodesource.gpg.key'
+
+# .. envvar:: nodejs_version
+#
+# APT GPG key server and id used to sign the Docker packages.
+nodejs_version: '0.12'
+
+
+# .. envvar:: apt_proxy
+#
+# Specify apt cacher / proxy link, like 'x.x.x.x:3142/'
+apt_proxy:
+
+# .. envvar:: nodejs_repository
+#
+# address of the Docker upstream APT repository.
+nodejs_repository:
+  - { dest: '/etc/apt/sources.list.d/{{ install_role_name }}.list', line: 'deb http://{{ apt_proxy }}deb.nodesource.com/node_{{ nodejs_version }} {{ ansible_distribution_release }} main' }
+
+# .. envvar:: nodejs_base_packages
+#
+# List of base packages to install by Ansible
+# package: package will be installed
+# version: package version, default is '*'
+# example: - { package: 'package', version: '1.2' }
+nodejs_base_packages:
+  - { package: 'nodejs' }
+
+# .. envvar:: nodejs_packages
+#
+# List of additional packages to install by Ansible
+# package: package will be installed
+# version: package version, default is '*'
+# example: - { package: 'package', version: '1.2' }
+nodejs_packages: []

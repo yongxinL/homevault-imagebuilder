@@ -1,0 +1,72 @@
+# {{ ansible_managed }}
+
+user                                root;
+error_log                           /var/log/nginx/error.log warn;
+pid                                 /var/run/nginx.pid;
+worker_processes                    1;
+worker_priority                     10;
+worker_rlimit_nofile                4096;
+
+events {
+    worker_connections              1024;
+}
+
+http {
+    include                         /etc/nginx/mime.types;
+    default_type                    application/octet-stream;
+
+    server_tokens                   off;
+
+    server_names_hash_bucket_size   64;
+    server_names_hash_max_size      512;
+
+    # Custom file paths
+    client_body_temp_path           /var/cache/nginx/client_temp;
+    fastcgi_temp_path               /var/cache/nginx/fastcgi_temp;
+    proxy_temp_path                 /var/cache/nginx/proxy_temp;
+    scgi_temp_path                  /var/cache/nginx/scgi_temp;
+    uwsgi_temp_path                 /var/cache/nginx/uwsgi_temp;
+
+    access_log                      /var/log/nginx/access.log;
+    error_log                       /var/log/nginx/error.log;
+    log_format                      main  '$remote_addr - $remote_user [$time_local] "$request" '
+                                    '$status $body_bytes_sent "$http_referer" '
+                                    '"$http_user_agent" "$http_x_forwarded_for"';
+
+    # HTTP options
+    ssl_session_cache               shared:SSL:10m;
+    ssl_session_timeout             5m;
+    ssl_ciphers                     HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers       on;
+    sendfile                        on;
+    tcp_nopush                      on;
+    tcp_nodelay                     on;
+    types_hash_max_size             2048;
+
+    gzip                            on;
+    gzip_http_version               1.1;
+    gzip_comp_level                 6;
+    gzip_min_length                 1100;
+    gzip_buffers                    4 8k;
+    gzip_types                      text/plain application/xhtml+xml text/css application/xml application/xml+rss text/javascript application/javascript application/x-javas$
+    gzip_proxied                    any;
+    gzip_disable                    "MSIE [1-6]\.";
+
+    ## Start: Size Limits & Buffer Overflows ##
+    client_body_buffer_size         1K;
+    client_header_buffer_size       1k;
+    large_client_header_buffers     2 1k;
+    # getting 413 request entity too large error
+    client_max_body_size            768M;
+    ## END: Size Limits & Buffer Overflows ##
+
+    ## Start: Timeouts ##
+    client_body_timeout             10;
+    client_header_timeout           10;
+    keepalive_timeout               60 60;
+    send_timeout                    10;
+    ## End: Timeouts ##
+
+    # Virtual Hosts Configs
+    include /etc/nginx/conf.d/*.conf;
+}

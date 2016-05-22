@@ -1,0 +1,56 @@
+{% macro generate_output(hash) %}
+  {% for key, value in hash.iteritems() %}
+  {{"%-25s" | format(key) | replace("_"," ") }} = {{ value }}
+  {% endfor %}
+{% endmacro %}
+#
+# Samba configuration file for Debian GNU/Linux.
+#
+#======================= Global Settings =======================
+[global]
+    guest account             = nobody
+    server string             = %h file storage
+    show add printer wizard   = no
+    create mask               = 0660
+    invalid users             = bin daemon adm sync shutdown halt mail news uucp proxy www-data backup sshd
+    disable spoolss           = yes
+    unix charset              = UTF8
+    hide files                = /.*/lost+found/
+    netbios name              = {{ target_host_name }}
+    syslog                    = 0
+    deadtime                  = 10
+    name resolve order        = lmhosts host wins bcast
+    use sendfile              = yes
+    map to guest              = Bad User
+    browseable                = yes
+    max log size              = 1000
+    wins support              = no
+    locking                   = yes
+    directory mask            = 0770
+    dont descend              = ./lost+found
+    wide links                = yes
+    encrypt passwords         = yes
+    obey pam restrictions     = yes
+    workgroup                 = WORKGROUP
+    unix extensions           = no
+    passdb backend            = tdbsam
+    printcap name             = /dev/null
+    dns proxy                 = no
+    unix password sync        = no
+    load printers             = no
+    printing                  = bsd
+    hide unreadable           = yes
+    security                  = user
+    follow symlinks           = yes
+    log file                  = /var/log/samba/log.%m
+{% if samba_conf_global is defined and samba_conf_global %}
+{{ generate_output(hash=samba_conf_global) }}
+{% endif %}
+
+#======================= Share Settings =======================
+{% if samba_conf_share is defined and samba_conf_share %}
+{% for item in samba_conf_share.keys() %}
+[{{ item }}]
+{{ generate_output(hash=samba_conf_share[item]) }}
+{% endfor %}
+{% endif %}

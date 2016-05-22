@@ -1,0 +1,67 @@
+# =============================================================================
+#
+# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# =============================================================================
+
+# Default variables
+# =================
+
+# .. contents:: Sections
+#    :local:
+#
+# ------------------------------------
+#   Packages and installation
+# ------------------------------------
+install_role_name: 'openssh'
+
+# .. envvar:: target_host_name
+# .. envvar:: target_host_domain
+#
+# Specify hostname and domain that should be set in the target.
+target_host_name: 'homenas'
+target_host_domain: 'domain.local'
+
+# .. envvar:: openssh_base_packages
+#
+# List of base packages to install by Ansible
+# package: package will be installed
+# version: package version, default is '*'
+# example: - { package: 'package', version: '1.2' }
+openssh_base_packages:
+  - { package: 'openssh-server' }
+  - { package: 'openssh-client' }
+
+# .. envvar:: openssh_packages
+#
+# List of additional packages to install by Ansible
+# package: package will be installed
+# version: package version, default is '*'
+# example: - { package: 'package', version: '1.2' }
+openssh_packages:
+  - { package: 'openssh-blacklist' }
+  - { package: 'openssh-blacklist-extra' }
+
+# .. envvar:: openssh_configuration
+#
+# List of configuration file will be copy to target filesystems
+openssh_configuration:
+  - { name: 'etc-issue.j2', dest: '/etc/issue' }
+  - { name: 'etc-issue.net.j2', dest: '/etc/issue.net' }
+  - { name: 'etc-motd.footer.j2', dest: '/etc/motd.footer' }
+  - { name: 'etc-motd.tail.j2', dest: '/etc/motd.tail' }
+  - { name: 'etc-motd-00-header.j2', dest: '/etc/update-motd.d/00-header', mode: '0755' }
+  - { name: 'etc-motd-99-info-text.j2', dest: '/etc/update-motd.d/99-info-text', mode: '0755' }
+#  - { name: 'etc-ssh-ssh_host_dsa_key.j2', dest: '/etc/ssh/ssh_host_dsa_key', mode: '0600' }
+#  - { name: 'etc-ssh-ssh_host_dsa_key.pub.j2', dest: '/etc/ssh/ssh_host_dsa_key.pub' }
+#  - { name: 'etc-ssh-ssh_host_ecdsa_key.j2', dest: '/etc/ssh/ssh_host_ecdsa_key', mode: '0600' }
+#  - { name: 'etc-ssh-ssh_host_ecdsa_key.pub.j2', dest: '/etc/ssh/ssh_host_ecdsa_key.pub' }
+#  - { name: 'etc-ssh-ssh_host_ed25519_key.j2', dest: '/etc/ssh/ssh_host_ed25519_key', mode: '0600' }
+#  - { name: 'etc-ssh-ssh_host_ed25519_key.pub.j2', dest: '/etc/ssh/ssh_host_ed25519_key.pub' }
+#  - { name: 'etc-ssh-ssh_host_rsa_key.j2', dest: '/etc/ssh/ssh_host_rsa_key', mode: '0600' }
+#  - { name: 'etc-ssh-ssh_host_rsa_key.pub.j2', dest: '/etc/ssh/ssh_host_rsa_key.pub' }

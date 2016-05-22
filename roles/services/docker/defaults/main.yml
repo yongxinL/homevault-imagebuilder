@@ -1,0 +1,77 @@
+# =============================================================================
+#
+# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# =============================================================================
+
+# Default variables
+# =================
+
+# .. contents:: Sections
+#    :local:
+#
+# ------------------------------------
+#   Packages and installation
+# ------------------------------------
+install_role_name: 'docker'
+
+# .. envvar:: target_appdata_root
+#
+# Specify folder that will be use as new location of application data files
+# in case if you want to collect all appdata files in one
+target_appdata_root:
+
+# .. envvar:: docker_repo_keyserver
+# .. envvar:: docker_repo_keyid
+#
+# APT GPG key server and id used to sign the Docker packages.
+docker_repo_keyserver: 'hkp://p80.pool.sks-keyservers.net:80'
+docker_repo_keyid: '58118E89F3A912897C070ADBF76221572C52609D'
+
+# .. envvar:: apt_proxy
+#
+# Specify apt cacher / proxy link, like 'x.x.x.x:3142/'
+apt_proxy:
+
+# .. envvar:: docker_repository
+#
+# address of the Docker upstream APT repository.
+docker_repository:
+  - { dest: '/etc/apt/sources.list.d/{{ install_role_name }}.list', line: 'deb http://{{ apt_proxy }}apt.dockerproject.org/repo {{ ansible_distribution | lower }}-{{ ansible_distribution_release }} main' }
+
+# .. envvar:: docker_base_packages
+#
+# List of base packages to install by Ansible
+# package: package will be installed
+# version: package version, default is '*'
+# example: - { package: 'package', version: '1.2' }
+docker_base_packages:
+  - { package: 'aufs-tools' }
+  - { package: "docker-engine" }
+
+# .. envvar:: docker_packages
+#
+# List of additional packages to install by Ansible
+# package: package will be installed
+# version: package version, default is '*'
+# example: - { package: 'package', version: '1.2' }
+docker_packages:
+  - { package: "apt-transport-https" }
+  - { package: "ca-certificates" }
+
+# .. envvar:: docker_configuration
+#
+# List of configuration file will be copy to Linux base filesystems
+docker_configuration:
+  - { name: 'etc-default-docker.j2', dest: '/etc/default/docker' }
+
+# .. envvar:: docker_admins
+#
+# List of UNIX accounts which should be added to ``docker`` system group which
+# has access to the Docker UNIX socket.
+docker_admins: [ 'root' ]

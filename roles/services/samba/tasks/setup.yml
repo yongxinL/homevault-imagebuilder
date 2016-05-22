@@ -1,0 +1,93 @@
+# =============================================================================
+#
+# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# =============================================================================
+
+---
+- name: update target and create {{ install_role_name }} sharing directory
+  file:
+    path: "{{ item.value.path }}"
+    state: directory
+    mode: 0644
+  with_dict: "{{ samba_conf_share }}"
+
+- name: update target and copy {{ install_role_name }} configure files
+  template:
+    src: "{{ item.name }}"
+    dest: "{{ item.dest }}"
+    owner: root
+    group: root
+    mode: "{{ item.mode|default('0644') }}"
+  with_items: "{{ samba_configuration }}"
+
+- name: update target and remove {{ install_role_name }} services from booting
+  lineinfile:
+    dest: "{{ item }}"
+    line: "manual"
+    owner: root
+    group: root
+    mode: 0644
+    state: present
+    create: yes
+  with_items:
+    - /etc/init/smbd.override
+    - /etc/init/nmbd.override
+    - /etc/init/samba-ad-dc.override
+  when: ansible_os_family == "Debian"
+
+- name: update target and include init-functions into rc.local
+  lineinfile:
+    dest: "/etc/rc.local"
+    line: ". /lib/lsb/init-functions"
+    insertafter: "# By default this script does nothing."
+    owner: root
+    group: root
+    mode: 0755
+    state: present
+    create: yes
+
+- name: update target and start {{ install_role_name }} from rc.local
+  blockinfile:
+    dest: "/etc/rc.local"
+    insertbefore: "exit 0"
+    marker: "# {mark} MANAGED {{ install_role_name }} BLOCK"
+    owner: root
+    group: root
+    mode: 0755
+    state: present
+    create: yes    
+    block: |
+      if [ ! -f "/etc/setup_{{ install_role_name }}.done" ]; then
+        log_begin_msg "Initializing {{ install_role_name }} environment"
+        #MARK_{{ install_role_name }}_DATA
+        touch "/etc/setup_{{ install_role_name }}.done"
+        log_end_msg 0
+      fi
+
+      log_begin_msg "Starting SMB/CIFS daemon"
+      if [ $(ps -ef | grep -c smbd) != 1 ]; then
+        service smbd restart > /dev/null
+      else
+        service smbd start > /dev/null
+      fi
+
+      if [ $(ps -ef | grep -c nmbd) != 1 ]; then
+        service nmbd restart > /dev/null
+      else
+        service nmbd start > /dev/null
+      fi
+      log_end_msg 0
+
+- name: update target and start {{ install_role_name }} from rc.local
+  lineinfile:
+    dest: "/etc/rc.local"
+    line: '  [ ! -d "{{ item.value.path }}" ] && { mkdir -p "{{ item.value.path }}" && chmod -R 644 "{{ item.value.path }}"; }'
+    insertafter: "#MARK_{{ install_role_name }}_DATA"
+    state: present
+  with_dict: "{{ samba_conf_share }}"

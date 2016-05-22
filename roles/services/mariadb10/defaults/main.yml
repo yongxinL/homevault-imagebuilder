@@ -1,0 +1,114 @@
+# =============================================================================
+#
+# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# =============================================================================
+
+# Default variables
+# =================
+
+# .. contents:: Sections
+#    :local:
+#
+# ------------------------------------
+#   Packages and installation
+# ------------------------------------
+install_role_name: 'mariadb'
+
+# .. envvar:: apt_proxy
+#
+# Specify apt cacher / proxy link, like 'x.x.x.x:3142/'
+apt_proxy:
+
+# .. envvar:: mariadb_repo_keyserver
+# .. envvar:: mariadb_repo_keyid
+#
+# APT GPG key server and id used to sign the ansible packages.
+mariadb_repo_keyserver: 'keyserver.ubuntu.com'
+mariadb_repo_keyid: '0xcbcb082a1bb943db'
+
+# .. envvar:: mariadb_repository
+#
+# Address of the ansible APT repository.
+mariadb_repository:
+  - { dest: '/etc/apt/sources.list.d/{{ install_role_name }}.list', line: 'deb http://{{ apt_proxy }}mariadb.uberglobalmirror.com/repo/10.0/{{ ansible_distribution | lower }} {{ ansible_distribution_release }} main' }
+
+# .. envvar:: target_root_password
+#
+# Specify root password
+target_root_password: 'secret'
+
+
+# .. envvar:: target_data_root
+#
+# Specify folder that will be use as root of data directory
+target_data_root:
+
+# .. envvar:: target_appdata_root
+#
+# Specify folder that will be use as new location of application data files
+# in case if you want to collect all appdata files in one
+target_appdata_root: '{{ target_data_root }}/private/var'
+
+# .. envvar:: mariadb_base_packages
+#
+# List of base packages to install by Ansible
+# package: package will be installed
+# version: package version, default is '*'
+# example: - { package: 'package', version: '1.2' }
+mariadb_base_packages:
+  - { package: 'mariadb-server' }
+  - { package: 'mariadb-client' }
+  - { package: 'mariadb-common' }
+  - { package: 'mysql-common' }
+  - { package: 'python-mysqldb' }
+
+# .. envvar:: mariadb_packages
+#
+# List of additional packages to install by Ansible
+# package: package will be installed
+# version: package version, default is '*'
+# example: - { package: 'package', version: '1.2' }
+mariadb_packages: []
+
+# .. envvar:: mariadb_configuration
+#
+# List of configuration file will be copy to Linux base filesystems
+mariadb_configuration:
+  - { name: 'etc-mysql-my.cnf.j2', dest: '/etc/mysql/my.cnf' }
+
+# .. envvar:: mariadb_mysqld_conf
+#
+# List of configuration file will be copy to Linux base filesystems
+mariadb_mysqld_conf:
+  # * Basic Settings
+  user: 'root'
+  port: '3306'
+  datadir: '{{ target_appdata_root }}/mysql'
+  bind-address: 0.0.0.0
+  # * Fine Tuning
+  max_connections: 100
+  connect_timeout: 5
+  wait_timeout: 600
+  max_allowed_packet: 16M
+  thread_cache_size: 128
+  sort_buffer_size: 4M
+  bulk_insert_buffer_size: 16M
+  tmp_table_size: 32M
+  max_heap_table_size: 32M
+  # * Query Cache Configuration
+  query_cache_limit: 128K
+  query_cache_size: 64M
+  # * InnoDB
+  default_storage_engine: InnoDB
+  innodb_buffer_pool_size: 256M
+  innodb_log_buffer_size: 8M
+  innodb_file_per_table: 1
+  innodb_open_files: 400
+  innodb_io_capacity: 400
+  innodb_flush_method: O_DIRECT

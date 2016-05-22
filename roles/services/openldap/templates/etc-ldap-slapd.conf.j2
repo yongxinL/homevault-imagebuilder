@@ -1,0 +1,217 @@
+#
+# openLDAP  configuration file for Debian GNU/Linux.
+#
+#=======================openLDAP Settings =======================
+#
+## Global directives
+
+## Specifies that slapd should read additional configuration
+#  commonly used to include files containing shema specifications.
+include         /etc/ldap/schema/core.schema
+include         /etc/ldap/schema/cosine.schema
+include         /etc/ldap/schema/nis.schema
+include         /etc/ldap/schema/inetorgperson.schema
+include         /etc/ldap/schema/amavis.schema
+include         /etc/ldap/schema/corba.schema
+include         /etc/ldap/schema/openldap.schema
+include         /etc/ldap/schema/pmi.schema
+include         /etc/ldap/schema/postfix.schema
+include         /etc/ldap/schema/ppolicy.schema
+include         /etc/ldap/schema/samba.schema
+
+## Where the pid file is put. the init.d script will not stop
+#  the server if you change this.
+pidfile         /var/run/slapd/slapd.pid
+
+## List of arguments that were passed to the server
+argsfile        /var/run/slapd/slapd.args
+
+## Log level.
+#   -1:   enable all debugging
+#    0:   no debugging
+#   128:  access control list processing
+#   256:  stats log connections/operations/results
+loglevel        393
+
+## Where the dynamically loaded modules are stored
+modulepath      /usr/lib/ldap
+moduleload      back_hdb
+
+## The maximum number of entries that is returned for a search operation
+sizelimit       500
+
+## TLS files.
+TLSCACertificateFile /etc/ssl/private/{{ target_host_domain }}.crt
+TLSCertificateFile /etc/ssl/private/{{ target_host_domain }}.crt
+TLSCertificateKeyFile /etc/ssl/private/{{ target_host_domain }}.key
+
+## Disallow bind as anonymous.
+disallow        bind_anon
+
+## Uncomment below line to allow binding as anonymous.
+#allow bind_anon_cred
+
+## Specify LDAP protocol version.
+require         LDAPv3
+
+## Performance tuning
+# The tool-threads parameter sets the actual amount of cpu's that is used
+# for indexing.
+tool-threads    1
+
+#######################################################################
+# Databases
+#######################################################################
+#
+## Database used to store LDAP accounts
+#  Specific directives for database #1, of type.
+database    hdb
+
+## The base of your directory in database #1
+suffix      dc={{ target_host_domain.split('.')[0] }},dc={{ target_host_domain.split('.')[1] }}
+
+## rootdn directive for specifying a superuser on the database.
+rootdn      cn=manager,dc={{ target_host_domain.split('.')[0] }},dc={{ target_host_domain.split('.')[1] }}
+rootpw      {{ openldap_password_hash.stdout }}
+
+## Where the database file are physically stored for databse #1
+directory   /etc/ldap/dbs
+
+## The dbconfig settings are used to generate a DB_CONFIG file the first
+#  time slapd starts. 
+#  for the Debian package we use 2MB as default but be sure to update this
+#  value if you have plenty of RAM
+dbconfig    set_cachesize 0 2097152 0
+
+#  Number of objects that can be locked at the same time
+dbconfig    set_lk_max_objects 1500
+
+#  Number of locks (both requested and granted)
+dbconfig    set_lk_max_locks 1500
+
+## Indexing options for database #1
+index objectClass                                   eq,pres
+index uidNumber,gidNumber,uid,memberUid,loginShell  eq,pres
+index homeDirectory,mailMessageStore                eq,pres
+index ou,cn,mail,surname,givenname,telephoneNumber,displayName  eq,pres,sub
+index nisMapName,nisMapEntry                        eq,pres,sub
+index shadowLastChange                              eq,pres
+
+## Indexing options for Domain object
+index domainName,mtaTransport,accountStatus,enabledService,disabledService  eq,pres,sub
+index domainAliasName    eq,pres,sub
+index domainMaxUserNumber eq,pres
+index domainAdmin,domainGlobalAdmin,domainBackupMX    eq,pres,sub
+index domainSenderBccAddress,domainRecipientBccAddress  eq,pres,sub
+
+## Indexing options for Group object
+index accessPolicy,hasMember,listAllowedUser   eq,pres,sub
+
+## Indexing options for User object
+index mailForwardingAddress,shadowAddress   eq,pres,sub
+index backupMailAddress,memberOfGroup   eq,pres,sub
+index userRecipientBccAddress,userSenderBccAddress  eq,pres,sub
+
+## Save the time that the entry gets modified, for database #1
+lastmod     on
+
+## Checkpoint the BerkeleyDB database periodically in case of system
+#  failure and to speed slapd shutdown
+checkpoint  128 5
+
+## Set directory permission
+mode        0700
+
+
+#######################################################################
+# Access Control
+#######################################################################
+
+#  allow users to change their own passwords and mail forwarding addresses.
+access to attrs="userPassword,mailForwardingAddress,storageBaseDirectory,homeDirectory,mailMessageStore"
+    by anonymous    auth
+    by self         write
+    by dn.exact="cn=proxyuser,dc={{ target_host_domain.split('.')[0] }},dc={{ target_host_domain.split('.')[1] }}"   read
+    by dn.exact="cn=manager,dc={{ target_host_domain.split('.')[0] }},dc={{ target_host_domain.split('.')[1] }}"  write
+    by users        none
+
+#  allow to read others public info.
+access to attrs="cn,sn,gn,givenName,telephoneNumber"
+    by anonymous    auth
+    by self         write
+    by dn.exact="cn=proxyuser,dc={{ target_host_domain.split('.')[0] }},dc={{ target_host_domain.split('.')[1] }}"   read
+    by dn.exact="cn=manager,dc={{ target_host_domain.split('.')[0] }},dc={{ target_host_domain.split('.')[1] }}"  write
+    by users        read
+
+#  allow to read Domain attrs.
+access to attrs="objectclass,domainName,mtaTransport,enabledService,domainSenderBccAddress,domainRecipientBccAddress,domainBackupMX,domainMaxQuotaSize,domainMaxUserNumber"
+    by anonymous    auth
+    by self         read
+    by dn.exact="cn=proxyuser,dc={{ target_host_domain.split('.')[0] }},dc={{ target_host_domain.split('.')[1] }}"   read
+    by dn.exact="cn=manager,dc={{ target_host_domain.split('.')[0] }},dc={{ target_host_domain.split('.')[1] }}"  write
+    by users        read
+
+access to attrs="domainAdmin,domainGlobalAdmin,domainSenderBccAddress,domainRecipientBccAddress"
+    by anonymous    auth
+    by self         read
+    by dn.exact="cn=proxyuser,dc={{ target_host_domain.split('.')[0] }},dc={{ target_host_domain.split('.')[1] }}"   read
+    by dn.exact="cn=manager,dc={{ target_host_domain.split('.')[0] }},dc={{ target_host_domain.split('.')[1] }}"  write
+    by users        none
+
+#  allow to read User attrs.
+access to attrs="employeeNumber,mail,accountStatus,userSenderBccAddress,userRecipientBccAddress,mailQuota,backupMailAddress,shadowAddress,memberOfGroup"
+    by anonymous    auth
+    by self         read
+    by dn.exact="cn=proxyuser,dc={{ target_host_domain.split('.')[0] }},dc={{ target_host_domain.split('.')[1] }}"   read
+    by dn.exact="cn=manager,dc={{ target_host_domain.split('.')[0] }},dc={{ target_host_domain.split('.')[1] }}"  write
+    by users        read
+
+## set ACL for proxyuser/admin.
+access to dn="cn=proxyuser,dc={{ target_host_domain.split('.')[0] }},dc={{ target_host_domain.split('.')[1] }}"
+    by anonymous                    auth
+    by self                         write
+    by users                        none
+
+access to dn="cn=manager,dc={{ target_host_domain.split('.')[0] }},dc={{ target_host_domain.split('.')[1] }}"
+    by anonymous                    auth
+    by self                         write
+    by users                        none
+
+## allow users to access their own domain subtree.
+#  allow domain admin to modify accounts under same domain.
+access to dn.regex="domainName=([^,]+),o=domains,dc={{ target_host_domain.split('.')[0] }},dc={{ target_host_domain.split('.')[1] }}$"
+    by anonymous                    auth
+    by self                         write
+    by dn.exact="cn=proxyuser,dc={{ target_host_domain.split('.')[0] }},dc={{ target_host_domain.split('.')[1] }}"   read
+    by dn.exact="cn=manager,dc={{ target_host_domain.split('.')[0] }},dc={{ target_host_domain.split('.')[1] }}"  write
+    by dn.regex="mail=[^,]+@$1,o=domainAdmins,dc={{ target_host_domain.split('.')[0] }},dc={{ target_host_domain.split('.')[1] }}$" write
+    by dn.regex="mail=[^,]+@$1,ou=Users,domainName=$1,o=domains,dc={{ target_host_domain.split('.')[0] }},dc={{ target_host_domain.split('.')[1] }}$" read
+    by users                        none
+
+## grant correct privileges to proxyuser/admin.
+access to dn.subtree="o=domains,dc={{ target_host_domain.split('.')[0] }},dc={{ target_host_domain.split('.')[1] }}"
+    by anonymous                    auth
+    by self                         write
+    by dn.exact="cn=proxyuser,dc={{ target_host_domain.split('.')[0] }},dc={{ target_host_domain.split('.')[1] }}"    read
+    by dn.exact="cn=manager,dc={{ target_host_domain.split('.')[0] }},dc={{ target_host_domain.split('.')[1] }}"  write
+    by users                        none
+
+access to dn.subtree="o=domainAdmins,dc={{ target_host_domain.split('.')[0] }},dc={{ target_host_domain.split('.')[1] }}"
+    by anonymous                    auth
+    by self                         write
+    by dn.exact="cn=proxyuser,dc={{ target_host_domain.split('.')[0] }},dc={{ target_host_domain.split('.')[1] }}"    read
+    by dn.exact="cn=manager,dc={{ target_host_domain.split('.')[0] }},dc={{ target_host_domain.split('.')[1] }}"  write
+    by users                        none
+
+## set permission for "cn=*,dc={{ target_host_domain.split('.')[0] }},dc={{ target_host_domain.split('.')[1] }}".
+access to dn.regex="cn=[^,]+,dc={{ target_host_domain.split('.')[0] }},dc={{ target_host_domain.split('.')[1] }}"
+    by anonymous                    auth
+    by self                         write
+    by users                        none
+
+## Set default permission.
+access to *
+    by dn.exact="cn=manager,dc={{ target_host_domain.split('.')[0] }},dc={{ target_host_domain.split('.')[1] }}"  write
+    by anonymous                    auth
+    by self                         write
+    by users                        read
