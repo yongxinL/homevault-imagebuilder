@@ -23,7 +23,7 @@
 #
 # Specify chroot mount point and size for building Linux base filesystems
 build_root: '{{ build_rootfs }}'
-build_root_size: '1000m'
+build_root_size: '1500m'
 
 # .. envvar:: basefs_exclude_packages
 #
@@ -35,48 +35,54 @@ basefs_exclude_packages: 'initramfs-tools,initramfs-tools-bin,busybox-initramfs,
 # .. envvar:: basefs_base_packages
 #
 # List of base packages to install with Linux base filesystems.
+# package: package will be installed
+# version: package version, default is '*'
+# example: - { package: 'package', version: '1.2' }
 basefs_base_packages:
-  - { package: 'apt-utils', version: '*' }
-  - { package: 'btrfs-tools', version: '*' }
-  - { package: 'console-setup', version: '*' }
-  - { package: 'curl', version: '*' }
-  - { package: 'dosfstools', version: '*' }
-  - { package: 'exfat-fuse', version: '*' }
-  - { package: 'exfat-utils', version: '*' }
-  - { package: 'iproute2', version: '*' }
-  - { package: 'iptables', version: '*' }
-  - { package: 'iputils-ping', version: '*' }
-  - { package: 'isc-dhcp-client', version: '*' }
-  - { package: 'mtools', version: '*' }
-  - { package: 'lshw',  version: '*' }
-  - { package: 'nano', version: '*' }
-  - { package: 'net-tools', version: '*' }
-  - { package: 'netbase', version: '*' }
-  - { package: 'ntfs-3g', version: '*' }
-  - { package: 'parted', version: '*' }
-  - { package: 'pciutils', version: '*' }
-  - { package: 'rsync', version: '*' }
-  - { package: 'rsyslog', version: '*' }
-  - { package: 'sudo', version: '*' }
-  - { package: 'wget', version: '*' }
-  - { package: 'xz-utils', version: '*' }
+  - { package: 'apt-utils' }
+  - { package: 'btrfs-tools' }
+  - { package: 'console-setup' }
+  - { package: 'curl' }
+  - { package: 'dosfstools' }
+  - { package: 'exfat-fuse' }
+  - { package: 'exfat-utils' }
+  - { package: 'iproute2' }
+  - { package: 'iptables' }
+  - { package: 'iputils-ping' }
+  - { package: 'isc-dhcp-client' }
+  - { package: 'mtools' }
+  - { package: 'lshw' }
+  - { package: 'nano' }
+  - { package: 'net-tools' }
+  - { package: 'netbase' }
+  - { package: 'ntfs-3g' }
+  - { package: 'parted' }
+  - { package: 'pciutils' }
+  - { package: 'rsync' }
+  - { package: 'rsyslog' }
+  - { package: 'sudo' }
+  - { package: 'wget' }
+  - { package: 'xz-utils' }
 
 # .. envvar:: basefs_packages
 #
 # List of additional packages to install with Linux base filesystems.
+# package: package will be installed
+# version: package version, default is '*'
+# example: - { package: 'package', version: '1.2' }
 basefs_packages:
-  - { package: 'at', version: '*' }
-  - { package: 'apt-show-versions', version: '*' }
-  - { package: 'biosdevname', version: '*' }  
-  - { package: 'cron', version: '*' }
-  - { package: 'logrotate', version: '*' }
-  - { package: 'lvm2',  version: '*' }
-  - { package: 'mdadm', version: '*' }
-  - { package: 'ntp', version: '*' }
-  - { package: 'ntpdate', version: '*' }
-  - { package: 'tcptrack', version: '*' }
-  - { package: 'tcpdump', version: '*' }
-  - { package: "lsof", version: "*" }
-  - { package: "unzip", version: "*" }
-  - { package: "whois", version: "*" }
-  - { package: "zip", version: "*" }
+  - { package: 'at' }
+  - { package: 'apt-show-versions' }
+  - { package: 'biosdevname' }  
+  - { package: 'cron' }
+  - { package: 'logrotate' }
+  - { package: 'lvm2' }
+  - { package: 'mdadm' }
+  - { package: 'ntp' }
+  - { package: 'ntpdate' }
+  - { package: 'tcptrack' }
+  - { package: 'tcpdump' }
+  - { package: "lsof" }
+  - { package: "unzip" }
+  - { package: "whois" }
+  - { package: "zip" }

@@ -25,10 +25,15 @@ target_root_password: 'secret'
 # Specify timezone in target host
 target_timezone: 'Australia/Sydney'
 
+# .. envvar:: target_data_root
+#
+# Specify folder that will be use as root of data directory
+target_data_root:
+
 # .. envvar:: private_overlay_root
 #
 # Specify the folder that will be use to mount as overlay
-overylay_private_root: '/yongxin/private'
+overylay_private_root: '{{ target_data_root }}/private'
 
 # .. envvar:: private_overlay_default
 #

@@ -29,7 +29,7 @@ MENU COLOR tabmsg       31;40   #30ffffff #00000000 std
 LABEL USR-A
     MENU LABEL {{ debstrap_dist }}-{{ debstrap_suite }} (USR-A)
     KERNEL /casper/vmlinuz
-    APPEND boot=casper hostname={{ target_host_name }} initrd=/casper/initrd.lz ip=frommedia
+    APPEND boot=casper hostname={{ target_host_name }} initrd=/casper/initrd.lz ip=frommedia disable_overlay=yes
     TEXT HELP
 USR-A Active / passtive Partition (Kernal and initrd) Holding by {{ debstrap_dist }}
     ENDTEXT
