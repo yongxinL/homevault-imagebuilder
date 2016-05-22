@@ -12,7 +12,7 @@
 ---
 - name: update target and install extra packages
   apt:
-    name: "{{ item.package }}={{ item.version }}"
+    name: "{{ item.package }}={{ item.version|default('*') }}"
     install_recommends: no
     update_cache: yes
   register: install_pkgs

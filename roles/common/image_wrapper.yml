@@ -14,6 +14,7 @@
   vars_files:
     - ../../{{ config_file }}
   pre_tasks:
+    - include: tasks/unmount_rootfs.yml
     - include: tasks/unmount_overlay.yml
     - include: tasks/mount_overlay.yml
   roles:

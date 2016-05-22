@@ -17,10 +17,13 @@
     replace: '-n ""'
 
 - name: update target and set casper for adding domain name
-  replace:
+  lineinfile:
     dest: "/usr/share/initramfs-tools/scripts/casper-bottom/18hostname"
-    regexp: '127.0.0.1 \$HOST'
-    replace: '127.0.0.1 $HOST.{{ target_host_domain }}    $HOST'
+    regexp: "{{ item.regxp }}"
+    line: "{{ item.line }}"
+    state: present
+  with_items:
+    - { regxp: '^127(.*)HOST', line: '127.0.0.1 $HOST.{{ target_host_domain }}    $HOST' }
 
 - name: update target and copy custom casper scripts
   template:

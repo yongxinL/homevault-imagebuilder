@@ -20,8 +20,8 @@
 # .. envvar:: target_host_domain
 #
 # Specify hostname and domain that should be set in the target image.
-target_host_name: 'captainL'
-target_host_domain: 'yongxin.info'
+target_host_name: 'homenas'
+target_host_domain: 'domain.local'
 
 # .. envvar:: target_root_password
 #
@@ -33,34 +33,34 @@ target_root_password: 'secret'
 # Specify timezone in target host
 target_timezone: 'Australia/Sydney'
 
-# .. envvar:: target_mount_device
-#
-# List of Disk label and mountas will be use to mount partition when booting up
-# this will be setup in script/casper-bottom/12fstab
-target_mount_device:
-  - { label: 'data1', mountas: '/yongxin' }
-  - { label: 'data2', mountas: '/yongxin/archive' }
-
 # .. envvar:: target_data_root
 #
 # Specify folder that will be use as root of data directory
 target_data_root: '/yongxin'
 
+# .. envvar:: target_mount_device
+#
+# List of Disk label and mountas will be use to mount partition when booting up
+# this will be setup in script/casper-bottom/12fstab
+target_mount_device:
+  - { label: 'data1', mountas: '{{ target_data_root }}' }
+  - { label: 'data2', mountas: '{{ target_data_root }}/archive' }
+
 # .. envvar:: target_appdata_root
 #
 # Specify folder that will be use as new location of application data files
 # in case if you want to collect all appdata files in one
-target_appdata_root: '/yongxin/private/var'
+target_appdata_root: '{{ target_data_root }}/private/var'
 
 # .. envvar:: private_overlay_root
 #
 # Specify the folder that will be use to mount as overlay
-overylay_private_root: '/yongxin/private'
+overylay_private_root: '{{ target_data_root }}/private'
 
 # .. envvar:: private_overlay_default
 #
 # List of folders that will be overlay when booting up
-overylay_private_folder: '/etc /home /root'
+overylay_private_folder: '/etc /home'
 
 # .. envvar:: build_image_initrd
 # .. envvar:: build_image_vmlinuz
@@ -81,9 +81,10 @@ build_image_iso: 'homevault_{{ debstrap_dist }}_{{ debstrap_suite }}.iso'
 #
 # Specify Linux kernel version will be use in the target image.
 # Available version for ubuntu
-# - 4.2.0-30-generic
-# - 3.16.0-60-generic
-build_kernel_version: '4.2.0-30-generic'
+# - 4.4.0-21-generic => xenial
+# - 4.2.0-35-generic  => trusty
+# - 3.16.0-60-generic => trusty
+build_kernel_version: '4.2.0-35-generic'
 
 # .. envvar:: debstrap_dist
 # .. envvar:: debstrap_arch
@@ -93,6 +94,7 @@ build_kernel_version: '4.2.0-30-generic'
 debstrap_dist: 'ubuntu'
 debstrap_arch: 'amd64'
 debstrap_suite: 'trusty'
+#debstrap_suite: 'xenial'
 
 # .. envvar:: apt_proxy
 #
@@ -102,7 +104,7 @@ apt_proxy:
 # .. envvar:: debstrap_base_mirror
 #
 # Specify debootstrap mirror link
-debstrap_base_mirror: '{{ apt_proxy }}mirror.optus.net'
+debstrap_base_mirror: '{{ apt_proxy }}us.archive.ubuntu.com'
 debstrap_mirror: 'http://{{ debstrap_base_mirror }}/{{ debstrap_dist }}'
 
 # .. envvar:: debstrap_include_packages
