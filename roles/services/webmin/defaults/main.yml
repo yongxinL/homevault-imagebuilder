@@ -1,0 +1,208 @@
+# =============================================================================
+#
+# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# =============================================================================
+
+# Default variables
+# =================
+
+# .. contents:: Sections
+#    :local:
+#
+# ------------------------------------
+#   Packages and installation
+# ------------------------------------
+install_role_name: 'webmin'
+
+# .. envvar:: webmin_repo_key
+#
+# APT GPG key server and id used to sign the webmin packages.
+webmin_repo_key: 'http://www.webmin.com/jcameron-key.asc'
+
+# .. envvar:: apt_proxy
+#
+# Specify apt cacher / proxy link, like 'x.x.x.x:3142/'
+apt_proxy:
+
+# .. envvar:: webmin_repository
+#
+# Address of the ansible APT repository.
+webmin_repository:
+  #- { dest: '/etc/apt/sources.list.d/{{ install_role_name }}.list', line: 'deb http://{{ apt_proxy }}webmin.mirror.somersettechsolutions.co.uk/repository sarge contrib' }
+  - { dest: '/etc/apt/sources.list.d/{{ install_role_name }}.list', line: 'deb http://{{ apt_proxy }}download.webmin.com/download/repository sarge contrib' }
+
+# .. envvar:: target_root_password
+#
+# Specify root password
+target_root_password: 'secret'
+
+# .. envvar:: target_appdata_root
+#
+# Specify folder that will be use as new location of application data files
+# in case if you want to collect all appdata files in one
+target_appdata_root:
+
+# .. envvar:: webmin_config_port
+#
+# Specify port that will be use for Webmin Web portal
+webmin_config_port: 9900
+
+# .. envvar:: webmin_base_packages
+#
+# List of base packages to install by Ansible
+# package: package will be installed
+# version: package version, default is '*'
+# example: - { package: 'package', version: '1.2' }
+webmin_base_packages:
+  - { package: 'apt-show-versions' }
+  - { package: 'webmin', version: '1.791' }
+
+# .. envvar:: webmin_packages
+#
+# List of additional packages to install by Ansible
+# package: package will be installed
+# version: package version, default is '*'
+# example: - { package: 'package', version: '1.2' }
+webmin_packages:
+  - { package: 'libconvert-asn1-perl' }
+  - { package: 'libnet-ldap-perl' }
+  - { package: 'libtext-unidecode-perl' }
+  - { package: 'python' }
+  - { package: 'python-minimal' }
+  - { package: 'python2.7' }
+  - { package: 'python2.7-minimal' }
+
+# .. envvar:: webmin_configuration
+#
+# List of configuration file will be copy to Linux base filesystems
+webmin_configuration:
+  - { name: 'etc-webmin-miniserv.conf.j2', dest: '/etc/webmin/miniserv.conf' }
+
+# .. envvar:: debian_config_root
+# .. envvar:: debian_module_root
+#
+# Specify locations for Webmin config and modules in Debian Family
+debian_config_root: "/etc/webmin"
+debian_module_root: "/usr/share/webmin"
+
+# .. envvar:: webmin_module_removal
+#
+# List of modules that will be remove after installation
+# rem the item if you want to keep
+# please refer to webmin standard modules page for details (http://www.webmin.com/standard.html)
+webmin_module_removal:
+  - adsl-client             # ADSL Client
+  - ajaxterm                # Text Login
+  - apache                  # Apache Webserver
+#  - at                      # Scheduled Commands
+  - backup-config           # Backup Configuration Files
+  - bacula-backup           # Bacula Backup System
+  - bandwidth               # Bandwidth Monitoring
+  - bind8                   # BIND DNS Server
+#  - bsdexports              # NFS Exports
+#  - bsdfdisk                # Partitions on Local Disks
+  - burner                  # CD Burner
+  - cluster-copy            # Cluster Copy Files
+  - cluster-cron            # Cluster Cron Jobs
+  - cluster-passwd          # Cluster Change Passwords
+  - cluster-shell           # Cluster Shell Commands
+  - cluster-software        # Cluster Software Packages
+  - cluster-useradmin       # Cluster Users and Groups
+  - cluster-usermin         # Cluster Usermin Servers
+  - cluster-webmin          # Cluster Webmin Servers
+#  - cpan                    # Perl Modules
+#  - cron                    # Scheduled Cron Jobs
+  - custom                  # Custom Commands
+  - dfsadmin                #
+  - dhcpd                   # DHCP Server
+  - dovecot                 # Dovecot IMAP/POP3 Server
+#  - exports-nfs4            # NFS v4 Exports
+#  - exports                 # NFS Exports
+  - exim                    # Exim Mailserver
+  - fail2ban                # Fail2Ban Intrusion Detector
+  - fetchmail               # Fetchmail Mail Retrieval
+  - file                    # Java File Manager
+  - filter                  # Filter and Forward Mail
+#  - firewall                # Linux Firewall
+  - firewalld               # FirewallD
+#  - format                  # Partitions on Local Disks
+  - fsdump                  # Filesystem Backup
+  - heartbeat               # Heartbeat Monitor for server failover in a cluster.
+  - grub                    # GRUB Boot Loader
+  - htaccess-htpasswd       # Protected Web Directories
+#  - idmapd                  # idmapd daemon
+  - inetd                   # Network Services and Protocols
+  - init                    # Bootup and Shutdown
+#  - inittab                 # Initial System Bootup
+  - ipfilter                # IPFilter Firewall
+  - ipfw                    # BSD Firewall
+  - ipsec                   # IPsec VPN Configuration
+  - iscsi-client            # iSCSI Client
+  - iscsi-server            # iSCSI Server
+  - iscsi-target            # iSCSI Target
+  - iscsi-tgtd              # iSCSI TGTd
+  - jabber                  # Jabber IM Server
+  - krb5                    # Kerberos5
+#  - ldap-client             # LDAP Client
+#  - ldap-server             # LDAP Server
+#  - ldap-useradmin          # LDAP Users and Groups
+#  - logrotate               # Log File Rotation
+  - lpadmin                 # Printer Administration
+#  - lvm                     # Logical Volume Management
+  - mailboxes               # Read User Mail
+  - mailcap                 # MIME Type Programs
+  - man                     # System Documentation
+  - mon                     # MON Service Monitor
+  - mscstyle3               #
+#  - mysql                   # MySQL Database Server
+#  - net                     # Network Configuration
+  - nis                     # NIS Client and Server
+  - openslp                 # OpenSLP Server
+#  - pam                     # PAM Authentication
+  - pap                     # PPP Dialin Server
+  - phpini                  # PHP Configuration
+  - postfix                 # Postfix Mail Server
+  - postgresql              # PostgreSQL Database Server
+  - ppp-client              # PPP Dialup Client
+  - pptp-client             # PPTP VPN Client
+  - pptp-server             # PPTP VPN Server
+  - procmail                # Procmail Mail Filter
+  - proftpd                 # ProFTPD Server
+  - qmailadmin              # QMail Mail Server
+  - quota                   # Disk Quotas
+#  - raid                    # Linux RAID
+  - rbac                    # RBAC and Projects
+#  - samba                   # Samba Windows File Sharing
+  - sarg                    # Squid Report Generator
+  - sendmail                # Sendmail Mail Server
+#  - servers                 # Webmin Servers Index
+#  - shell                   # Command Shell
+  - shorewall               # Shoreline Firewall
+  - shorewall6              # Shorewall6 Firewall
+  - smart-status            # SMART Drive Status
+  - spam                    # SpamAssassin Mail Filter
+  - squid                   # Squid Proxy Server
+#  - sshd                    # SSH Server
+  - stunnel                 # SSL Tunnels
+  - syslog-ng               # System Logs NG
+#  - syslog                  # System Logs
+  - tcpwrappers             # TCP Wrappers
+  - telnet                  # SSH Login
+#  - time                    # System Time
+  - tunnel                  # HTTP Tunnel
+#  - updown                  # Upload and Download
+  - usermin                 # Usermin Configuration
+  - vgetty                  # Voicemail Server
+  - webalizer               # Webalizer Logfile Analysis
+#  - webmincron              # Scheduled Webmin Functions
+#  - webminlog               # Webmin Actions Log
+  - wuftpd                  # WU-FTP Server
+  - xinetd                  # Network Services
+  - zones                   # Solaris Zones
+  - gray-theme              # Gray theme  

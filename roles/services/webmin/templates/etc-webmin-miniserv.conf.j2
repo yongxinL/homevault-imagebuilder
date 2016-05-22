@@ -1,0 +1,60 @@
+{% if webmin_config_port is defined and webmin_config_port %}
+port={{ webmin_config_port }}
+{% else %}
+port=10000
+{% endif %}
+root=/usr/share/webmin
+mimetypes=/usr/share/webmin/mime.types
+addtype_cgi=internal/cgi
+realm=Webmin Server
+{% if target_appdata_root is defined and target_appdata_root %}
+logfile={{ target_appdata_root }}/webmin/miniserv.log
+errorlog={{ target_appdata_root }}/webmin/miniserv.error
+pidfile={{ target_appdata_root}}/webmin/miniserv.pid
+{% else %}
+logfile=/var/webmin/miniserv.log
+errorlog=/var/webmin/miniserv.error
+pidfile=/var/webmin/miniserv.pid
+{% endif %}
+logtime=168
+ppath=
+ssl=1
+no_ssl2=1
+no_ssl3=1
+no_tls1=1
+no_tls1_1=1
+ssl_honorcipherorder=1
+no_sslcompression=1
+env_WEBMIN_CONFIG=/etc/webmin
+{% if target_appdata_root is defined and target_appdata_root %}
+env_WEBMIN_VAR={{ target_appdata_root }}/webmin
+{% else %}
+env_WEBMIN_VAR=/var/webmin
+{% endif %}
+atboot=1
+logout=/etc/webmin/logout-flag
+{% if webmin_config_port is defined and webmin_config_port %}
+listen={{ webmin_config_port }}
+{% else %}
+listen=10000
+{% endif %}
+denyfile=\.pl$
+log=1
+blockhost_failures=5
+blockhost_time=60
+syslog=1
+session=1
+premodules=WebminCore
+server=MiniServ/1.790
+userfile=/etc/webmin/miniserv.users
+keyfile=/etc/webmin/miniserv.pem
+passwd_file=/etc/shadow
+passwd_uindex=0
+passwd_pindex=1
+passwd_cindex=2
+passwd_mindex=4
+passwd_mode=0
+preroot=gray-theme
+passdelay=1
+cipher_list_def=1
+sudo=1
