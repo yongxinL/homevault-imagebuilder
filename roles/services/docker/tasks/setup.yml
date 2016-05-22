@@ -1,0 +1,80 @@
+# =============================================================================
+#
+# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# =============================================================================
+
+---
+- name: update target and copy {{ install_role_name }} configure files
+  template:
+    src: "{{ item.name }}"
+    dest: "{{ item.dest }}"
+    owner: root
+    group: root
+    mode: "{{ item.mode|default('0644') }}"
+  with_items: "{{ docker_configuration }}"
+    
+- name: update target and remove {{ install_role_name }} services from booting
+  lineinfile:
+    dest: "{{ item }}"
+    line: "manual"
+    owner: root
+    group: root
+    mode: 0644
+    state: present
+    create: yes
+  with_items:
+    - /etc/init/docker.override
+  when: ansible_os_family == "Debian"
+
+- name: update target and include init-functions into rc.local
+  lineinfile:
+    dest: "/etc/rc.local"
+    line: ". /lib/lsb/init-functions"
+    insertafter: "# By default this script does nothing."
+    owner: root
+    group: root
+    mode: 0755
+    state: present
+    create: yes
+
+- name: update target and start {{ install_role_name }} from rc.local
+  blockinfile:
+    dest: "/etc/rc.local"
+    insertbefore: "exit 0"
+    marker: "# {mark} MANAGED {{ install_role_name }} BLOCK"
+    owner: root
+    group: root
+    mode: 0755
+    state: present
+    create: yes   
+    block: |
+      if [ ! -f "/etc/setup_{{ install_role_name }}.done" ]; then
+        log_begin_msg "Initializing {{ install_role_name }} environment"
+        #MARK_{{ install_role_name }}_DATA
+        touch "/etc/setup_{{ install_role_name }}.done"
+        log_end_msg 0
+      fi
+
+      log_begin_msg "Starting {{ install_role_name }} daemon"
+      if [ $(ps -ef | grep -c docker) != 1 ]; then
+        service docker restart > /dev/null
+      else
+        service docker start > /dev/null
+      fi
+      log_end_msg 0
+
+- name: update target and start {{ install_role_name }} from rc.local
+  lineinfile:
+    dest: "/etc/rc.local"
+    line: "{{ item }}"
+    insertafter: "#MARK_{{ install_role_name }}_DATA"
+    state: present
+  with_items:
+    - '  [ ! -d "{{ target_appdata_root }}/docker" ] && { mkdir -p "{{ target_appdata_root }}/docker" && chmod -R 644 "{{ target_appdata_root }}/docker"; }'
+  when: target_appdata_root is defined and target_appdata_root

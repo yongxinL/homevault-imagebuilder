@@ -1,0 +1,94 @@
+# =============================================================================
+#
+# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# =============================================================================
+
+# Default variables
+# =================
+
+# .. contents:: Sections
+#    :local:
+#
+# ------------------------------------
+#   Packages and installation
+# ------------------------------------
+install_role_name: 'nginx'
+
+# .. envvar:: target_host_name
+# .. envvar:: target_host_domain
+#
+# Specify hostname and domain that should be set in the target image.
+target_host_name: 'homenas'
+target_host_domain: 'domain.local'
+
+# .. envvar:: target_data_root
+#
+# Specify folder that will be use as root of data directory
+target_data_root:
+
+# .. envvar:: target_root_password
+#
+# Specify root password
+target_root_password: 'secret'
+
+# .. envvar:: apt_proxy
+#
+# Specify apt cacher / proxy link, like 'x.x.x.x:3142/'
+apt_proxy:
+
+# .. envvar:: nginx_repo_key
+#
+# APT GPG key server and id used to sign the ansible packages.
+nginx_repo_key: 'http://nginx.org/keys/nginx_signing.key'
+
+# .. envvar:: nginx_repository
+#
+# Address of the ansible APT repository.
+nginx_repository:
+  - { dest: '/etc/apt/sources.list.d/{{ install_role_name }}.list', line: 'deb http://{{ apt_proxy }}nginx.org/packages/mainline/{{ ansible_distribution | lower }}/ {{ ansible_distribution_release }} nginx' }
+
+# .. envvar:: target_appdata_root
+#
+# Specify folder that will be use as new location of application data files
+# in case if you want to collect all appdata files in one
+target_appdata_root:
+
+# .. envvar:: target_web_root
+#
+# Specify folder that will be use as root of Web contents
+target_web_root: '{{ target_data_root }}/private/public_html'
+
+
+# .. envvar:: nginx_service_user
+#
+# List of base packages to install by Ansible
+nginx_service_user: 'root'
+
+# .. envvar:: nginx_base_packages
+#
+# List of base packages to install by Ansible
+# package: package will be installed
+# version: package version, default is '*'
+# example: - { package: 'package', version: '1.2' }
+nginx_base_packages:
+  - { package: 'nginx' }
+
+# .. envvar:: nginx_packages
+#
+# List of additional packages to install by Ansible
+# package: package will be installed
+# version: package version, default is '*'
+# example: - { package: 'package', version: '1.2' }
+nginx_packages: []
+
+# .. envvar:: nginx_configuration
+#
+# List of configuration file will be copy to Linux base filesystems
+nginx_configuration:
+  - { name: 'etc-nginx-nginx.conf.j2', dest: '/etc/nginx/nginx.conf' }

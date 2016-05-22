@@ -1,0 +1,103 @@
+# =============================================================================
+#
+# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# =============================================================================
+
+---
+- name: update target and setup {{ install_role_name }} configuration files
+  lineinfile:
+    dest: "/etc/apt-cacher-ng/acng.conf"
+    regexp: "{{ item.regxp }}"
+    line: "{{ item.line }}"
+    state: present
+  with_items:
+    - { regxp: '^Remap-gentoo.*', line: '' }
+    - { regxp: '^# PidFile.*', line: 'PidFile: /var/run/apt-cacher-ng/pid' }
+    - { regxp: '^ExTreshold.*', line: 'ExTreshold: 30' }
+    - { regxp: '^# UnbufferLogs.*', line: 'UnbufferLogs: 1' }
+    - { regxp: '^# VerboseLog.*', line: 'VerboseLog: 1' }
+
+- name: update target and setup {{ install_role_name }} configuration files
+  lineinfile:
+    dest: "/etc/apt-cacher-ng/acng.conf"
+    regexp: "{{ item.regxp }}"
+    line: "{{ item.line }}"
+    state: present
+  with_items:
+    - { regxp: '^CacheDir.*', line: 'CacheDir: {{ target_appdata_root }}/apt-cacher-ng/cache' }
+    - { regxp: '^LogDir.*', line: 'LogDir: {{ target_appdata_root }}/apt-cacher-ng/log' }
+  when: target_appdata_root is defined and target_appdata_root
+
+- name: update target and setup {{ install_role_name }} service files
+  lineinfile:
+    dest: "/etc/init.d/apt-cacher-ng"
+    regexp: "{{ item.regxp }}"
+    line: "{{ item.line }}"
+    state: present
+  with_items:
+    - { regxp: '^USER.*', line: 'USER=root' }
+    - { regxp: '^GROUP.*', line: 'GROUP=root' }
+
+- name: update target and remove {{ install_role_name }} debconf files
+  file:
+    path: "/etc/apt-cacher-ng/zz_debconf.conf"
+    state: absent
+
+- name: update target and remove {{ install_role_name }} services from booting
+  command: update-rc.d -f {{ item }} remove
+  with_items:
+    - apt-cacher-ng
+  when: ansible_os_family == "Debian"
+
+- name: update target and include init-functions into rc.local
+  lineinfile:
+    dest: "/etc/rc.local"
+    line: ". /lib/lsb/init-functions"
+    insertafter: "# By default this script does nothing."
+    owner: root
+    group: root
+    mode: 0755
+    state: present
+    create: yes
+
+- name: update target and start {{ install_role_name }} from rc.local
+  blockinfile:
+    dest: "/etc/rc.local"
+    insertbefore: "exit 0"
+    marker: "# {mark} MANAGED {{ install_role_name }} BLOCK"
+    owner: root
+    group: root
+    mode: 0755
+    state: present
+    create: yes
+    block: |
+      if [ ! -f "/etc/setup_{{ install_role_name }}.done" ]; then
+        log_begin_msg "Initializing {{ install_role_name }} environment"
+        #MARK_{{ install_role_name }}_DATA
+        touch "/etc/setup_{{ install_role_name }}.done"
+        log_end_msg 0
+      fi
+
+      if [ $(ps -ef | grep -c apt-cacher-ng) != 1 ]; then
+        service apt-cacher-ng restart
+      else
+        service apt-cacher-ng start
+      fi
+  when: ansible_os_family == "Debian"
+
+- name: update target and start {{ install_role_name }} from rc.local
+  lineinfile:
+    dest: "/etc/rc.local"
+    line: "{{ item }}"
+    insertafter: "#MARK_{{ install_role_name }}_DATA"
+    state: present
+  with_items:
+    - '  [ ! -d "{{ target_appdata_root }}/apt-cacher-ng/cache" ] && { mkdir -p "{{ target_appdata_root }}/apt-cacher-ng/cache" && chmod -R 644 "{{ target_appdata_root }}/apt-cacher-ng/cache"; }'
+    - '  [ ! -d "{{ target_appdata_root }}/apt-cacher-ng/log" ] && { mkdir -p "{{ target_appdata_root }}/apt-cacher-ng/log" && chmod -R 644 "{{ target_appdata_root }}/apt-cacher-ng/log"; }'
+  when: target_appdata_root is defined and target_appdata_root

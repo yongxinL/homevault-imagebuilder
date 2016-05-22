@@ -1,0 +1,94 @@
+# =============================================================================
+#
+# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# =============================================================================
+
+# Default variables
+# =================
+
+# .. contents:: Sections
+#    :local:
+#
+# ------------------------------------
+#   Packages and installation
+# ------------------------------------
+install_role_name: 'samba'
+
+# .. envvar:: target_host_name
+# .. envvar:: target_host_domain
+#
+# Specify hostname and domain that should be set in the target image.
+target_host_name: 'homenas'
+target_host_domain: 'domain.local'
+
+# .. envvar:: target_data_root
+#
+# Specify folder that will be use as root of data directory
+target_data_root:
+
+# .. envvar:: target_appdata_root
+#
+# Specify folder that will be use as new location of application data files
+# in case if you want to collect all appdata files in one
+target_appdata_root:
+
+# .. envvar:: samba_base_packages
+#
+# List of base packages to install by Ansible
+# package: package will be installed
+# version: package version, default is '*'
+# example: - { package: 'package', version: '1.2' }
+samba_base_packages:
+  - { package: 'cifs-utils' }
+  - { package: 'samba' }
+  - { package: 'samba-common' }
+  - { package: 'smbclient' }
+
+# .. envvar:: samba_packages
+#
+# List of additional packages to install by Ansible
+# package: package will be installed
+# version: package version, default is '*'
+# example: - { package: 'package', version: '1.2' }
+samba_packages:
+  - { package: 'smbldap-tools' }
+
+# .. envvar:: samba_configuration
+#
+# List of configuration file will be copy to target filesystems
+samba_configuration:
+  - { name: 'etc-samba-smb.conf.j2', dest: '/etc/samba/smb.conf' }
+
+# .. envvar:: samba_conf_global
+#
+# which hash variables are used to add to [global] section in samba.conf
+#samba_conf_global:
+#  passdb_backend: ldapsam:ldap://127.0.0.1
+#  ldap_suffix: dc={{ target_host_domain.split('.')[0] }},dc={{ target_host_domain.split('.')[1] }}
+#  ldap_user_suffix: 'ou=Users'
+#  ldap_group_suffix: 'ou=Groups'
+#  ldap_machine_suffix: 'ou=Computers'
+#  ldap_idmap_suffix: 'ou=Idmap'
+#  ldap_admin_dn: cn=proxyuser,dc={{ target_host_domain.split('.')[0] }},dc={{ target_host_domain.split('.')[1] }}
+#  ldap_ssl: no
+#  ldap_passwd_sync: yes
+#  add_machine_script: sudo /usr/sbin/smbldap-useradd -t 0 -w "%u"
+
+# .. envvar:: samba_conf_share
+#
+# Which hash variables are used to configure [share] section samba.conf
+samba_conf_share:
+  dataLibrary:
+    path: '{{ target_data_root }}/dataLibrary'
+    comment: 'Public file storage'
+    public: 'yes'
+    guest_ok: 'yes'
+    writable: 'yes'
+    force_group: 'root'
+    force_user: 'root'

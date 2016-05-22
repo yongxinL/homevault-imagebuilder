@@ -1,0 +1,67 @@
+# =============================================================================
+#
+# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# =============================================================================
+
+---
+- name: update target and add {{ install_role_name }} repository key
+  apt_key:
+    keyserver: "{{ java_repo_keyserver }}"
+    id: "{{ java_repo_keyid }}"
+    state: present
+
+- name: update target and add {{ install_role_name }} repository list
+  lineinfile: 
+    dest: "{{ item.dest }}"
+    line: "{{ item.line }}"
+    create: yes
+    state: present
+  with_items: "{{ java_repository }}"
+
+- name: update target and set debconf to accept Java License
+  debconf:
+    name: 'oracle-java8-installer'
+    question: 'shared/accepted-oracle-license-v1-1'
+    value: 'true'
+    vtype: 'select'
+
+- name: update target and create required missing folder
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: 0644
+  with_flattened:
+    - "/usr/share/man/man1"
+
+- name: update target and install required {{ install_role_name }} packages
+  apt: 
+    name: "{{ item.package }}={{ item.version|default('*') }}"
+    install_recommends: no
+    update_cache: yes
+  register: install_pkgs
+  until: install_pkgs|success
+  retries: 2
+  delay: 5
+  with_flattened:
+    - "{{ java_base_packages }}"
+    - "{{ java_packages }}"
+
+- name: update target and remove {{ install_role_name }} repository list
+  file: 
+    path: "{{ item.dest }}"
+    state: absent
+  with_items: "{{ java_repository }}"
+
+- name: update target and remove {{ install_role_name }} installation cache
+  file: 
+    path: "{{ item }}"
+    state: absent
+  with_items:
+    - "/usr/share/man/man1"
+    - "/var/cache/oracle-jdk8-installer"

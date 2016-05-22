@@ -1,0 +1,86 @@
+# =============================================================================
+#
+# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# =============================================================================
+
+# Default variables
+# =================
+
+# .. contents:: Sections
+#    :local:
+#
+# ------------------------------------
+#   Packages and installation
+# ------------------------------------
+install_role_name: 'openldap'
+
+# .. envvar:: target_host_name
+# .. envvar:: target_host_domain
+#
+# Specify hostname and domain that should be set in the target.
+target_host_name: 'homenas'
+target_host_domain: 'domain.local'
+
+# .. envvar:: target_root_password
+#
+# Specify root password
+target_root_password: 'secret'
+
+# .. envvar:: target_data_root
+#
+# Specify folder that will be use as root of data directory
+target_data_root:
+
+# .. envvar:: target_appdata_root
+#
+# Specify folder that will be use as new location of application data files
+# in case if you want to collect all appdata files in one
+target_appdata_root: '{{ target_data_root }}/private/var'
+
+# .. envvar:: openldap_base_packages
+#
+# List of base packages to to install by Ansible
+# package: package will be installed
+# version: package version, default is '*'
+# example: - { package: 'package', version: '1.2' }
+openldap_base_packages:
+  - { package: 'ldap-utils' }
+  - { package: 'slapd' }
+  - { package: 'openssl' }
+
+# .. envvar:: openldap_packages
+#
+# List of additional packages to install by Ansible
+# package: package will be installed
+# version: package version, default is '*'
+# example: - { package: 'package', version: '1.2' }
+openldap_packages:
+  - { package: 'auth-client-config' }
+  - { package: 'ldap-auth-client' }
+  - { package: 'ldap-auth-config' }
+  - { package: 'libnss-ldap' }
+  - { package: 'libpam-ldap' }
+  - { package: 'nscd' }
+
+# .. envvar:: openldap_configuration
+#
+# List of configuration file will be copy to Linux base filesystems
+openldap_configuration:
+  - { name: 'etc-ldap.conf.j2', dest: '/etc/ldap.conf' }
+  - { name: 'etc-default-slapd.j2', dest: '/etc/default/slapd' }
+  - { name: 'etc-ldap-ldap.conf.j2', dest: '/etc/ldap/ldap.conf' }
+  - { name: 'usr-share-slapd.init.ldif.j2', dest: '/usr/share/slapd/slapd.init.ldif' }
+  - { name: 'etc-ldap-schema-amavis.schema.j2', dest: '/etc/ldap/schema/amavis.schema' }
+  - { name: 'etc-ldap-schema-amavis.ldif.j2', dest: '/etc/ldap/schema/amavis.ldif' }
+  - { name: 'etc-ldap-schema-postfix.schema.j2', dest: '/etc/ldap/schema/postfix.schema' }
+  - { name: 'etc-ldap-schema-postfix.ldif.j2', dest: '/etc/ldap/schema/postfix.ldif' }  
+  - { name: 'etc-ldap-schema-samba.ldif.j2', dest: '/etc/ldap/schema/samba.ldif' }
+  - { name: 'etc-ldap-schema-samba.schema.j2', dest: '/etc/ldap/schema/samba.schema' }
+  - { name: 'tmp-debconf-set-selections.sh.j2', dest: '/tmp/debconf-set-selections.sh', mode: '0755' }
+  - { name: 'tmp-initial.ldif.j2', dest: '/tmp/initial.ldif' }
