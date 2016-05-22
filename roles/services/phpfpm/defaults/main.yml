@@ -1,0 +1,135 @@
+# =============================================================================
+#
+# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# =============================================================================
+
+# Default variables
+# =================
+
+# .. contents:: Sections
+#    :local:
+#
+# ------------------------------------
+#   Packages and installation
+# ------------------------------------
+install_role_name: 'phpfpm'
+
+# .. envvar:: apt_proxy
+#
+# Specify apt cacher / proxy link, like 'x.x.x.x:3142/'
+apt_proxy:
+
+# .. envvar:: phpfpm_version
+#
+# Specify phpfpm package version to install
+phpfpm_version: '5.6'
+
+# .. envvar:: phpfpm_repo_keyserver
+# .. envvar:: phpfpm_repo_keyid
+#
+# APT GPG key server and id used to sign the ansible packages.
+phpfpm_repo_keyserver: 'keyserver.ubuntu.com'
+phpfpm_repo_keyid: 'E5267A6C'
+
+# .. envvar:: phpfpm_repository
+# .. envvar:: phpfpm_v70_repository
+#
+# Address of the ansible APT repository.
+phpfpm_repository:
+  - { dest: '/etc/apt/sources.list.d/{{ install_role_name }}.list', line: 'deb http://{{ apt_proxy }}ppa.launchpad.net/ondrej/php5-5.6/{{ ansible_distribution | lower }} {{ ansible_distribution_release }} main' }
+phpfpm_v70_repository:
+  - { dest: '/etc/apt/sources.list.d/{{ install_role_name }}.list', line: 'deb http://{{ apt_proxy }}ppa.launchpad.net/ondrej/php/{{ ansible_distribution | lower }} {{ ansible_distribution_release }} main' }
+
+# .. envvar:: target_data_root
+#
+# Specify folder that will be use as root of data directory
+target_data_root:
+
+# .. envvar:: target_appdata_root
+#
+# Specify folder that will be use as new location of application data files
+# in case if you want to collect all appdata files in one
+target_appdata_root:
+
+# .. envvar:: target_web_root
+#
+# Specify folder that will be use as root of Web contents
+target_web_root: '{{ target_data_root }}/private/public_html'
+
+# .. envvar:: phpfpm_base_packages
+#
+# List of base packages to install by Ansible
+# package: package will be installed
+# version: package version, default is '*'
+# example: - { package: 'package', version: '1.2' }
+phpfpm_base_packages:
+  - { package: 'ghostscript' }          # for Ghostscript support in MediaWiki
+  - { package: 'libgs-dev' }            # for Ghostscript support in MediaWiki
+  - { package: 'imagemagick' }          # for image convert support in MediaWiki
+  - { package: 'libmagickcore5-extra' } # for SVG image convert support
+  - { package: 'php5-fpm' }
+  - { package: 'php5' }
+  - { package: 'php5-common', version: '*' }
+  - { package: 'poppler-utils' }
+
+# .. envvar:: phpfpm_packages
+#
+# List of additional packages to install by Ansible
+# package: package will be installed
+# version: package version, default is '*'
+# example: - { package: 'package', version: '1.2' }
+phpfpm_packages:
+  - { package: 'php-pear' }
+  - { package: 'php5-curl' }
+  - { package: 'php5-gd' }
+  - { package: 'php5-imap' }
+  - { package: 'php5-intl' }
+  - { package: 'php5-imagick' }
+  - { package: 'php5-ldap' }
+  - { package: 'php5-mcrypt' }
+  - { package: 'php5-mysql' }
+  - { package: 'php5-pgsql' }
+  - { package: 'php5-tidy' }
+  - { package: 'php5-xmlrpc' }
+  - { package: 'php5-json' }
+
+# .. envvar:: phpfpm_v70_base_packages
+#
+# List of base packages to install by Ansible
+phpfpm_v70_base_packages:
+  - { package: 'php7.0' }
+  - { package: 'php7.0-cli' }
+  - { package: 'php7.0-common' }
+
+# .. envvar:: phpfpm_v70_packages
+#
+# List of additional packages to install by Ansible
+phpfpm_v70_packages:
+  - { package: 'php-pear' }
+  - { package: 'php-imagick' }
+  - { package: 'php7.0-curl' }
+  - { package: 'php7.0-gd' }
+  - { package: 'php7.0-json' }
+  - { package: 'php7.0-mysql' }
+  - { package: 'php7.0-opcache' }
+  - { package: 'php7.0-readline' }  
+  - { package: 'php7.0-xml' }
+  
+# .. envvar:: phpfpm_configuration
+#
+# List of configuration file will be copy to Linux base filesystems
+phpfpm_configuration:
+  - { name: 'etc-init-php5-fpm.j2', dest: '/etc/init.d/php5-fpm', mode: '0755' }
+  - { name: 'etc-nginx-confd-default.conf.j2', dest: '/etc/nginx/conf.d/default.conf' }
+  - { name: 'etc-nginx-confd-default.ini.j2', dest: '/etc/nginx/conf.d/default.ini' }
+
+phpfpm_v70_configuration:
+  - { name: 'etc-init-php7.0-fpm.j2', dest: '/etc/init.d/php7.0-fpm', mode: '0755' }
+  - { name: 'etc-nginx-confd-default.conf.j2', dest: '/etc/nginx/conf.d/default.conf' }
+  - { name: 'etc-nginx-confd-default.ini.j2', dest: '/etc/nginx/conf.d/default.ini' }
