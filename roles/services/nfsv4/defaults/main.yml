@@ -1,0 +1,74 @@
+# =============================================================================
+#
+# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# =============================================================================
+
+# Default variables
+# =================
+
+# .. contents:: Sections
+#    :local:
+#
+# ------------------------------------
+#   Packages and installation
+# ------------------------------------
+install_role_name: 'nfsv4'
+
+# .. envvar:: target_data_root
+#
+# Specify folder that will be use as root of data directory
+target_data_root:
+
+# .. envvar:: nfsv4_base_packages
+#
+# List of base packages to install by Ansible
+# package: package will be installed
+# version: package version, default is '*'
+# example: - { package: 'package', version: '1.2' }
+nfsv4_base_packages:
+  - { package: 'nfs-kernel-server', version: '*' }
+
+# .. envvar:: nfsv4_packages
+#
+# List of additional packages to install by Ansible
+# package: package will be installed
+# version: package version, default is '*'
+# example: - { package: 'package', version: '1.2' }
+nfsv4_packages: []
+
+# .. envvar:: nfsv4_configuration
+#
+# List of configuration file will be copy to Linux base filesystems
+nfsv4_configuration:
+  - { name: 'etc-exports.j2', dest: '/etc/exports' }
+
+# .. envvar:: nfsv4_conf_share
+#
+# Which hash variables are used to configure [share] section samba.conf
+nfsv4_conf_share:
+  nfsexport:
+    path: '{{ target_data_root }}/nfsexport'
+
+# .. envvar:: build_kernel_version
+#
+# Specify Linux kernel version will be use in the target image.
+build_kernel_version: '4.2.0-30-generic'
+
+# .. envvar:: uninstall_build_kernel
+#
+# Set below param to yes if you don't want kernel modules in the Linux base filesystems
+uninstall_build_kernel: 'no'
+
+# .. envvar:: persistent_files
+#
+# List of files will be remain after cleaning up kernel and base filesystems
+persistent_files:
+  - '/lib/modules/{{ build_kernel_version }}/kernel/net/sunrpc'
+  - '/lib/modules/{{ build_kernel_version }}/kernel/fs/nfs'
+  - '/lib/modules/{{ build_kernel_version }}/kernel/fs/nfs_common'
