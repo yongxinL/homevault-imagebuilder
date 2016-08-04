@@ -1,0 +1,80 @@
+# =============================================================================
+#
+# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# =============================================================================
+
+# Default variables
+# =================
+
+# .. contents:: Sections
+#    :local:
+#
+# ------------------------------------
+#   HP Gen8 Management Component Pack
+# ------------------------------------
+install_role_name: 'hpgen8'
+
+# .. envvar:: hpgen8_repo_key
+#
+# APT GPG key server and id used to sign the ansible packages.
+hpgen8_repo_key: 'http://downloads.linux.hpe.com/SDR/repo/mcp/hpPublicKey2048_key1.pub'
+
+# .. envvar:: apt_proxy
+#
+# Specify apt cacher / proxy link, like 'x.x.x.x:3142/'
+apt_proxy:
+
+# .. envvar:: hpgen8_repository
+#
+# Address of the HP MgmPack APT repository.
+hpgen8_repository:
+  - { dest: '/etc/apt/sources.list.d/{{ install_role_name }}.list', line: 'deb http://{{ apt_proxy }}downloads.linux.hpe.com/SDR/repo/mcp trusty/current non-free' }
+
+# .. envvar:: hpgen8_base_packages
+#
+# List of base packages to install by Ansible
+# package: package will be installed
+# version: package version, default is '*'
+# example: - { package: 'package', version: '1.2' }
+hpgen8_base_packages:
+  - { package: "hp-health" }
+  - { package: "hponcfg" }
+  - { package: "hp-ams" }
+  - { package: "hpssacli" }
+  - { package: "hpssaducli" }
+  - { package: "lsof" }
+
+# .. envvar:: hpgen8_packages
+#
+# List of additional packages to install by Ansible
+hpgen8_packages: []
+
+# .. envvar:: hpgen8_configuration
+#
+# List of configuration file will be copy to Linux base filesystems
+hpgen8_configuration:
+  - { name: 'network-hpgen8.cfg.j2', dest: '/etc/network/interfaces.d/hpgen8.cfg' }
+
+# .. envvar:: build_kernel_version
+#
+# Specify Linux kernel version will be use in the target image.
+build_kernel_version: '4.2.0-35-generic'
+
+# .. envvar:: uninstall_build_kernel
+#
+# Set below param to yes if you don't want kernel modules in the Linux base filesystems
+uninstall_build_kernel: 'no'
+
+# .. envvar:: persistent_files
+#
+# List of files will be remain after cleaning up kernel and base filesystems
+persistent_files:
+  - "/lib/modules/{{ build_kernel_version }}/modules.dep.bin"
+  - "/lib/modules/{{ build_kernel_version }}/kernel/arch/x86/kernel/cpuid.ko"
+  - "/lib/modules/{{ build_kernel_version }}/kernel/drivers/misc/hpilo.ko"

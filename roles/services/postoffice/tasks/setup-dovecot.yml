@@ -1,0 +1,129 @@
+# =============================================================================
+#
+# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# =============================================================================
+
+---
+- name: update target and copy {{ install_role_name }}-dovecot configure files
+  template:
+    src: "{{ item.name }}"
+    dest: "{{ item.dest }}"
+    owner: root
+    group: root
+    mode: "{{ item.mode|default('0644') }}"
+  with_items: "{{ dovecot_configuration }}"
+
+- name: update target and enable LDAP authentication for {{ install_role_name }}-dovecot
+  lineinfile:
+    dest:  /etc/dovecot/conf.d/10-auth.conf
+    regexp: "{{ item.regxp }}"
+    line: "{{ item.line }}"
+    state: present
+  with_items:
+    - { regxp: '^auth_mechanisms.*', line: 'auth_mechanisms = plain login' }
+    - { regxp: '^!include auth-system.*', line: '#!include auth-system.conf.ext' }
+    - { regxp: '^#!include auth-ldap.*', line: '!include auth-ldap.conf.ext' }
+
+- name: update target and enable {{ install_role_name }}-dovecot logging
+  lineinfile:
+    dest:  /etc/dovecot/conf.d/10-logging.conf
+    regexp: "{{ item.regxp }}"
+    line: "{{ item.line }}"
+    state: present
+  with_items:
+    - { regxp: '^#log_path.*', line: 'log_path = syslog' }
+    - { regxp: '^#auth_verbose.*', line: 'auth_verbose = no' }
+    - { regxp: '^#syslog_facility.*', line: 'syslog_facility = mail' }
+
+- name: update target and enable {{ install_role_name }}-dovecot SSL/TLS support
+  lineinfile:
+    dest:  /etc/dovecot/conf.d/10-ssl.conf
+    regexp: "{{ item.regxp }}"
+    line: "{{ item.line }}"
+    state: present
+  with_items:
+    - { regxp: '^#ssl =.*', line: 'ssl = required' }
+    - { regxp: '^ssl_cert.*', line: 'ssl_cert = </etc/ssl/private/{{ target_host_domain }}.crt' }
+    - { regxp: '^ssl_key.*', line: 'ssl_key = </etc/ssl/private/{{ target_host_domain }}.key' }
+    - { regxp: '^#ssl_cipher_list.*', line: 'ssl_cipher_list = ALL:!LOW:!SSLv2:!EXP:!aNULL' }
+
+- name: update target and enable {{ install_role_name }}-dovecot LDA specific settings
+  lineinfile:
+    dest:  /etc/dovecot/conf.d/15-lda.conf
+    regexp: "{{ item.regxp }}"
+    line: "{{ item.line }}"
+    state: present
+  with_items:
+    - { regxp: '^#postmaster_address =.*', line: 'postmaster_address = postmaster@yongxin.info' }
+    - { regxp: '^#sendmail_path.*', line: 'sendmail_path = /usr/sbin/sendmail' }
+    - { regxp: '^#lda_mailbox_autocreate.*', line: 'lda_mailbox_autocreate = yes' }
+    - { regxp: '^#lda_mailbox_autosubscribe.*', line: 'lda_mailbox_autosubscribe = yes' }
+
+- name: update target and remove {{ install_role_name }}-dovecot services from booting
+  lineinfile:
+    dest: "{{ item }}"
+    line: "manual"
+    owner: root
+    group: root
+    mode: 0644
+    state: present
+    create: yes
+  with_items:
+    - /etc/init/dovecot.override
+  when: ansible_os_family == "Debian"
+
+- name: update target and include init-functions into rc.local
+  lineinfile:
+    dest: "/etc/rc.local"
+    line: ". /lib/lsb/init-functions"
+    insertafter: "# By default this script does nothing."
+    owner: root
+    group: root
+    mode: 0755
+    state: present
+    create: yes
+
+- name: update target and start {{ install_role_name }}-dovecot from rc.local
+  blockinfile:
+    dest: "/etc/rc.local"
+    insertbefore: "exit 0"
+    marker: "# {mark} MANAGED {{ install_role_name }}-dovecot BLOCK"
+    owner: root
+    group: root
+    mode: 0755
+    state: present
+    create: yes 
+    block: |
+      if [ ! -f "/etc/setup_{{ install_role_name }}.done" ]; then
+        log_begin_msg "Initializing {{ install_role_name }} environment"
+        #MARK_{{ install_role_name }}_DATA
+        touch "/etc/setup_{{ install_role_name }}.done"
+        log_end_msg 0
+      fi
+
+      log_begin_msg "Starting {{ install_role_name }}-dovecot daemon"
+      if [ $(ps -ef | grep -c dovecot) != 1 ]; then
+        /etc/init.d/dovecot restart > /dev/null
+      else
+        /etc/init.d/dovecot start > /dev/null
+      fi
+      log_end_msg 0
+  when: ansible_os_family == "Debian"
+
+- name: update target and start {{ install_role_name }} from rc.local
+  lineinfile:
+    dest: "/etc/rc.local"
+    line: "{{ item }}"
+    insertafter: "#MARK_{{ install_role_name }}_DATA"
+    state: present
+  with_items:
+    - '  [ ! -d "{{ target_appdata_root }}/.mailbox" ] && { mkdir -p "{{ target_appdata_root }}/.mailbox" && chmod -R 777 "{{ target_appdata_root }}/.mailbox"; }'
+    - '  chmod 755 "{{ target_appdata_root }}"'
+    - '  [ ! -d "{{ target_appdata_root }}" ] && { mkdir -p "{{ target_appdata_root }}"; }'
+  when: target_appdata_root is defined and target_appdata_root

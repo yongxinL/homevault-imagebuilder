@@ -1,0 +1,100 @@
+# =============================================================================
+#
+# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# =============================================================================
+
+# Default variables
+# =================
+
+# .. contents:: Sections
+#    :local:
+#
+# ------------------------------------
+#   Packages and installation
+# ------------------------------------
+install_role_name: 'postoffice'
+
+# .. envvar:: target_host_name
+# .. envvar:: target_host_domain
+#
+# Specify hostname and domain that should be set in the target image.
+target_host_name: 'homevault'
+target_host_domain: 'yongxin.info'
+
+# .. envvar:: apt_proxy
+#
+# Specify apt cacher / proxy link, like 'x.x.x.x:3142/'
+apt_proxy:
+
+# .. envvar:: target_root_password
+#
+# Specify root password
+target_root_password: 'secret'
+
+# .. envvar:: target_appdata_root
+#
+# Specify folder that will be use as new location of application data files
+# in case if you want to collect all appdata files in one
+target_appdata_root:
+
+# .. envvar:: mailsrv_base_packages
+#
+# List of base packages to install by Ansible
+# package: package will be installed
+# version: package version, default is '*'
+# example: - { package: 'package', version: '1.2' }
+postoffice_base_packages:
+  - { package: 'dovecot-antispam' }
+  - { package: 'dovecot-core' }
+  - { package: 'dovecot-imapd' }
+  - { package: 'dovecot-lmtpd' }
+  - { package: 'dovecot-ldap' }
+  - { package: 'dovecot-managesieved' }
+  - { package: 'dovecot-mysql' }
+  - { package: 'dovecot-pop3d' }
+  - { package: 'dovecot-sieve' }
+  - { package: 'postfix' }
+  - { package: 'postfix-ldap' }
+  - { package: 'postfix-pcre' }
+  - { package: 'postfix-mysql' }
+
+# .. envvar:: mailsrv_packages
+#
+# openDKIM - verify the message that actually comes from the domain
+# clamav - detect viruses and move any infected files into quarantined folder
+# List of additional packages to install by Ansible
+# package: package will be installed
+# version: package version, default is '*'
+# example: - { package: 'package', version: '1.2' }
+postoffice_packages:
+  - { package: 'libsasl2-2' }
+  - { package: 'sasl2-bin' }
+  - { package: 'amavisd-new' }
+  - { package: 'clamav-daemon' }
+  - { package: 'spamassassin' }
+  - { package: 'spamc' }
+  - { package: 'postfix-policyd-spf-python' }
+  - { package: 'pyzor' }
+  - { package: 'razor' }
+
+# .. envvar:: postfix_configuration
+#
+# List of configuration file will be copy to Linux base filesystems
+postfix_configuration:
+  - { name: 'etc-postfix-main.cf.j2', dest: '/etc/postfix/main.cf' }
+  - { name: 'etc-postfix-master.cf.j2', dest: '/etc/postfix/master.cf' }
+
+# .. envvar:: dovecot_configuration
+#
+# List of configuration file will be copy to Linux base filesystems
+dovecot_configuration:
+  - { name: 'etc-initd-dovecot.j2', dest: '/etc/init.d/dovecot', mode: '0755' }
+  - { name: 'etc-dovecot-confd-10-master.conf.j2', dest: '/etc/dovecot/conf.d/10-master.conf' }
+  - { name: 'etc-dovecot-confd-10-mail.conf.j2', dest: '/etc/dovecot/conf.d/10-mail.conf' }
+  - { name: 'etc-dovecot-dovecot-ldap.conf.ext.j2', dest: '/etc/dovecot/dovecot-ldap.conf.ext' }

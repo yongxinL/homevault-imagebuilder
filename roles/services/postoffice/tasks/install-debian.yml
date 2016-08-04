@@ -1,0 +1,59 @@
+# =============================================================================
+#
+# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# =============================================================================
+
+---
+- name: update target and install required {{ install_role_name }} packages
+  apt: 
+    name: "{{ item.package }}={{ item.version|default('*') }}"
+    install_recommends: no
+    update_cache: yes
+  register: install_pkgs
+  until: install_pkgs|success
+  retries: 2
+  delay: 5
+  with_flattened:
+    - "{{ postoffice_base_packages }}"
+    - "{{ postoffice_packages }}"
+
+- name: check target if {{ target_host_domain }} certificates does exist
+  stat:
+    path: "/etc/ssl/private/{{ target_host_domain }}.crt"
+  register: certificate_exist
+
+- name: update target and generate certificates for {{ target_host_domain }}
+  environment:
+    SUBJ:  "/C=AU/ST=New South Wales/O={{ target_host_domain }} Solutions/LocalityName=Sydney/commonName=*.{{ target_host_domain }}/organizationalUnitName=Home/emailAddress=yongxinL@outlook.com"
+    PASSPHRASE: $(head -c 500 /dev/urandom | tr -dc a-z0-9A-Z | head -c 128; echo)
+  command:  openssl {{ item }}
+            chdir=/etc/ssl/private
+  with_items:
+    - genrsa -des3 -out {{ target_host_domain }}.key.secret -passout env:PASSPHRASE 2048
+    - req -new -subj $SUBJ -key {{ target_host_domain }}.key.secret -out {{ target_host_domain }}.csr -passin env:PASSPHRASE
+    - rsa -in {{ target_host_domain }}.key.secret -out {{ target_host_domain }}.key -passin env:PASSPHRASE
+    - x509 -req -days 3650 -in {{ target_host_domain }}.csr -signkey {{ target_host_domain }}.key -out {{ target_host_domain }}.crt
+  when: certificate_exist.stat.exists == False
+
+- name: update target and generate {{ install_role_name }}-postfix Hellman parameters
+  command:  openssl {{ item }}
+            chdir=/etc/ssl/private
+  with_items:
+    - dhparam -2 -out dh_512.pem 512
+    - dhparam -2 -out dh_1024.pem 1024
+
+- name: update target and change folder permission
+  file:
+    path: "{{ item.name }}"
+    owner: "{{ item.owner|default('root') }}"
+    group: "{{ item.group|default('root') }}"
+    mode: "{{ item.mode|default('0644') }}"
+    state: directory
+  with_items:
+    - { name: '/var/spool/postfix', owner: 'postfix', mode: '0755' }

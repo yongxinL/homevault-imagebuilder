@@ -1,0 +1,97 @@
+# =============================================================================
+#
+# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# =============================================================================
+
+---
+- name: update target and enable {{ install_role_name }}-saslauthd SASL auth
+  blockinfile:
+    dest: "/etc/postfix/sasl/smtpd.conf"
+    marker: "# {mark} MANAGED SASL authd BLOCK"
+    owner: root
+    group: root
+    mode: 0644
+    create: yes
+    block: |
+      log_level: 3
+      pwcheck_method: saslauthd
+      mech_list: PLAIN LOGIN
+
+- name: update target and configure {{ install_role_name }}-saslauthd SASL auth mechanisms
+  lineinfile:
+    dest: /etc/default/saslauthd
+    regexp: "{{ item.regxp }}"
+    line: "{{ item.line }}"
+    state: present
+  with_items:
+    - { regxp: '^START=.*', line: 'START=yes' }
+    - { regxp: '^MECHANISMS=.*', line: 'MECHANISMS="ldap"' }
+    - { regxp: '^THREADS=.*', line: 'THREADS=2' }
+    - { regxp: '^OPTIONS=.*', line: 'OPTIONS="-n 0 -c -m /var/spool/postfix/var/run/saslauthd -r"' }
+
+- name: update target and configure {{ install_role_name }}-saslauthd SASL auth LDAP configuration
+  blockinfile:
+    dest: "/etc/saslauthd.conf"
+    marker: "# {mark} MANAGED saslauthd BLOCK"
+    owner: root
+    group: sasl
+    mode: 0640
+    create: yes
+    block: |
+      ldap_servers: ldap://127.0.0.1/
+      ldap_bind_dn: cn=proxyuser,ou=role,dc={{ target_host_domain.split('.')[0] }},dc={{ target_host_domain.split('.')[1] }}
+      ldap_bind_pw: secret
+      ldap_timeout: 10
+      ldap_time_limit: 10
+      ldap_scope: sub
+      ldap_search_base: ou=Users,dc={{ target_host_domain.split('.')[0] }},dc={{ target_host_domain.split('.')[1] }}
+      ldap_auth_method: bind
+      ldap_filter: (&(uid=%u))
+      ldap_debug: 0
+      ldap_verbose: off
+      ldap_ssl: no
+      ldap_starttls: no
+      ldap_referrals: yes
+
+- name: update target and remove {{ install_role_name }}-saslauthd services from booting
+  command: update-rc.d -f {{ item }} remove
+  with_items:
+    - saslauthd
+  when: ansible_os_family == "Debian"
+
+- name: update target and include init-functions into rc.local
+  lineinfile:
+    dest: "/etc/rc.local"
+    line: ". /lib/lsb/init-functions"
+    insertafter: "# By default this script does nothing."
+    owner: root
+    group: root
+    mode: 0755
+    state: present
+    create: yes
+
+- name: update target and start {{ install_role_name }}-saslauthd from rc.local
+  blockinfile:
+    dest: "/etc/rc.local"
+    insertbefore: "exit 0"
+    marker: "# {mark} MANAGED {{ install_role_name }}-saslauthd BLOCK"
+    owner: root
+    group: root
+    mode: 0755
+    state: present
+    create: yes 
+    block: |
+      log_begin_msg "Starting {{ install_role_name }}-saslauthd daemon"
+      if [ $(ps -ef | grep -c saslauthd) != 1 ]; then
+        service saslauthd restart > /dev/null
+      else
+        service saslauthd start > /dev/null
+      fi
+      log_end_msg 0
+  when: ansible_os_family == "Debian"
