@@ -1,0 +1,21 @@
+# =============================================================================
+#
+# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# =============================================================================
+
+---
+- include: install-debian.yml
+  when: ansible_os_family == "Debian"
+
+- include: setup-amavis.yml
+- include: setup-spam.yml
+- include: setup-clamav.yml
+- include: setup-saslauthd.yml
+- include: setup-dovecot.yml
+- include: setup-postfix.yml

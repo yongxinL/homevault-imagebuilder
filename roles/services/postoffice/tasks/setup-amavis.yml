@@ -1,0 +1,97 @@
+# =============================================================================
+#
+# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# =============================================================================
+
+---
+- name: update target and create {{ install_role_name }}-amavis required file
+  file:
+    path: /etc/mailname
+    state: touch
+
+- name: update target and change {{ install_role_name }}-amavis configuration
+  blockinfile:
+    dest: "/etc/amavis/conf.d/50-user"
+    insertbefore: "#------------ Do not modify anything below this line -------------"
+    marker: "# {mark} MANAGED {{ install_role_name }}-spam BLOCK"
+    owner: root
+    group: root
+    mode: 0644
+    state: present
+    block: |
+        @local_domains_acl = qw(.);
+        $log_level = 2;
+        $syslog_priority = 'debug';
+        # $sa_tag_level_deflt = 2.0; # add spam info headers if at, or above that level
+        # $sa_tag2_level_deflt = 6.31; # add 'spam detected' headers at that level
+        $sa_kill_level_deflt = 8.0; # triggers spam evasive actions
+        # $sa_dsn_cutoff_level = 10; # spam level beyond which a DSN is not sent
+        $final_spam_destiny = D_PASS;
+        # $final_spam_destiny = D_REJECT; # default 
+        # $final_spam_destiny = D_BOUNCE; # debian default 
+        $final_spam_destiny = D_DISCARD; # ubuntu default, recommended as sender is usually faked
+
+- name: update target and change {{ install_role_name }}-amavis configuration
+  lineinfile:
+    dest: /etc/amavis/conf.d/15-content_filter_mode
+    insertbefore: "1;  # ensure a defined return"
+    line: "{{ item }}"
+    state: present
+  with_items:
+    - '@bypass_virus_checks_maps = ('
+    - '   \%bypass_virus_checks, \@bypass_virus_checks_acl, \$bypass_virus_checks_re);'
+    - '@bypass_spam_checks_maps = ('
+    - '   \%bypass_spam_checks, \@bypass_spam_checks_acl, \$bypass_spam_checks_re);'
+
+- name: update target and set hostname in {{ install_role_name }}-amavis
+  lineinfile:
+    dest: /etc/amavis/conf.d/05-node_id
+    insertbefore: "1;  # ensure a defined return"
+    regexp: "{{ item.regxp }}"
+    line: "{{ item.line }}"
+    state: present
+  with_items:
+    - { regxp: '#$myhostname.*', line: '$myhostname = "{{target_host_name }}.{{ target_host_domain }}";' }
+
+- name: update target and remove {{ install_role_name }}-amavis services from booting
+  command: update-rc.d -f {{ item }} remove
+  with_items:
+    - amavis
+  when: ansible_os_family == "Debian"
+
+- name: update target and include init-functions into rc.local
+  lineinfile:
+    dest: "/etc/rc.local"
+    line: ". /lib/lsb/init-functions"
+    insertafter: "# By default this script does nothing."
+    owner: root
+    group: root
+    mode: 0755
+    state: present
+    create: yes
+
+- name: update target and start {{ install_role_name }}-amavis from rc.local
+  blockinfile:
+    dest: "/etc/rc.local"
+    insertbefore: "exit 0"
+    marker: "# {mark} MANAGED {{ install_role_name }}-amavis BLOCK"
+    owner: root
+    group: root
+    mode: 0755
+    state: present
+    create: yes 
+    block: |
+      #log_begin_msg "Starting {{ install_role_name }}-amavis daemon"
+      #if [ $(ps -ef | grep -c amavisd) != 1 ]; then
+      #  service amavis restart > /dev/null
+      #else
+      #  service amavis start > /dev/null
+      #fi
+      #log_end_msg 0
+  when: ansible_os_family == "Debian"
