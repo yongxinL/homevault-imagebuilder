@@ -24,20 +24,11 @@
   vars_files:
     - ../../{{ config_file }}
   roles:
-    #- ../services/openssh         # basesystems and installed in basefs playbook
-    #- ../services/openldap        # basesystems and installed in basefs playbook
-    #- ../services/samba           # basesystems and installed in basefs playbook
-    #- ../services/nfsv4           # basesystems and installed in basefs playbook
-    #- ../services/ansible         # basesystems and installed in basefs playbook
-    #- ../services/git             # basesystems and installed in basefs playbook
-    #- ../services/docker          # basesystems and installed in basefs playbook
-    #- ../services/nginx           # basesystems and installed in basefs playbook
-    #- ../services/phpfpm          # basesystems and installed in basefs playbook
-    #- ../services/nodejs          # basesystems and installed in basefs playbook
-    #- ../services/mariadb10       # basesystems and installed in basefs playbook
-    - ../services/aptcacher
-    - ../services/webmin
-    #- ../services/java8           # removed from basefs playbook due to huge space required.
+    - ../services/webmin            # commit the line to disable this service
+    - ../hardware/vmtools           # VMware tools and drivers
+    - ../hardware/hpgen8            # HP Gen8 management Pack
+    #- ../services/postoffice        # uncommit the line to enable this service
+    #- ../services/java8             # uncommit the line to enable this service
   post_tasks:
     - include: tasks/cleanup_rootfs_debian.yml
 
