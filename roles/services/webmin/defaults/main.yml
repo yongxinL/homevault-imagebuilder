@@ -61,7 +61,7 @@ webmin_config_port: 9900
 # example: - { package: 'package', version: '1.2' }
 webmin_base_packages:
   - { package: 'apt-show-versions' }
-  - { package: 'webmin', version: '1.791' }
+  - { package: 'webmin', version: '1.801' }
 
 # .. envvar:: webmin_packages
 #

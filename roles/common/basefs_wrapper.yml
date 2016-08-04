@@ -24,20 +24,18 @@
     - ../../{{ config_file }}
   roles:
     - ../basefs/build-basefs
-    - ../services/openssh         # basesystems and installed in basefs playbook
-    - ../services/openldap        # basesystems and installed in basefs playbook
-    - ../services/samba           # basesystems and installed in basefs playbook
-    - ../services/nfsv4           # basesystems and installed in basefs playbook
-    - ../services/ansible         # basesystems and installed in basefs playbook
-    - ../services/git             # basesystems and installed in basefs playbook
-    - ../services/docker          # basesystems and installed in basefs playbook
-    - ../services/nginx           # basesystems and installed in basefs playbook
-    - ../services/phpfpm          # basesystems and installed in basefs playbook
-    - ../services/nodejs          # basesystems and installed in basefs playbook
-    - ../services/mariadb10       # basesystems and installed in basefs playbook
-    #- ../services/aptcacher
-    #- ../services/webmin
-    #- ../services/java8           # removed from basefs playbook due to huge space required.
+    - ../services/openssh
+    #- ../services/openldap          # uncommit the line to enable this service
+    - ../services/samba             # commit the line to disable this service
+    - ../services/nfsv4             # commit the line to disable this service
+    - ../services/ansible           # commit the line to disable this service
+    - ../services/aptcacher         # commit the line to disable this service
+    - ../services/git               # commit the line to disable this service
+    - ../services/docker            # commit the line to disable this service
+    - ../services/nginx             # commit the line to disable this service
+    - ../services/phpfpm            # commit the line to disable this service
+    - ../services/nodejs            # commit the line to disable this service
+    - ../services/mariadb10         # commit the line to disable this service
   post_tasks:
     - include: tasks/cleanup_rootfs_debian.yml
 
