@@ -61,7 +61,7 @@ webmin_config_port: 9900
 # example: - { package: 'package', version: '1.2' }
 webmin_base_packages:
   - { package: 'apt-show-versions' }
-  - { package: 'webmin', version: '1.801' }
+  - { package: 'webmin', version: '1.820' }
 
 # .. envvar:: webmin_packages
 #
@@ -149,9 +149,9 @@ webmin_module_removal:
   - iscsi-tgtd              # iSCSI TGTd
   - jabber                  # Jabber IM Server
   - krb5                    # Kerberos5
-#  - ldap-client             # LDAP Client
-#  - ldap-server             # LDAP Server
-#  - ldap-useradmin          # LDAP Users and Groups
+  - ldap-client             # LDAP Client
+  - ldap-server             # LDAP Server
+  - ldap-useradmin          # LDAP Users and Groups
 #  - logrotate               # Log File Rotation
   - lpadmin                 # Printer Administration
 #  - lvm                     # Logical Volume Management

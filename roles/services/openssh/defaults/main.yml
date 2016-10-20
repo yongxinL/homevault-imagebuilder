@@ -25,7 +25,7 @@ install_role_name: 'openssh'
 #
 # Specify hostname and domain that should be set in the target.
 target_host_name: 'homevault'
-target_host_domain: 'yongxin.info'
+target_host_domain: 'lifamilyclub.com'
 
 # .. envvar:: openssh_base_packages
 #

@@ -60,7 +60,7 @@
     line: "{{ item.line }}"
     state: present
   with_items:
-    - { regxp: '^#postmaster_address =.*', line: 'postmaster_address = postmaster@yongxin.info' }
+    - { regxp: '^#postmaster_address =.*', line: 'postmaster_address = postmaster@lifamilyclub.com' }
     - { regxp: '^#sendmail_path.*', line: 'sendmail_path = /usr/sbin/sendmail' }
     - { regxp: '^#lda_mailbox_autocreate.*', line: 'lda_mailbox_autocreate = yes' }
     - { regxp: '^#lda_mailbox_autosubscribe.*', line: 'lda_mailbox_autosubscribe = yes' }

@@ -21,7 +21,7 @@
 #
 # Specify hostname and domain that should be set in the target image.
 target_host_name: 'homevault'
-target_host_domain: 'yongxin.info'
+target_host_domain: 'lifamilyclub.com'
 
 # .. envvar:: target_root_password
 #
@@ -81,10 +81,9 @@ build_image_iso: 'homevault_{{ debstrap_dist }}_{{ debstrap_suite }}.iso'
 #
 # Specify Linux kernel version will be use in the target image.
 # Available version for ubuntu
-# - 4.4.0-33-generic => xenial
-# - 4.2.0-42-generic  => trusty
+# - 4.4.0-42-generic  => trusty
 # - 3.16.0-60-generic => trusty
-build_kernel_version: '4.4.0-33-generic'
+build_kernel_version: '4.4.0-42-generic'
 
 # .. envvar:: debstrap_dist
 # .. envvar:: debstrap_arch
@@ -94,7 +93,6 @@ build_kernel_version: '4.4.0-33-generic'
 debstrap_dist: 'ubuntu'
 debstrap_arch: 'amd64'
 debstrap_suite: 'trusty'
-#debstrap_suite: 'xenial'
 
 # .. envvar:: apt_proxy
 #

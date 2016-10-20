@@ -25,7 +25,7 @@ install_role_name: 'nginx'
 #
 # Specify hostname and domain that should be set in the target image.
 target_host_name: 'homevault'
-target_host_domain: 'yongxin.info'
+target_host_domain: 'lifamilyclub.com'
 
 # .. envvar:: target_data_root
 #
