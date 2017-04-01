@@ -41,12 +41,14 @@ echo "done!"
 
 echo -n "cleanup unnecessary APT cache and compress files ..."
 echo -n > /var/lib/apt/extended_states
-rm -rf /var/log/apt
 rm -rf /var/cache/apt/archives/*.deb
 rm -rf /var/cache/apt/*cache.bin
 rm -rf /var/cache/apt-show-versions/*
 rm -rf /var/lib/apt/lists/*
 rm -rf /var/lib/{cache,log}
+rm -rf /var/log/apt
+rm -rf /var/log/apt-cacher-ng
+rm -rf /var/log/mysql
 rm -rf /usr/src/*
 rm -rf /etc/resolv.conf
 echo "done!"
@@ -55,7 +57,8 @@ echo -n "cleanup all extra Log files and zero out the rest ..."
 find /var/log -regex '.*?[0-9].*?' -exec rm -v {} \;
 find /var/log -type f | while read file
 do
-    cat /dev/null | tee $file
+    # cat /dev/null | tee $file  // zero out the file
+    rm -f $file
 done
 echo "done!"
 

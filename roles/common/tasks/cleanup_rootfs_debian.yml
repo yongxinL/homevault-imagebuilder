@@ -14,13 +14,13 @@
   apt: 
     name: "linux-image-{{ build_kernel_version }}"
     state: absent
-  when: uninstall_build_kernel is defined and uninstall_build_kernel == "yes"
+  when: uninstall_build_kernel == True
 
-- name: install Linux kernel image extra for physical machine support
+- name: uninstall Linux kernel image extra for physical machine support
   apt: 
     name: "linux-image-extra-{{ build_kernel_version }}"
     state: absent
-  when: uninstall_build_kernel is defined and uninstall_build_kernel == "yes"
+  when: uninstall_build_kernel == True
 
 - name: upload rootfs cleanup script
   template: 
