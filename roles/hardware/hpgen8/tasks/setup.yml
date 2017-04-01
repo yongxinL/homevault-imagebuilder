@@ -10,7 +10,7 @@
 # =============================================================================
 
 ---
-- name: update target and copy {{ install_role_name }} configure files
+- name: copy {{ install_role_name }} configure files
   template:
     src: "{{ item.name }}"
     dest: "{{ item.dest }}"
@@ -19,15 +19,14 @@
     mode: "{{ item.mode|default('0644') }}"
   with_items: "{{ hpgen8_configuration }}"
 
-- name: update target and remove {{ install_role_name }} services from booting
+- name: remove {{ install_role_name }} services from booting
   command: update-rc.d -f {{ item }} remove
   with_items:
     - hp-ams
     - hp-asrd
     - hp-health
-  when: ansible_os_family == "Debian"
-
-- name: update target and include init-functions into rc.local
+    
+- name: include init-functions into rc.local
   lineinfile:
     dest: "/etc/rc.local"
     line: ". /lib/lsb/init-functions"
@@ -38,7 +37,7 @@
     state: present
     create: yes
 
-- name: update target and start {{ install_role_name }} from rc.local
+- name: start {{ install_role_name }} from rc.local
   blockinfile:
     dest: "/etc/rc.local"
     insertbefore: "exit 0"
@@ -49,6 +48,7 @@
     state: present
     create: yes    
     block: |
+      /etc/init.d/init-{{ install_role_name }}.sh
       if [ -e "/dev/hpilo" ]; then
         log_begin_msg "Starting HP Advanced Server Recovery Daemon"
         if [ $(ps -ef | grep -c hp-ams) != 1 ]; then

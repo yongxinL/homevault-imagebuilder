@@ -36,3 +36,11 @@ vmtools_base_packages:
 # version: package version, default is '*'
 # example: - { package: 'package', version: '1.2' }
 vmtools_packages: []
+
+# .. envvar:: docker_configuration
+#
+# List of configuration file will be copy to Linux base filesystems
+vmtools_configuration:
+  - { name: "etc-network-interfaces.j2", dest: "/etc/network/interfaces" }
+  - { name: "etc-network-interfaces.d-{{ install_role_name }}.cfg.j2", dest: "/etc/network/interfaces.d/{{ install_role_name }}.cfg" }
+  - { name: "etc-init.d-init-{{ install_role_name }}.sh.j2", dest: "etc/init.d/init-{{ install_role_name }}.sh", mode: "0755" }

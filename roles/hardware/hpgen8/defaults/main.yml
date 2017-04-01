@@ -23,7 +23,11 @@ install_role_name: 'hpgen8'
 # .. envvar:: hpgen8_repo_key
 #
 # APT GPG key server and id used to sign the ansible packages.
-hpgen8_repo_key: 'http://downloads.linux.hpe.com/SDR/repo/mcp/hpPublicKey2048_key1.pub'
+hpgen8_repo_key:
+  - 'http://downloads.linux.hpe.com/SDR/hpPublicKey1024.pub'
+  - 'http://downloads.linux.hpe.com/SDR/hpPublicKey2048.pub'
+  - 'http://downloads.linux.hpe.com/SDR/hpPublicKey2048_key1.pub'
+  - 'https://downloads.linux.hpe.com/SDR/hpePublicKey2048_key1.pub'
 
 # .. envvar:: apt_proxy
 #
@@ -34,7 +38,7 @@ apt_proxy:
 #
 # Address of the HP MgmPack APT repository.
 hpgen8_repository:
-  - { dest: '/etc/apt/sources.list.d/{{ install_role_name }}.list', line: 'deb http://{{ apt_proxy }}downloads.linux.hpe.com/SDR/repo/mcp trusty/current non-free' }
+  - { dest: '/etc/apt/sources.list.d/{{ install_role_name }}.list', line: 'deb http://{{ apt_proxy }}downloads.linux.hpe.com/SDR/repo/mcp/Ubuntu {{ ansible_distribution_release }}/current non-free' }
 
 # .. envvar:: hpgen8_base_packages
 #
@@ -59,17 +63,19 @@ hpgen8_packages: []
 #
 # List of configuration file will be copy to Linux base filesystems
 hpgen8_configuration:
-  - { name: 'network-hpgen8.cfg.j2', dest: '/etc/network/interfaces.d/hpgen8.cfg' }
+  - { name: "etc-network-interfaces.j2", dest: "/etc/network/interfaces" }
+  - { name: 'network-{{ install_role_name }}.cfg.j2', dest: '/etc/network/interfaces.d/{{ install_role_name }}.cfg' }
+  - { name: "etc-init.d-init-{{ install_role_name }}.sh.j2", dest: "etc/init.d/init-{{ install_role_name }}.sh", mode: "0755" }
 
 # .. envvar:: build_kernel_version
 #
 # Specify Linux kernel version will be use in the target image.
-build_kernel_version: '4.2.0-35-generic'
+build_kernel_version: '4.4.0-35-generic'
 
 # .. envvar:: uninstall_build_kernel
 #
 # Set below param to yes if you don't want kernel modules in the Linux base filesystems
-uninstall_build_kernel: 'no'
+uninstall_build_kernel: True
 
 # .. envvar:: persistent_files
 #

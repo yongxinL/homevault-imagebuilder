@@ -1,0 +1,18 @@
+# This file describes the network interfaces available on your system
+# and how to activate them. For more information, see interfaces(5).
+
+# The primary network interface for Trusty running on VMware
+auto eth0
+iface eth0 inet dhcp
+
+# The primary network interface for Xenial running on VMware
+auto ens32
+iface ens32 inet dhcp
+
+# The primary network interface for Xenial running on VirtualBox
+auto enp0s3
+iface enp0s3 inet dhcp
+
+# The primary network interface for Xenial running on Parallels
+auto enp0s5
+iface enp0s5 inet dhcp

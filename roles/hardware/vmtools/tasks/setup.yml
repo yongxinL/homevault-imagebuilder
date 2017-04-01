@@ -10,13 +10,21 @@
 # =============================================================================
 
 ---
-- name: update target and remove {{ install_role_name }} services from booting
+- name: copy {{ install_role_name }} configure files
+  template:
+    src: "{{ item.name }}"
+    dest: "{{ item.dest }}"
+    owner: root
+    group: root
+    mode: "{{ item.mode|default('0644') }}"
+  with_items: "{{ vmtools_configuration }}"
+
+- name: remove {{ install_role_name }} services from booting
   command: update-rc.d -f {{ item }} remove
   with_items:
     - open-vm-tools
-  when: ansible_os_family == "Debian"
 
-- name: update target and include init-functions into rc.local
+- name: include init-functions into rc.local
   lineinfile:
     dest: "/etc/rc.local"
     line: ". /lib/lsb/init-functions"
@@ -26,6 +34,7 @@
     mode: 0755
     state: present
     create: yes
+  when: ansible_lsb.major_release|int < 15
 
 - name: update target and start {{ install_role_name }} from rc.local
   blockinfile:
@@ -38,6 +47,7 @@
     state: present
     create: yes
     block: |
+      /etc/init.d/init-{{ install_role_name }}.sh
       if [ -e "/dev/vmci" ]; then
         log_begin_msg "VMware Tools daemon"
         if [ $(ps -ef | grep -c vmtoolsd) != 1 ]; then
@@ -47,4 +57,17 @@
         fi
         log_end_msg 0
       fi
-  when: ansible_os_family == "Debian"
+  when: ansible_lsb.major_release|int < 15
+
+- name: Check {{ install_role_name }} service file (systemd)
+  stat:
+    path: "/lib/systemd/system/open-vm-tools.service"
+  register: service_file
+
+- name: configure {{ install_role_name }} service (systemd)
+  lineinfile:
+    dest: "/lib/systemd/system/open-vm-tools.service"
+    line: 'ExecStartPre=/etc/init.d/init-{{ install_role_name }}.sh'
+    insertbefore: "^ExecStart.*"
+    state: present
+  when: service_file.stat.exists == True
