@@ -10,19 +10,19 @@
 # =============================================================================
 
 ---
-- name: update target and update repository cache
+- name: Update repository cache
   apt:
     update_cache: yes
 
-- name: update target and install Linux kernel
+- name: Install Linux kernel
   apt:
     name: "linux-image-{{ build_kernel_version }}"
 
-- name: update target and install Linux kernel extra
+- name: Install Linux kernel extra
   apt:
     name: "linux-image-extra-{{ build_kernel_version }}"
 
-- name: update target and install extra packages
+- name: Install additional packages
   apt:
     name: "{{ item.package }}={{ item.version|default('*') }}"
     install_recommends: no
@@ -35,7 +35,7 @@
     - "{{ basefs_base_packages }}"
     - "{{ basefs_packages }}"
 
-- name: update target and run distribution upgrade
+- name: System upgrade
   apt:
     upgrade: dist
     update_cache: yes

@@ -1,0 +1,147 @@
+#!/bin/bash
+### BEGIN INIT INFO
+# Provides:          mount-overlayfs
+# Required-Start:    $local_fs
+# Required-Stop:     $local_fs
+# Default-Start:     S
+# Default-Stop:      0 6
+# Short-Description: Mounting specific folder with overlay filesystem
+# Description:       Mounting specific folder with overlay filesystem
+### END INIT INFO
+
+# =============================================================================
+#
+# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - Mounting specific folder with overlay filesystem
+#
+# - This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# =============================================================================
+
+. /lib/lsb/init-functions
+
+# declaration
+# readwrite drivers are predefined by caller of this script.
+root_rw_mnt="{{ overylay_private_root }}"
+root_rw_work="${root_rw_mnt}/tmp"
+module_driver="overlayfs"
+
+# function
+do_mount() {
+
+    local ro_driver=$1
+
+    if [ ! -d ${ro_driver} ]; then
+        log_failure_msg "ERROR: Driver ${ro_driver} does not exist!"
+    elif [ $(cat /proc/self/mounts | grep -c "overlay.*${ro_driver}") != 0 ]; then
+        # check if driver has be mounted
+        log_warning_msg "WARNING: Driver ${ro_driver} is mounted!"
+    else
+        if [ ! -d "${root_rw_mnt}/${ro_driver##*/}" ]; then
+            mkdir -p "${root_rw_mnt}/${ro_driver##*/}"
+            if [ $? -ne 0 ]; then
+                log_failure_msg "ERROR: failed to create ${root_rw_mnt}"
+                exit 0
+            fi
+            log_warning_msg "Synchronize all files to overlay driver"
+            rsync --archive --quiet --no-links "${ro_driver}" "${root_rw_mnt}/"
+        else
+            log_warning_msg "Synchronize new files to overlay driver"
+            rsync --archive --update --quiet --no-links --ignore-existing "${ro_driver}" "${root_rw_mnt}/"
+        fi
+
+        log_begin_msg "Mounting ${ro_driver} by ${module_driver}"
+        mount -t overlay overlay -o rw,lowerdir=${ro_driver},upperdir=${root_rw_mnt}/${ro_driver##*/},workdir=${root_rw_work} ${ro_driver}
+        if [ $? -ne 0 ]; then
+            log_failure_msg "ERROR: failed to mount ${ro_driver} to ${root_rw_mnt}/${ro_driver##*/}"
+            exit 0
+        fi
+        log_end_msg 0
+    fi
+}
+
+do_unmount() {
+
+    local ro_driver=$1
+
+    log_begin_msg " Umount driver ${ro_driver}"
+    if [ $(cat /proc/self/mounts | grep -c "overlay.*${ro_driver}") != 0 ]; then
+
+        umount "${ro_driver}"
+        if [ $? -ne 0 ]; then
+            log_failure_msg "ERROR: failed to umount ${ro_driver}"
+            exit 0
+        fi
+    fi
+    log_end_msg 0
+}
+
+# parse booting command line
+for param in $(cat /proc/cmdline); do
+    case ${param} in
+        readonlydriver=*)
+            ro_drivers=${param#readonlydriver=}
+            ;;
+    esac
+done
+
+# check if ${ro_drivers} is defined, otherwise exist the script
+if [ -z "${ro_drivers}" ] && [ "${ro_drivers}" = "/" ]; then
+    log_warning_msg "WARNING: Invalid parameter or parameter is NOT found, overlay driver will be disabled"
+    exit 0
+fi
+
+# check if kernel module exists
+modprobe -qb ${module_driver}
+if [ $? -ne 0 ]; then
+    log_failure_msg "ERROR: missing kernal module ${driver_module} "
+    exit 0
+fi
+
+# make the mount point on the read-write driver
+[ -d ${root_rw_mnt} ] || mkdir -p ${root_rw_mnt}
+if [ $? -ne 0 ]; then
+    log_failure_msg "ERROR: failed to create ${root_rw_mnt}"
+    exit 0
+fi
+[ -d ${root_rw_work} ] || mkdir -p ${root_rw_work}
+if [ $? -ne 0 ]; then
+    log_failure_msg "ERROR: failed to create ${root_rw_work}"
+    exit 0
+fi
+
+# remove first and last quote (single and double) if exist
+ro_drivers=$(tr -d \'\" <<< "${ro_drivers}")
+
+# get separator character
+if [[ "$ro_drivers" == *","* ]]; then
+    IFS=",";
+elif [[ "$ro_drivers" == *";"* ]]; then
+    IFS=";";
+else
+    IFS="";
+fi
+
+case "$1" in
+    start)
+        read -ra _opt <<< "${ro_drivers}"
+        for param in "${_opt[@]}"; do
+            do_mount "${param}"
+        done
+        ;;
+    stop)
+        read -ra _opt <<< "${ro_drivers}"
+        for param in "${_opt[@]}"; do
+            do_unmount "${param}"
+        done
+        ;;
+    *)
+        echo "Usage $0 start|stop" >&2
+        exit 3
+        ;;
+    esac
+:

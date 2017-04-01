@@ -25,38 +25,38 @@ target_root_password: 'secret'
 # Specify timezone in target host
 target_timezone: 'Australia/Sydney'
 
+# .. envvar:: target_ntpserver
+#
+# Specify ntp server in target host
+target_ntpserver: 'au.pool.ntp.org'
+
 # .. envvar:: target_data_root
 #
-# Specify folder that will be use as root of data directory
-target_data_root:
+# Specify folder that will be use as root of user data directory
+target_data_root: '/var'
 
 # .. envvar:: private_overlay_root
 #
 # Specify the folder that will be use to mount as overlay
 overylay_private_root: '{{ target_data_root }}/private'
 
-# .. envvar:: private_overlay_default
-#
-# List of folders that will be overlay when booting up
-overylay_private_folder: '/etc /home /root'
-
 # .. envvar:: basefs_configuration
 #
 # List of configuration file will be copy to Linux base filesystems
 basefs_configuration:
-    - { name: "interfaces.j2", dest: "/etc/network/interfaces" }
-    - { name: "vmware.cfg.j2", dest: "/etc/network/interfaces.d/vmware.cfg" }
+    - { name: "etc-network-interfaces.j2", dest: "/etc/network/interfaces" }
 
 # .. envvar:: uninstall_build_kernel
 #
-# Set below param to yes if you don't want kernel modules in the Linux base filesystems
-uninstall_build_kernel: 'no'
+# Set below param to True if you don't want kernel modules in the Linux base filesystems
+uninstall_build_kernel: False
 
 # .. envvar:: basefs_init_script
 #
 # List of scripts will be copy and executed when system booting up
 basefs_init_script:
-  - { name: "etc-init.d-mountall-overlay-private.j2", dest: "mountall-overlay-private", mode: '0755' }
+  - { name: "etc-init.d-mount-overlayfs.j2", dest: "/etc/init.d/mount-overlayfs", mode: "0755" }
+  - { name: "lib-systemd-system-overlayfs.service.j2", dest: "/lib/systemd/system/overlayfs.service", mode: "0644" }
 
 # .. envvar:: persistent_files
 #
