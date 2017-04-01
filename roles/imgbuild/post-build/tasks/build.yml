@@ -48,8 +48,11 @@
 
 - name: update local and copy syslinux menu
   template:
-    src={{ item.name }}
-    dest={{ build_image_root }}/{{ item.dest }}
+    src: "{{ item.name }}"
+    dest: "{{ build_image_root }}/{{ item.dest }}"
+    owner: root
+    group: root
+    mode: "{{ item.mode|default('0644') }}"
   with_items: "{{ syslinux_configuration }}"
 
 - name: update target and remove unused files before creating image

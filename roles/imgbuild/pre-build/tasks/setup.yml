@@ -10,13 +10,13 @@
 # =============================================================================
 
 ---
-- name: environment check - overlay squashfs image
+- name: pre-check {{ build_overlay_image }} image file
   stat:
     path: "{{ build_image_root }}/casper/{{ build_overlay_image }}"
   register: squashfs_exist
 
 - fail:
-    msg: "Whoops! base squashfs image does not exist"
+    msg: "Whoops! {{ build_overlay_image }} file does not exist"
   when: squashfs_exist.stat.exists == False
 
 - name: update target and setup hostname and network services

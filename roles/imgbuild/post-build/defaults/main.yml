@@ -31,7 +31,7 @@ pciid_base_mirror: 'http://pciids.sourceforge.net/v2.2/pci.ids'
 syslinux_configuration:
   - { name: 'syslinux.cfg.j2', dest: 'syslinux/syslinux.cfg' }
   - { name: 'isolinux.cfg.j2', dest: 'isolinux/isolinux.cfg' }
-  - { name: 'install.sh.j2', dest: 'syslinux/install.sh' }
+  - { name: 'install.sh.j2', dest: 'syslinux/install.sh', mode: '0755' }
 
 # .. envvar:: syslinux_package_root
 #

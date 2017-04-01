@@ -10,8 +10,10 @@
 #
 # =============================================================================
 
-parted -a optimal -s /dev/sda mklabel msdos -- mkpart primary fat32 1 768
-parted -s /dev/sda -- mkpart primary ext4 768 -1
+partA=512
+
+parted -a optimal -s /dev/sda mklabel msdos -- mkpart primary fat32 1 $partA
+parted -s /dev/sda -- mkpart primary ext4 $partA -1
 dd bs=440 count=1 if="/cdrom/syslinux/mbr.bin" of=/dev/sdb
 parted -s /dev/sda set 1 boot on
 mkfs -t vfat -F 32 /dev/sda1
@@ -24,3 +26,4 @@ e2label /dev/sda2 data1
 /cdrom/syslinux/syslinux -f -i /dev/sda1
 mount -o loop /dev/sda1 /mnt
 cp /cdrom/* /mnt -R
+sed -i 's/captainL/sandbox/g' /mnt/syslinux/syslinux.cfg
