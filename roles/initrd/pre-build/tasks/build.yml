@@ -10,7 +10,7 @@
 # =============================================================================
 
 ---
-- name: update local and install build dependencies
+- name: install build dependencies
   apt: 
     name: "{{ item }}"
     state: present
@@ -22,5 +22,24 @@
   delay: 5
   with_items:
     - debootstrap
-  when: ansible_os_family == "Debian"
-  
+
+- name: check debootstrap version
+  command: dpkg-query -W -f='${Version}' debootstrap
+  register: deb_version
+
+- name: download latest version of debootstrap
+  get_url:
+    url: "http://{{ debstrap_base_mirror }}/ubuntu/pool/main/d/debootstrap/debootstrap_{{ debstrap_version }}_all.deb"
+    dest: "/tmp/debootstrap_{{ debstrap_version }}_all.deb"
+  when: deb_version.stdout != "{{ debstrap_version }}"
+
+- name: upgrade debootstrap to {{ debstrap_version }}
+  apt:
+    deb: "/tmp/debootstrap_{{ debstrap_version }}_all.deb"
+  when: deb_version.stdout != "{{ debstrap_version }}"
+
+- name: remove debootstrap package
+  file:
+    path: "/tmp/debootstrap_{{ debstrap_version }}_all.deb"
+    state: absent
+  when: deb_version.stdout != "{{ debstrap_version }}"

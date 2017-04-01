@@ -17,8 +17,8 @@
 #
 # .. envvar:: target_data_root
 #
-# Specify folder that will be use as root of data directory
-target_data_root:
+# Specify folder that will be use as root of user data directory
+target_data_root: '/var'
 
 # .. envvar:: target_mount_device
 #

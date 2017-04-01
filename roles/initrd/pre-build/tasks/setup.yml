@@ -10,7 +10,7 @@
 # =============================================================================
 
 ---
-- name: update local and create rootfs environment
+- name: Create rootfs environment
   command: debootstrap
            --arch={{ debstrap_arch }}
            --variant=minbase
@@ -20,7 +20,7 @@
            {{ build_root }}
            {{ debstrap_mirror }}
 
-- name: update target and setup hostname and network services
+- name: Remove hostname and network configure file
   file:
     path: "{{ build_root }}/{{ item }}"
     state: absent
@@ -29,7 +29,7 @@
     - /etc/hosts
     - /etc/resolv.conf
 
-- name: update target and setup hostname and network services
+- name: Setup hostname and network configure file
   lineinfile:
     dest: "{{ build_root }}/{{ item.dest }}"
     line: "{{ item.line }}"
@@ -43,7 +43,7 @@
     - { dest: '/etc/resolv.conf', line: 'search {{ target_host_domain }}' }
     - { dest: '/etc/resolv.conf', line: 'nameserver 8.8.8.8' }
 
-- name: update target and copy dpkg to exclude unwant items
+- name: Configure dpkg to exclude unwant items
   copy:
     src: "{{ playbook_dir }}/files/{{ item.name }}"
     dest: "{{ build_root }}/etc/{{ item.dest }}"
@@ -52,7 +52,7 @@
     - { name: "01_nolocales", dest: "dpkg/dpkg.cfg.d/01_nolocales" }
     - { name: "apt.conf", dest: "apt/apt.conf" }
 
-- name: update target and set to stop bg processes when installing
+- name:  Stop background processes when installing
   blockinfile:
     dest: "{{ build_root }}/usr/sbin/policy-rc.d"
     owner: root
@@ -62,7 +62,7 @@
     block: "#!/bin/sh\n
            exit 101"
 
-- name: update target and copy repository list
+- name: Copy repository list
   lineinfile:
     dest: "{{ build_root }}/{{ item.dest }}"
     line: "{{ item.line }}"
@@ -70,7 +70,7 @@
     create: yes
   with_items: "{{ ubuntu_repo_lists }}"
 
-- name: bind mount to chroot environment
+- name: Bind mount to chroot environment
   mount:
     name: "{{ build_root }}/{{ item }}"
     src: "/{{ item }}"

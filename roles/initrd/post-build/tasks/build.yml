@@ -10,14 +10,14 @@
 # =============================================================================
 
 ---
-- name: update local and create image directory
+- name: Create image directory
   file:
     path: "{{ build_image_root }}/{{ item }}"
     state: directory
   with_items:
     - casper
 
-- name: update target and remove unused files before creating image
+- name: Remove unused files before creating image
   file:
     path: "{{ item }}"
     state: absent
@@ -29,7 +29,7 @@
     - "{{ build_image_root }}/casper/{{ build_image_initrd }}"
     - "{{ build_image_root }}/casper/{{ build_image_vmlinuz }}"
 
-- name: update local copy to target directory
+- name: Copy image to target directory
   command: >
     cp {{ build_root }}/boot/{{ item.src }} {{ build_image_root }}/casper/{{ item.dest }}
   with_items:

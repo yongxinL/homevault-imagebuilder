@@ -10,13 +10,13 @@
 # =============================================================================
 
 ---
-- name: update target and set casper for removing autologin
+- name: Configure casper for removing autologin
   replace:
     dest: "/usr/share/initramfs-tools/scripts/casper-bottom/25configure_init"
     regexp: '-n "\$USERNAME"'
     replace: '-n ""'
 
-- name: update target and set casper for adding domain name
+- name: Configure casper for adding domain name
   lineinfile:
     dest: "/usr/share/initramfs-tools/scripts/casper-bottom/18hostname"
     regexp: "{{ item.regxp }}"
@@ -25,7 +25,7 @@
   with_items:
     - { regxp: '^127(.*)HOST', line: '127.0.0.1 $HOST.{{ target_host_domain }}    $HOST' }
 
-- name: update target and copy custom casper scripts
+- name: Copy custom casper scripts
   template:
     src: "{{ item }}"
     dest: "/usr/share/initramfs-tools/scripts/{{ item }}"
@@ -35,14 +35,14 @@
   with_items: "{{ initrd_custom_casper_script }}"
   when: initrd_custom_casper_script is defined
 
-- name: update target and remove unwanted casper scripts
+- name: Remove unused casper scripts
   file:
     path: "/usr/share/initramfs-tools{{ item.name }}"
     state: absent
   with_items: "{{ initrd_script_removal_list }}"
   when: initrd_script_removal_list is defined
 
-- name: update target and remove unwanted casper scripts
+- name: Remove unwanted casper scripts
   lineinfile: 
     dest: "/usr/share/initramfs-tools/scripts/{{ item.dest }}"
     line: "{{ item.name }}"
@@ -50,12 +50,12 @@
   with_items: "{{ initrd_script_removal_list }}"
   when: initrd_script_removal_list is defined
 
-- name: update target and add extra modules
+- name: Add extra modules to initramfs
   shell: "echo {{ item }} >> /etc/initramfs-tools/modules"
   with_items: 
     - squashfs
 
-- name: update target and copy cleanup sciprts
+- name: Copy cleanup sciprts
   template: 
     src: "{{ playbook_dir }}/templates/{{ item.name }}"
     dest: "/tmp/{{ item.dest }}"
@@ -64,22 +64,22 @@
     mode: "{{ item.mode|default('0644') }}"
   with_items: "{{ initrd_cleanup_script  }}"
 
-- name: update target and execute cleanup sciprts
+- name: Execute cleanup sciprts
   shell: >
     /tmp/{{ item.dest }}
   with_items: "{{ initrd_cleanup_script  }}"
 
-- name: update target and remove cleanup sciprts
+- name: Remove cleanup sciprts
   file:
     path: "/tmp/{{ item.dest }}"
     state: absent
   with_items: "{{ initrd_cleanup_script  }}"
 
-- name: update target and update initramfs with modules and drivers
+- name: Update initramfs with new modules and drivers
   shell: >
     update-initramfs -u
 
-- name: update target and rebuild initramfs image
+- name: Rebuild initramfs image with version {{ build_kernel_version }}
   shell: >
     mkinitramfs -v -o
     /boot/initrd.img-{{ build_kernel_version }} {{ build_kernel_version }}
