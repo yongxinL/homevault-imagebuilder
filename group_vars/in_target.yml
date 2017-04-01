@@ -20,13 +20,12 @@
 # .. envvar:: target_host_domain
 #
 # Specify hostname and domain that should be set in the target image.
-target_host_name: 'homevault'
+target_host_name: 'captainL'
 target_host_domain: 'lifamilyclub.com'
 
 # .. envvar:: target_root_password
 #
 # Specify root password
-target_root_password: 'secret'
 
 # .. envvar:: target_timezone
 #
@@ -35,7 +34,7 @@ target_timezone: 'Australia/Sydney'
 
 # .. envvar:: target_data_root
 #
-# Specify folder that will be use as root of data directory
+# Specify folder that will be use as root of user data directory
 target_data_root: '/yongxin'
 
 # .. envvar:: target_mount_device
@@ -44,7 +43,8 @@ target_data_root: '/yongxin'
 # this will be setup in script/casper-bottom/12fstab
 target_mount_device:
   - { label: 'data1', mountas: '{{ target_data_root }}' }
-  - { label: 'data2', mountas: '{{ target_data_root }}/archive' }
+  - { label: 'vmstorage', mountas: '{{ target_data_root }}/vmstorage' }
+  - { label: 'archive', mountas: '{{ target_data_root }}/archive' }
 
 # .. envvar:: target_appdata_root
 #
@@ -60,7 +60,8 @@ overylay_private_root: '{{ target_data_root }}/private'
 # .. envvar:: private_overlay_default
 #
 # List of folders that will be overlay when booting up
-overylay_private_folder: '/etc /home'
+# separate by  , or ;
+overylay_private_folder: '/etc;/var/log'
 
 # .. envvar:: build_image_initrd
 # .. envvar:: build_image_vmlinuz
@@ -75,15 +76,16 @@ build_overlay_image: 'filesystem.squashfs'
 # .. envvar:: build_image_iso
 #
 # Specify target iso file name
-build_image_iso: 'homevault_{{ debstrap_dist }}_{{ debstrap_suite }}.iso'
+build_image_iso: '{{ target_host_name }}_{{ debstrap_dist }}_{{ debstrap_suite }}.iso'
 
 # .. envvar:: build_kernel_version
 #
 # Specify Linux kernel version will be use in the target image.
 # Available version for ubuntu
-# - 4.4.0-42-generic  => trusty
+# http://mirror.optus.net/ubuntu/pool/main/l/linux/
+# - 4.4.0-51-generic  => trusty
 # - 3.16.0-60-generic => trusty
-build_kernel_version: '4.4.0-42-generic'
+build_kernel_version: '4.4.0-62-generic'
 
 # .. envvar:: debstrap_dist
 # .. envvar:: debstrap_arch
@@ -92,17 +94,17 @@ build_kernel_version: '4.4.0-42-generic'
 # Specify target debootstrap will be build
 debstrap_dist: 'ubuntu'
 debstrap_arch: 'amd64'
-debstrap_suite: 'trusty'
+debstrap_suite: 'xenial'
+debstrap_version: '1.0.81ubuntu3'
 
 # .. envvar:: apt_proxy
 #
-# Specify apt cacher / proxy link, like 'x.x.x.x:3142/'
-apt_proxy:
+# Specify apt cacher / proxy link, like '127.0.0.1:3142/'
 
 # .. envvar:: debstrap_base_mirror
 #
 # Specify debootstrap mirror link
-debstrap_base_mirror: '{{ apt_proxy }}us.archive.ubuntu.com'
+debstrap_base_mirror: '{{ apt_proxy }}mirror.optus.net'
 debstrap_mirror: 'http://{{ debstrap_base_mirror }}/{{ debstrap_dist }}'
 
 # .. envvar:: debstrap_include_packages
