@@ -1,0 +1,11 @@
+# systemd mysql services configuration
+#
+
+[Service]
+
+User=root
+StandardOutput=syslog
+StandardError=syslog
+SyslogFacility=daemon
+SyslogLevel=err
+SyslogIdentifier=mysqld

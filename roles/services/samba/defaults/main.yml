@@ -29,14 +29,8 @@ target_host_domain: 'lifamilyclub.com'
 
 # .. envvar:: target_data_root
 #
-# Specify folder that will be use as root of data directory
-target_data_root:
-
-# .. envvar:: target_appdata_root
-#
-# Specify folder that will be use as new location of application data files
-# in case if you want to collect all appdata files in one
-target_appdata_root:
+# Specify folder that will be use as root of user data directory
+target_data_root: '/var'
 
 # .. envvar:: samba_base_packages
 #
@@ -64,6 +58,7 @@ samba_packages:
 # List of configuration file will be copy to target filesystems
 samba_configuration:
   - { name: 'etc-samba-smb.conf.j2', dest: '/etc/samba/smb.conf' }
+  - { name: 'etc-init.d-init-samba.sh.j2', dest: '/etc/init.d/init-samba.sh', mode: "0755" }
 
 # .. envvar:: samba_conf_global
 #

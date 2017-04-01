@@ -10,13 +10,13 @@
 # =============================================================================
 
 ---
-- name: update target and add {{ install_role_name }} repository key
+- name: add {{ install_role_name }} repository key
   apt_key:
     keyserver: "{{ java_repo_keyserver }}"
     id: "{{ java_repo_keyid }}"
     state: present
 
-- name: update target and add {{ install_role_name }} repository list
+- name: add {{ install_role_name }} repository list
   lineinfile: 
     dest: "{{ item.dest }}"
     line: "{{ item.line }}"
@@ -24,14 +24,14 @@
     state: present
   with_items: "{{ java_repository }}"
 
-- name: update target and set debconf to accept Java License
+- name: set debconf to accept Java License
   debconf:
     name: 'oracle-java8-installer'
     question: 'shared/accepted-oracle-license-v1-1'
     value: 'true'
     vtype: 'select'
 
-- name: update target and create required missing folder
+- name: create required missing folder
   file:
     path: "{{ item }}"
     state: directory
@@ -39,7 +39,7 @@
   with_flattened:
     - "/usr/share/man/man1"
 
-- name: update target and install required {{ install_role_name }} packages
+- name: install required {{ install_role_name }} packages
   apt: 
     name: "{{ item.package }}={{ item.version|default('*') }}"
     install_recommends: no
@@ -52,13 +52,13 @@
     - "{{ java_base_packages }}"
     - "{{ java_packages }}"
 
-- name: update target and remove {{ install_role_name }} repository list
+- name: remove {{ install_role_name }} repository list
   file: 
     path: "{{ item.dest }}"
     state: absent
   with_items: "{{ java_repository }}"
 
-- name: update target and remove {{ install_role_name }} installation cache
+- name: remove {{ install_role_name }} installation cache
   file: 
     path: "{{ item }}"
     state: absent

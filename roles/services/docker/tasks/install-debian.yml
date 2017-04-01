@@ -10,13 +10,13 @@
 # =============================================================================
 
 ---
-- name: update target and add {{ install_role_name }} repository key
+- name: add {{ install_role_name }} repository key
   apt_key: 
     keyserver: "{{ docker_repo_keyserver }}"
     id: "{{ docker_repo_keyid }}"
     state: present
 
-- name: update target and add {{ install_role_name }} repository list
+- name: add {{ install_role_name }} repository list
   lineinfile: 
     dest: "{{ item.dest }}"
     line: "{{ item.line }}"
@@ -24,11 +24,11 @@
     state: present
   with_items: "{{ docker_repository }}"
 
-- name: update target and verify APT is pulling from right repository
+- name: verify APT is pulling from right repository
   command: >
     apt-cache policy docker-engine
 
-- name: update target and install required {{ install_role_name }} packages
+- name: install required {{ install_role_name }} packages
   apt: 
     name: "{{ item.package }}={{ item.version|default('*') }}"
     install_recommends: no
@@ -41,7 +41,7 @@
     - "{{ docker_base_packages }}"
     - "{{ docker_packages }}"
 
-- name: update target and add users to {{ install_role_name }} group
+- name: add users to {{ install_role_name }} group
   user:
     name: '{{ item }}'
     groups: 'docker'
@@ -49,7 +49,7 @@
   with_items: "{{ docker_admins }}"
   when: docker_admins is defined
 
-- name: update target and remove {{ install_role_name }} repository list
+- name: remove {{ install_role_name }} repository list
   file: 
     path: "{{ item.dest }}"
     state: absent

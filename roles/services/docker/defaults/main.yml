@@ -24,7 +24,7 @@ install_role_name: 'docker'
 #
 # Specify folder that will be use as new location of application data files
 # in case if you want to collect all appdata files in one
-target_appdata_root:
+target_appdata_root: '/var/lib'
 
 # .. envvar:: docker_repo_keyserver
 # .. envvar:: docker_repo_keyid
@@ -69,6 +69,7 @@ docker_packages:
 # List of configuration file will be copy to Linux base filesystems
 docker_configuration:
   - { name: 'etc-default-docker.j2', dest: '/etc/default/docker' }
+  - { name: 'etc-init.d-init-docker.sh.j2', dest: '/etc/init.d/init-docker.sh', mode: "0755" }
 
 # .. envvar:: docker_admins
 #

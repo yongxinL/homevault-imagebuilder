@@ -1,0 +1,36 @@
+#!/bin/bash
+### BEGIN INIT INFO
+# Provides:          init-{{ install_role_name }}.sh
+# Required-Start:
+# Required-Stop:
+# Default-Start:
+# Default-Stop:
+# Short-Description: Initialization before starting {{ install_role_name }}services
+# Description:       Initialization before starting {{ install_role_name }}services
+### END INIT INFO
+
+# =============================================================================
+#
+# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - Initialization before starting {{ install_role_name }}services
+#
+# - This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# =============================================================================
+
+. /lib/lsb/init-functions
+
+# check {{ install_role_name }} setup stamp
+if [ ! -f "/etc/setup_{{ install_role_name }}.stamp" ]; then
+    log_begin_msg "initializing environment before starting {{ install_role_name }} services"
+
+    [ ! -d "{{ aptcacher_root }}/cache" ] && { /bin/mkdir -p "{{ aptcacher_root }}/cache" && /bin/chmod -R 644 "{{ aptcacher_root }}/cache"; }
+	[ ! -d "{{ aptcacher_root }}/log" ] && { /bin/mkdir -p "{{ aptcacher_root }}/log" && /bin/chmod -R 644 "{{ aptcacher_root }}/log"; }
+
+    touch "/etc/setup_{{ install_role_name }}.stamp"
+    log_end_msg 0
+fi

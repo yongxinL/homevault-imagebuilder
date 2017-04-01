@@ -29,8 +29,13 @@ target_host_domain: 'lifamilyclub.com'
 
 # .. envvar:: target_data_root
 #
-# Specify folder that will be use as root of data directory
-target_data_root:
+# Specify folder that will be use as root of user data directory
+target_data_root: '/var'
+
+# .. envvar:: target_web_root
+#
+# Specify folder that will be use as root of user data directory
+target_web_root: '{{ target_data_root }}/public_html'
 
 # .. envvar:: target_root_password
 #
@@ -52,18 +57,6 @@ nginx_repo_key: 'http://nginx.org/keys/nginx_signing.key'
 # Address of the ansible APT repository.
 nginx_repository:
   - { dest: '/etc/apt/sources.list.d/{{ install_role_name }}.list', line: 'deb http://{{ apt_proxy }}nginx.org/packages/mainline/{{ ansible_distribution | lower }}/ {{ ansible_distribution_release }} nginx' }
-
-# .. envvar:: target_appdata_root
-#
-# Specify folder that will be use as new location of application data files
-# in case if you want to collect all appdata files in one
-target_appdata_root:
-
-# .. envvar:: target_web_root
-#
-# Specify folder that will be use as root of Web contents
-target_web_root: '{{ target_data_root }}/private/public_html'
-
 
 # .. envvar:: nginx_service_user
 #
@@ -92,3 +85,4 @@ nginx_packages: []
 # List of configuration file will be copy to Linux base filesystems
 nginx_configuration:
   - { name: 'etc-nginx-nginx.conf.j2', dest: '/etc/nginx/nginx.conf' }
+  - { name: 'etc-init.d-init-nginx.sh.j2', dest: '/etc/init.d/init-nginx.sh', mode: "0755" }

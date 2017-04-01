@@ -1,0 +1,39 @@
+#!/bin/bash
+### BEGIN INIT INFO
+# Provides:          init-{{ install_role_name }}.sh
+# Required-Start:
+# Required-Stop:
+# Default-Start:
+# Default-Stop:
+# Short-Description: Initialization before starting {{ install_role_name }}services
+# Description:       Initialization before starting {{ install_role_name }}services
+### END INIT INFO
+
+# =============================================================================
+#
+# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - Initialization before starting {{ install_role_name }}services
+#
+# - This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# =============================================================================
+
+. /lib/lsb/init-functions
+
+# check {{ install_role_name }} setup stamp
+if [ ! -f "/etc/setup_{{ install_role_name }}.stamp" ]; then
+    log_begin_msg "initializing environment before starting {{ install_role_name }} services"
+
+{% if nfsv4_conf_share is defined and nfsv4_conf_share %}
+{% for item in nfsv4_conf_share.keys() %}
+    [ ! -d "{{ nfsv4_conf_share[item].path }}" ] && { /bin/mkdir -p "{{ nfsv4_conf_share[item].path }}" && /bin/chmod -R 644 "{{ nfsv4_conf_share[item].path }}"; }
+{% endfor %}
+{% endif %}
+
+    touch "/etc/setup_{{ install_role_name }}.stamp"
+    log_end_msg 0
+fi

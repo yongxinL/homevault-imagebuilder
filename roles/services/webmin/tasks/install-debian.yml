@@ -10,12 +10,12 @@
 # =============================================================================
 
 ---
-- name: update target and add {{ install_role_name }} repository key
+- name: add {{ install_role_name }} repository key
   apt_key:
     url: "{{ webmin_repo_key }}"
     state: present
 
-- name: update target and add {{ install_role_name }} repository list
+- name: add {{ install_role_name }} repository list
   lineinfile: 
     dest: "{{ item.dest }}"
     line: "{{ item.line }}"
@@ -23,14 +23,14 @@
     state: present
   with_items: "{{ webmin_repository }}"
 
-- name: update target and set GzipIndexes to false in apt.conf
+- name: set GzipIndexes to false in apt.conf
   lineinfile: 
     dest: "/etc/apt/apt.conf"
     line: 'Acquire::GzipIndexes "false";'
     create: yes
     state: present
 
-- name: update target and install required {{ install_role_name }} packages
+- name: install required {{ install_role_name }} packages
   apt: 
     name: "{{ item.package }}={{ item.version|default('*') }}"
     install_recommends: no
@@ -43,7 +43,7 @@
     - "{{ webmin_base_packages }}"
     - "{{ webmin_packages }}"
 
-- name: update target and remove {{ install_role_name }} repository list
+- name: remove {{ install_role_name }} repository list
   file: 
     path: "{{ item.dest }}"
     state: absent

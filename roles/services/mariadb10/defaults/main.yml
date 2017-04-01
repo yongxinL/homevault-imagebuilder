@@ -30,30 +30,35 @@ apt_proxy:
 #
 # APT GPG key server and id used to sign the ansible packages.
 mariadb_repo_keyserver: 'keyserver.ubuntu.com'
-mariadb_repo_keyid: '0xcbcb082a1bb943db'
+mariadb_repo_keyid_trusty: '0xcbcb082a1bb943db'
+mariadb_repo_keyid: '0xF1656F24C74CD1D8'
+
+# .. envvar:: mariadb_version
+#
+# MariaDB version will to install
+mariadb_version: '10.1'
 
 # .. envvar:: mariadb_repository
 #
 # Address of the ansible APT repository.
 mariadb_repository:
-  - { dest: '/etc/apt/sources.list.d/{{ install_role_name }}.list', line: 'deb http://{{ apt_proxy }}mariadb.uberglobalmirror.com/repo/10.0/{{ ansible_distribution | lower }} {{ ansible_distribution_release }} main' }
+  - { dest: '/etc/apt/sources.list.d/{{ install_role_name }}.list', line: 'deb http://{{ apt_proxy }}mirror.aarnet.edu.au/pub/MariaDB/repo/{{ mariadb_version }}/{{ ansible_distribution | lower }} {{ ansible_distribution_release }} main' }
 
 # .. envvar:: target_root_password
 #
 # Specify root password
 target_root_password: 'secret'
 
-
 # .. envvar:: target_data_root
 #
-# Specify folder that will be use as root of data directory
-target_data_root:
+# Specify folder that will be use as root of user data directory
+target_data_root: '/var'
 
 # .. envvar:: target_appdata_root
 #
 # Specify folder that will be use as new location of application data files
 # in case if you want to collect all appdata files in one
-target_appdata_root: '{{ target_data_root }}/private/var'
+target_appdata_root: '{{ target_data_root }}/lib'
 
 # .. envvar:: mariadb_base_packages
 #
@@ -62,7 +67,7 @@ target_appdata_root: '{{ target_data_root }}/private/var'
 # version: package version, default is '*'
 # example: - { package: 'package', version: '1.2' }
 mariadb_base_packages:
-  - { package: 'mariadb-server' }
+  - { package: 'mariadb-server', version: '*' }
   - { package: 'mariadb-client' }
   - { package: 'mariadb-common' }
   - { package: 'mysql-common' }
@@ -81,6 +86,8 @@ mariadb_packages: []
 # List of configuration file will be copy to Linux base filesystems
 mariadb_configuration:
   - { name: 'etc-mysql-my.cnf.j2', dest: '/etc/mysql/my.cnf' }
+  - { name: 'etc-systemd-service.d-mysql.conf.j2', dest: '/etc/systemd/system/mariadb.service.d/mysql.conf' }
+  - { name: 'etc-init.d-init-mariadb.sh.j2', dest: '/etc/init.d/init-mariadb.sh', mode: "0755" }
 
 # .. envvar:: mariadb_mysqld_conf
 #
@@ -90,7 +97,7 @@ mariadb_mysqld_conf:
   user: 'root'
   port: '3306'
   datadir: '{{ target_appdata_root }}/mysql'
-  bind-address: 0.0.0.0
+  bind-address: 127.0.0.1
   # * Fine Tuning
   max_connections: 100
   connect_timeout: 5
@@ -101,6 +108,28 @@ mariadb_mysqld_conf:
   bulk_insert_buffer_size: 16M
   tmp_table_size: 32M
   max_heap_table_size: 32M
+  innodb_checksums: 1
+  innodb_checksum_algorithm: crc32
+  innodb_doublewrite: 0
+  innodb_support_xa: 0
+  innodb_thread_concurrency: 0
+  innodb_flush_log_at_trx_commit: 1
+  innodb_max_dirty_pages_pct: 90
+  innodb_max_dirty_pages_pct_lwm: 10
+  innodb_lru_scan_depth: 4000
+  join_buffer_size: 32K
+  innodb_use_native_aio: 1
+  innodb_stats_persistent: 1
+  innodb_spin_wait_delay: 6
+  # performance special
+  innodb_adaptive_flushing: 1
+  innodb_flush_neighbors: 0
+  innodb_read_io_threads: 16
+  innodb_write_io_threads: 16
+  innodb_purge_threads: 4
+  innodb-max-purge-lag-delay: 10000000
+  innodb_max_purge_lag: 1000000
+  innodb_adaptive_hash_index: 0
   # * Query Cache Configuration
   query_cache_limit: 128K
   query_cache_size: 64M
@@ -110,5 +139,9 @@ mariadb_mysqld_conf:
   innodb_log_buffer_size: 8M
   innodb_file_per_table: 1
   innodb_open_files: 400
-  innodb_io_capacity: 400
+  innodb_io_capacity: 1500
   innodb_flush_method: O_DIRECT
+  innodb_compression_algorithm: 2
+  innodb_use_mtflush: 1
+  innodb_mtflush_threads: 4
+  innodb_use_fallocate: 0           # Careful, unable to create table in 10.1.21 when ON (1)

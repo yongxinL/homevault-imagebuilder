@@ -22,14 +22,26 @@ install_role_name: 'aptcacher'
 
 # .. envvar:: target_data_root
 #
-# Specify folder that will be use as root of data directory
-target_data_root:
+# Specify folder that will be use as root of user data directory
+target_data_root: '/var'
 
 # .. envvar:: target_appdata_root
 #
 # Specify folder that will be use as new location of application data files
 # in case if you want to collect all appdata files in one
-target_appdata_root: '{{ target_data_root }}/private/var'
+target_appdata_root: '{{ target_data_root }}/lib'
+
+# .. envvar:: target_appdata_root
+#
+# Specify folder that will be use as new location of application data files
+# in case if you want to collect all appdata files in one
+aptcacher_root: '{{ target_appdata_root }}/apt-cacher-ng'
+
+# .. envvar:: docker_configuration
+#
+# List of configuration file will be copy to Linux base filesystems
+aptcacher_configuration:
+  - { name: 'etc-init.d-init-aptcacher.sh.j2', dest: '/etc/init.d/init-aptcacher.sh', mode: '0755' }
 
 # .. envvar:: aptcacher_base_packages
 #

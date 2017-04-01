@@ -10,7 +10,7 @@
 # =============================================================================
 
 ---
-- name: update target and create {{ install_role_name }} sharing directory
+- name: create {{ install_role_name }} sharing directory
   file:
     path: "{{ item }}"
     state: directory
@@ -21,7 +21,7 @@
     - "/etc/nginx/httpd-enabled"
     - "/etc/nginx/https-enabled"
 
-- name: update target and copy {{ install_role_name }} configure files
+- name: copy {{ install_role_name }} configure files
   template:
     src: "{{ item.name }}"
     dest: "{{ item.dest }}"
@@ -30,13 +30,13 @@
     mode: "{{ item.mode|default('0644') }}"
   with_items: "{{ nginx_configuration }}"
 
-- name: update target and remove {{ install_role_name }} services from booting
+- name: remove {{ install_role_name }} services from booting
   command: update-rc.d -f {{ item }} remove
   with_items:
     - nginx
-  when: ansible_os_family == "Debian"
+  when: ansible_lsb.major_release|int < 15
 
-- name: update target and include init-functions into rc.local
+- name: include init-functions into rc.local
   lineinfile:
     dest: "/etc/rc.local"
     line: ". /lib/lsb/init-functions"
@@ -46,8 +46,9 @@
     mode: 0755
     state: present
     create: yes
+  when: ansible_lsb.major_release|int < 15
 
-- name: update target and start {{ install_role_name }} from rc.local
+- name: start {{ install_role_name }} from rc.local
   blockinfile:
     dest: "/etc/rc.local"
     insertbefore: "exit 0"
@@ -58,13 +59,7 @@
     state: present
     create: yes 
     block: |
-      if [ ! -f "/etc/setup_{{ install_role_name }}.done" ]; then
-        log_begin_msg "Initializing {{ install_role_name }} environment"
-        #MARK_{{ install_role_name }}_DATA
-        touch "/etc/setup_{{ install_role_name }}.done"
-        log_end_msg 0
-      fi
-
+      /etc/init.d/init-{{ install_role_name }}.sh
       log_begin_msg "Starting {{ install_role_name }} daemon"
       if [ $(ps -ef | grep -c nginx) != 1 ]; then
         service nginx restart > /dev/null
@@ -72,14 +67,17 @@
         service nginx start > /dev/null
       fi
       log_end_msg 0
-  when: ansible_os_family == "Debian"
+  when: ansible_lsb.major_release|int < 15
 
-- name: update target and start {{ install_role_name }} from rc.local
+- name: Check {{ install_role_name }} service file (systemd)
+  stat:
+    path: "/lib/systemd/system/docker.service"
+  register: service_file
+
+- name: configure {{ install_role_name }} service (systemd)
   lineinfile:
-    dest: "/etc/rc.local"
-    line: "{{ item }}"
-    insertafter: "#MARK_{{ install_role_name }}_DATA"
+    dest: "/lib/systemd/system/docker.service"
+    line: 'ExecStartPre=/etc/init.d/init-{{ install_role_name }}.sh'
+    insertbefore: "^ExecStart.*"
     state: present
-  with_items:
-    - '  [ ! -d "{{ target_web_root }}" ] && { mkdir -p "{{ target_web_root }}" && chmod -R 644 "{{ target_web_root }}"; }'
-  when: target_web_root is defined and target_web_root
+  when: service_file.stat.exists == True

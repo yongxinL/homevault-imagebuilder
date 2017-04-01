@@ -1,0 +1,64 @@
+# =============================================================================
+#
+# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# =============================================================================
+
+# Default variables
+# =================
+
+# .. contents:: Sections
+#    :local:
+#
+# ------------------------------------
+#   Packages and installation
+# ------------------------------------
+install_role_name: 'aria2'
+
+# .. envvar:: target_data_root
+#
+# Specify folder that will be use as root of user data directory
+target_data_root: '/var'
+
+# .. envvar:: target_appdata_root
+#
+# Specify folder that will be use as new location of application data files
+# in case if you want to collect all appdata files in one
+target_appdata_root: '{{ target_data_root }}/lib'
+
+# .. envvar:: target_appdata_root
+#
+# Specify folder that will be use as new location of application data files
+# in case if you want to collect all appdata files in one
+aria2_root: '{{ target_appdata_root }}/incoming'
+
+# .. envvar:: docker_configuration
+#
+# List of configuration file will be copy to Linux base filesystems
+aria2_configuration:
+  - { name: 'etc-init-aria2.conf.j2', dest: '/etc/init/aria2.conf' }
+  - { name: 'etc-init.d-init-aria2.sh.j2', dest: 'etc/init.d/init-aria2.sh', mode: '0755' }
+  - { name: 'etc-init.d-aria2-daemon.j2', dest: '/etc/init.d/aria2-daemon', mode: '0755' }
+  - { name: 'lib-systemd-aria2.service.j2', dest: '/lib/systemd/system/aria2.service', mode: '0755' }
+
+# .. envvar:: aptcacher_base_packages
+#
+# List of base packages to install by Ansible
+# package: package will be installed
+# version: package version, default is '*'
+# example: - { package: 'package', version: '1.2' }
+aria2_base_packages:
+  - { package: 'aria2' }
+
+# .. envvar:: aptcacher_packages
+#
+# List of additional packages to install by Ansible
+# package: package will be installed
+# version: package version, default is '*'
+# example: - { package: 'package', version: '1.2' }
+aria2_packages: []

@@ -10,7 +10,16 @@
 # =============================================================================
 
 ---
-- name: update target and setup {{ install_role_name }} configuration files
+- name: copy {{ install_role_name }} configure files
+  template:
+    src: "{{ item.name }}"
+    dest: "{{ item.dest }}"
+    owner: root
+    group: root
+    mode: "{{ item.mode|default('0644') }}"
+  with_items: "{{ aptcacher_configuration }}"
+
+- name: setup {{ install_role_name }} configuration files
   lineinfile:
     dest: "/etc/apt-cacher-ng/acng.conf"
     regexp: "{{ item.regxp }}"
@@ -23,18 +32,17 @@
     - { regxp: '^# UnbufferLogs.*', line: 'UnbufferLogs: 1' }
     - { regxp: '^# VerboseLog.*', line: 'VerboseLog: 1' }
 
-- name: update target and setup {{ install_role_name }} configuration files
+- name: setup {{ install_role_name }} configuration files
   lineinfile:
     dest: "/etc/apt-cacher-ng/acng.conf"
     regexp: "{{ item.regxp }}"
     line: "{{ item.line }}"
     state: present
   with_items:
-    - { regxp: '^CacheDir.*', line: 'CacheDir: {{ target_appdata_root }}/apt-cacher-ng/cache' }
-    - { regxp: '^LogDir.*', line: 'LogDir: {{ target_appdata_root }}/apt-cacher-ng/log' }
-  when: target_appdata_root is defined and target_appdata_root
+    - { regxp: '^CacheDir.*', line: 'CacheDir: {{ aptcacher_root }}/cache' }
+    - { regxp: '^LogDir.*', line: 'LogDir: {{ aptcacher_root }}/log' }
 
-- name: update target and setup {{ install_role_name }} service files
+- name: setup {{ install_role_name }} service files
   lineinfile:
     dest: "/etc/init.d/apt-cacher-ng"
     regexp: "{{ item.regxp }}"
@@ -44,16 +52,16 @@
     - { regxp: '^USER.*', line: 'USER=root' }
     - { regxp: '^GROUP.*', line: 'GROUP=root' }
 
-- name: update target and remove {{ install_role_name }} debconf files
+- name: remove {{ install_role_name }} debconf files
   file:
     path: "/etc/apt-cacher-ng/zz_debconf.conf"
     state: absent
 
-- name: update target and remove {{ install_role_name }} services from booting
+- name: remove {{ install_role_name }} services from booting
   command: update-rc.d -f {{ item }} remove
   with_items:
     - apt-cacher-ng
-  when: ansible_os_family == "Debian"
+  when: ansible_lsb.major_release|int < 15
 
 - name: update target and include init-functions into rc.local
   lineinfile:
@@ -65,6 +73,7 @@
     mode: 0755
     state: present
     create: yes
+  when: ansible_lsb.major_release|int < 15
 
 - name: update target and start {{ install_role_name }} from rc.local
   blockinfile:
@@ -77,27 +86,36 @@
     state: present
     create: yes
     block: |
-      if [ ! -f "/etc/setup_{{ install_role_name }}.done" ]; then
-        log_begin_msg "Initializing {{ install_role_name }} environment"
-        #MARK_{{ install_role_name }}_DATA
-        touch "/etc/setup_{{ install_role_name }}.done"
-        log_end_msg 0
-      fi
-
+      /etc/init.d/init-{{ install_role_name }}.sh
+      log_begin_msg "Starting {{ install_role_name }} daemon"
       if [ $(ps -ef | grep -c apt-cacher-ng) != 1 ]; then
         service apt-cacher-ng restart
       else
         service apt-cacher-ng start
       fi
-  when: ansible_os_family == "Debian"
+      log_end_msg 0
+  when: ansible_lsb.major_release|int < 15
 
-- name: update target and start {{ install_role_name }} from rc.local
+- name: Check {{ install_role_name }} service file (systemd)
+  stat:
+    path: "/lib/systemd/system/apt-cacher-ng.service"
+  register: service_file
+
+- name: configure {{ install_role_name }} service (systemd)
   lineinfile:
-    dest: "/etc/rc.local"
-    line: "{{ item }}"
-    insertafter: "#MARK_{{ install_role_name }}_DATA"
+    dest: "/lib/systemd/system/apt-cacher-ng.service"
+    line: 'ExecStartPre=/etc/init.d/init-{{ install_role_name }}.sh'
+    insertbefore: "^ExecStart.*"
+    state: present
+  when: service_file.stat.exists == True
+
+- name: setup {{ install_role_name }} service files (systemd)
+  lineinfile:
+    dest: "/lib/systemd/system/apt-cacher-ng.service"
+    regexp: "{{ item.regxp }}"
+    line: "{{ item.line }}"
     state: present
   with_items:
-    - '  [ ! -d "{{ target_appdata_root }}/apt-cacher-ng/cache" ] && { mkdir -p "{{ target_appdata_root }}/apt-cacher-ng/cache" && chmod -R 644 "{{ target_appdata_root }}/apt-cacher-ng/cache"; }'
-    - '  [ ! -d "{{ target_appdata_root }}/apt-cacher-ng/log" ] && { mkdir -p "{{ target_appdata_root }}/apt-cacher-ng/log" && chmod -R 644 "{{ target_appdata_root }}/apt-cacher-ng/log"; }'
-  when: target_appdata_root is defined and target_appdata_root
+    - { regxp: '^User.*', line: 'User=root' }
+    - { regxp: '^Group.*', line: 'Group=root' }
+  when: service_file.stat.exists == True

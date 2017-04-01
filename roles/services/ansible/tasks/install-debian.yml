@@ -10,23 +10,21 @@
 # =============================================================================
 
 ---
-- name: update target and add {{ install_role_name }} repository key
+- name: add {{ install_role_name }} repository key
   apt_key:
     keyserver: "{{ ansible_repo_keyserver }}"
     id: "{{ ansible_repo_keyid }}"
     state: present
-  when: ansible_lsb.major_release|int <= 14
 
-- name: update target and add {{ install_role_name }} repository list
+- name: add {{ install_role_name }} repository list
   lineinfile: 
     dest: "{{ item.dest }}"
     line: "{{ item.line }}"
     create: yes
     state: present
   with_items: "{{ ansible_repository }}"
-  when: ansible_lsb.major_release|int <= 14
 
-- name: update target and install required {{ install_role_name }} packages
+- name: install required {{ install_role_name }} packages
   apt: 
     name: "{{ item.package }}={{ item.version|default('*') }}"
     install_recommends: no
@@ -39,9 +37,8 @@
     - "{{ ansible_base_packages }}"
     - "{{ ansible_packages }}"
 
-- name: update target and remove {{ install_role_name }} repository list
+- name: remove {{ install_role_name }} repository list
   file: 
     path: "{{ item.dest }}"
     state: absent
   with_items: "{{ ansible_repository }}"
-  when: ansible_lsb.major_release|int <= 14

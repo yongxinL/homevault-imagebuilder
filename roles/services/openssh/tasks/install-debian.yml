@@ -10,7 +10,7 @@
 # =============================================================================
 
 ---
-- name: update target and install required {{ install_role_name }} packages
+- name: install required {{ install_role_name }} packages
   apt:
     name: "{{ item.package }}={{ item.version|default('*') }}"
     install_recommends: no

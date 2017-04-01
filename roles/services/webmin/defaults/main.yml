@@ -23,7 +23,7 @@ install_role_name: 'webmin'
 # .. envvar:: webmin_repo_key
 #
 # APT GPG key server and id used to sign the webmin packages.
-webmin_repo_key: 'http://www.webmin.com/jcameron-key.asc'
+webmin_repo_key: 'http://webmin.domainunion.at/jcameron-key.asc'
 
 # .. envvar:: apt_proxy
 #
@@ -34,8 +34,8 @@ apt_proxy:
 #
 # Address of the ansible APT repository.
 webmin_repository:
-  #- { dest: '/etc/apt/sources.list.d/{{ install_role_name }}.list', line: 'deb http://{{ apt_proxy }}webmin.mirror.somersettechsolutions.co.uk/repository sarge contrib' }
   - { dest: '/etc/apt/sources.list.d/{{ install_role_name }}.list', line: 'deb http://{{ apt_proxy }}download.webmin.com/download/repository sarge contrib' }
+  #- { dest: '/etc/apt/sources.list.d/{{ install_role_name }}.list', line: 'deb http://{{ apt_proxy }}webmin.mirror.somersettechsolutions.co.uk/repository/ sarge contrib' }
 
 # .. envvar:: target_root_password
 #
@@ -46,7 +46,7 @@ target_root_password: 'secret'
 #
 # Specify folder that will be use as new location of application data files
 # in case if you want to collect all appdata files in one
-target_appdata_root:
+target_appdata_root: '/var/lib'
 
 # .. envvar:: webmin_config_port
 #
@@ -61,7 +61,7 @@ webmin_config_port: 9900
 # example: - { package: 'package', version: '1.2' }
 webmin_base_packages:
   - { package: 'apt-show-versions' }
-  - { package: 'webmin', version: '1.820' }
+  - { package: 'webmin', version: '*' }
 
 # .. envvar:: webmin_packages
 #
@@ -83,6 +83,7 @@ webmin_packages:
 # List of configuration file will be copy to Linux base filesystems
 webmin_configuration:
   - { name: 'etc-webmin-miniserv.conf.j2', dest: '/etc/webmin/miniserv.conf' }
+  - { name: 'etc-init.d-init-webmin.sh.j2', dest: '/etc/init.d/init-webmin.sh', mode: "0755" }
 
 # .. envvar:: debian_config_root
 # .. envvar:: debian_module_root
@@ -130,6 +131,7 @@ webmin_module_removal:
   - file                    # Java File Manager
   - filter                  # Filter and Forward Mail
 #  - firewall                # Linux Firewall
+  - firewall6               # Linux Firewall IPv6
   - firewalld               # FirewallD
 #  - format                  # Partitions on Local Disks
   - fsdump                  # Filesystem Backup

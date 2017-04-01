@@ -1,0 +1,31 @@
+# =============================================================================
+#
+# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# =============================================================================
+
+---
+- name: copy {{ install_role_name }} configure files
+  template:
+    src: "{{ item.name }}"
+    dest: "{{ item.dest }}"
+    owner: root
+    group: root
+    mode: "{{ item.mode|default('0644') }}"
+  with_items: "{{ hhvm_configuration }}"
+
+- name: update {{ install_role_name }} php.ini configuration file
+  lineinfile:
+    dest: '/etc/init.d/hhvm'
+    regexp: "{{ item.regxp }}"
+    line: "{{ item.line }}"
+    state: present
+  with_items:
+    - { regxp: '^RUN_AS_USER.*', line: 'RUN_AS_USER="root"' }
+    - { regxp: '^RUN_AS_GROUP.*', line: 'RUN_AS_GROUP="root"' }  
+

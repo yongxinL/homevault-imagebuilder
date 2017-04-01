@@ -15,33 +15,47 @@
     path: "/var/lib/mysql"
   register: check_path_mysqldb
 
-- name: update target and create {{ install_role_name }} database dump
+- name: create {{ install_role_name }} initialize database dump
   command: "{{ item }} chdir=/var/lib"
   with_items:
     - rm -rf /var/lib/mysql/ib_logfile*
+    - chown -R root:root mysql
     - tar -czf /etc/mysql/mysqldb_init.tar.gz mysql
-
-- name: update target and temporary starting {{ install_role_name }} service
-  service:
-    name: mysql
-    state: started
+    - chown -R mysql:mysql mysql
+  
+- name: temporary starting {{ install_role_name }} service
+  command: "{{ item }} chdir=/var/lib"
+  with_items:
+    - service mysql start
 
 - name: encrypt password hash for {{ install_role_name }} root 
   command: >
     mysql -NBe "select password('{{ target_root_password }}')"
   register: mysql_password_hash
 
-- name: update target and stopping {{ install_role_name }} service
-  service:
-    name: mysql
-    state: stopped
+- name: stop {{ install_role_name }} service
+  command: "{{ item }} chdir=/var/lib"
+  with_items:
+    - service mysql stop
 
-- name: update target and remove {{ install_role_name }} database
+- name: remove {{ install_role_name }} database
   file:
     path: "/var/lib/mysql"
     state: absent
 
-- name: update target and copy {{ install_role_name }} configure files
+- name: Check {{ install_role_name }} service file (systemd)
+  stat:
+    path: "/lib/systemd/system/mariadb.service"
+  register: service_file
+
+- name: setup {{ install_role_name }} service files (systemd)
+  file:
+    path: "{{ item }}"
+    state: absent
+  with_items:
+    - /etc/systemd/system/mariadb.service.d/migrated-from-my.cnf-settings.conf
+
+- name: copy {{ install_role_name }} configure files
   template:
     src: "{{ item.name }}"
     dest: "{{ item.dest }}"
@@ -50,11 +64,10 @@
     mode: "{{ item.mode|default('0644') }}"
   with_items: "{{ mariadb_configuration }}"
 
-- name: update target and remove {{ install_role_name }} services from booting
+- name: remove {{ install_role_name }} services from booting
   command: update-rc.d -f {{ item }} remove
   with_items:
     - mysql
-  when: ansible_os_family == "Debian"
 
 - name: update target and include init-functions into rc.local
   lineinfile:
@@ -66,6 +79,7 @@
     mode: 0755
     state: present
     create: yes
+  when: ansible_lsb.major_release|int < 15
 
 - name: update target and start {{ install_role_name }} from rc.local
   blockinfile:
@@ -78,28 +92,34 @@
     state: present
     create: yes 
     block: |
-      if [ ! -f "/etc/setup_{{ install_role_name }}.done" ]; then
-        log_begin_msg "Initializing {{ install_role_name }} environment"
-        #MARK_{{ install_role_name }}_DATA
-        tar -xvf /etc/mysql/mysqldb_init.tar.gz -C {{ target_appdata_root }} > /dev/null
-        echo "UPDATE mysql.user SET Password='{{ mysql_password_hash.stdout}}' WHERE User='root';" | mysqld --bootstrap > /dev/null
-        touch "/etc/setup_{{ install_role_name }}.done"
-        log_end_msg 0
-      fi
-
+      /etc/init.d/init-{{ install_role_name }}.sh
+      log_begin_msg "Starting {{ install_role_name }} daemon"
       if [ $(ps -ef | grep -c mysql) != 1 ]; then
         service mysql restart
       else
         service mysql start
       fi
-  when: ansible_os_family == "Debian"
+      log_end_msg 0
+  when: ansible_lsb.major_release|int < 15
 
-- name: update target and start {{ install_role_name }} from rc.local
+- name: configure {{ install_role_name }} service (systemd)
   lineinfile:
-    dest: "/etc/rc.local"
-    line: "{{ item }}"
-    insertafter: "#MARK_{{ install_role_name }}_DATA"
+    dest: "/lib/systemd/system/mariadb.service"
+    line: 'ExecStartPre=/etc/init.d/init-{{ install_role_name }}.sh'
+    insertbefore: "^ExecStart.*"
+    state: present
+  when: service_file.stat.exists == True
+
+- name: setup {{ install_role_name }} service files (systemd)
+  lineinfile:
+    dest: "/lib/systemd/system/mariadb.service"
+    regexp: "{{ item.regxp }}"
+    line: "{{ item.line }}"
     state: present
   with_items:
-    - '  [ ! -d "{{ target_appdata_root }}/mysql" ] && { mkdir -p "{{ target_appdata_root }}/mysql" && chmod -R 644 "{{ target_appdata_root }}/mysql"; }'
-  when: target_appdata_root is defined and target_appdata_root
+    - { regxp: '^User.*', line: 'User=root' }
+    - { regxp: '^Group.*', line: 'Group=root' }
+    - { regxp: '^CapabilityBoundingSet.*', line: '#CapabilityBoundingSet=CAP_IPC_LOCK' }  # comment this line for working on RAID 1 disk
+    - { regxp: '^ProtectSystem.*', line: '#ProtectSystem=full' }  # comment this line for writing stamp file to /etc
+    - { regxp: '^ExecStartPre=/usr/bin/install.*', line: 'ExecStartPre=/usr/bin/install -m 755 -o root -g root -d /var/run/mysqld' }
+  when: service_file.stat.exists == True

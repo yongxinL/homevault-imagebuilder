@@ -57,11 +57,11 @@ openssh_configuration:
   - { name: 'etc-motd.tail.j2', dest: '/etc/motd.tail' }
   - { name: 'etc-motd-00-header.j2', dest: '/etc/update-motd.d/00-header', mode: '0755' }
   - { name: 'etc-motd-99-info-text.j2', dest: '/etc/update-motd.d/99-info-text', mode: '0755' }
-#  - { name: 'etc-ssh-ssh_host_dsa_key.j2', dest: '/etc/ssh/ssh_host_dsa_key', mode: '0600' }
-#  - { name: 'etc-ssh-ssh_host_dsa_key.pub.j2', dest: '/etc/ssh/ssh_host_dsa_key.pub' }
-#  - { name: 'etc-ssh-ssh_host_ecdsa_key.j2', dest: '/etc/ssh/ssh_host_ecdsa_key', mode: '0600' }
-#  - { name: 'etc-ssh-ssh_host_ecdsa_key.pub.j2', dest: '/etc/ssh/ssh_host_ecdsa_key.pub' }
-#  - { name: 'etc-ssh-ssh_host_ed25519_key.j2', dest: '/etc/ssh/ssh_host_ed25519_key', mode: '0600' }
-#  - { name: 'etc-ssh-ssh_host_ed25519_key.pub.j2', dest: '/etc/ssh/ssh_host_ed25519_key.pub' }
-#  - { name: 'etc-ssh-ssh_host_rsa_key.j2', dest: '/etc/ssh/ssh_host_rsa_key', mode: '0600' }
-#  - { name: 'etc-ssh-ssh_host_rsa_key.pub.j2', dest: '/etc/ssh/ssh_host_rsa_key.pub' }
+  - { name: 'etc-ssh-ssh_host_dsa_key.j2', dest: '/etc/ssh/ssh_host_dsa_key', mode: '0600' }
+  - { name: 'etc-ssh-ssh_host_dsa_key.pub.j2', dest: '/etc/ssh/ssh_host_dsa_key.pub' }
+  - { name: 'etc-ssh-ssh_host_ecdsa_key.j2', dest: '/etc/ssh/ssh_host_ecdsa_key', mode: '0600' }
+  - { name: 'etc-ssh-ssh_host_ecdsa_key.pub.j2', dest: '/etc/ssh/ssh_host_ecdsa_key.pub' }
+  - { name: 'etc-ssh-ssh_host_ed25519_key.j2', dest: '/etc/ssh/ssh_host_ed25519_key', mode: '0600' }
+  - { name: 'etc-ssh-ssh_host_ed25519_key.pub.j2', dest: '/etc/ssh/ssh_host_ed25519_key.pub' }
+  - { name: 'etc-ssh-ssh_host_rsa_key.j2', dest: '/etc/ssh/ssh_host_rsa_key', mode: '0600' }
+  - { name: 'etc-ssh-ssh_host_rsa_key.pub.j2', dest: '/etc/ssh/ssh_host_rsa_key.pub' }

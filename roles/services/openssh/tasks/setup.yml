@@ -10,17 +10,17 @@
 # =============================================================================
 
 ---
-- name: update target and delete update-motd.d direcotry
+- name: delete update-motd.d direcotry
   file:
     path: "/etc/update-motd.d"
     state: absent
 
-- name: update target and create update-motd.d directory
+- name: create update-motd.d directory
   file:
     path: "/etc/update-motd.d"
     state: directory
 
-- name: update target and copy {{ install_role_name }} configure files
+- name: upload {{ install_role_name }} configuration files
   template:
     src: "{{ item.name }}"
     dest: "{{ item.dest }}"
@@ -29,7 +29,7 @@
     mode: "{{ item.mode|default('0644') }}"
   with_items: "{{ openssh_configuration }}"
 
-- name: update target and enable {{ install_role_name }} remote login and banner
+- name: update {{ install_role_name }} configuration file
   lineinfile:
     dest: /etc/ssh/sshd_config
     regexp: "{{ item.regxp }}"
@@ -38,3 +38,4 @@
   with_items:
     - { regxp: '^PermitRootLogin.*', line: 'PermitRootLogin yes' }
     - { regxp: '^#Banner.*', line: 'Banner /etc/issue.net' }
+    - { regxp: '^##GSSAPIAuthentication.*', line: 'GSSAPIAuthentication no' }

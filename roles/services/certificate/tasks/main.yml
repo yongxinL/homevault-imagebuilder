@@ -1,0 +1,64 @@
+# =============================================================================
+#
+# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# =============================================================================
+
+---
+- name: check {{ target_host_domain }} certificates
+  stat:
+    path: "/tmp/{{ target_host_domain }}.pfx"
+  register: certificate_exist
+
+- name: remove existing {{ target_host_domain }} certificates
+  command: "rm -f /tmp/{{ item }}"
+  with_items:
+    - '{{ target_host_domain }}.crt'
+    - '{{ target_host_domain }}.key'
+    - '{{ target_host_domain }}.pfx'
+    - 'dh_1024.pem'  
+  when: certificate_exist.stat.exists
+  
+- name: update target and generate certificates for {{ target_host_domain }}
+  environment:
+    SUBJ:  "/C=AU/ST=New South Wales/O={{ target_host_domain }} Solutions/LocalityName=Sydney/commonName={{ target_host_name|default('*') }}.{{ target_host_domain }}/organizationalUnitName=Support/emailAddress={{ certificate_owner}}"
+    PASSPHRASE: '{{ certificate_password }}'
+  command:  openssl {{ item }}
+            chdir=/tmp
+  with_items:
+    - genrsa -des3 -out {{ target_host_domain }}.key.secret -passout env:PASSPHRASE
+    - req -new -subj $SUBJ -key {{ target_host_domain }}.key.secret -out {{ target_host_domain }}.csr -passin env:PASSPHRASE
+    - rsa -in {{ target_host_domain }}.key.secret -out {{ target_host_domain }}.key -passin env:PASSPHRASE
+    - x509 -req -days 36500 -in {{ target_host_domain }}.csr -signkey {{ target_host_domain }}.key -out {{ target_host_domain }}.crt
+    - pkcs12 -export -in {{ target_host_domain }}.crt -inkey {{ target_host_domain }}.key -name "{{ target_host_domain }}" -out {{ target_host_domain }}.pfx -passout env:PASSPHRASE
+  when: certificate_exist.stat.exists == False
+
+- name: check dh_1024.pem {{ target_host_domain }} certificates
+  stat:
+    path: "/tmp/dh_1024.pem"
+  register: dh_1024_pem_exist
+
+- name: generate dh_1024.pem for {{ install_role_name }}
+  command:  openssl {{ item }}
+            chdir=/tmp
+  with_items:
+    - dhparam -2 -out dh_1024.pem 1024
+  when: dh_1024_pem_exist.stat.exists == False
+
+- name: update target and create {{ install_role_name }} directory
+  file:
+    path: "/yongxin/dataLibrary/certificates"
+    state: directory
+
+- name: copy requested certificates to shared directory
+  command:  "cp /tmp/{{ item }} /yongxin/dataLibrary/certificates"
+  with_items:
+    - '{{ target_host_domain }}.crt'
+    - '{{ target_host_domain }}.key'
+    - '{{ target_host_domain }}.pfx'
+    - 'dh_1024.pem'

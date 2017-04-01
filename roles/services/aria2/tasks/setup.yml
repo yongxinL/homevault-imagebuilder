@@ -1,0 +1,65 @@
+# =============================================================================
+#
+# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# =============================================================================
+
+---
+- name: copy {{ install_role_name }} configure files
+  template:
+    src: "{{ item.name }}"
+    dest: "{{ item.dest }}"
+    owner: root
+    group: root
+    mode: "{{ item.mode|default('0644') }}"
+  with_items: "{{ aria2_configuration }}"
+
+- name: remove {{ install_role_name }} services from booting
+  command: update-rc.d -f {{ item }} remove
+  with_items:
+    - aria2-daemon
+  when: ansible_lsb.major_release|int < 15
+
+- name: enable {{ install_role_name }} services
+  command: systemctl enable {{ item }}
+  with_items:
+    - aria2.service
+  when: ansible_lsb.major_release|int >= 15
+
+- name: update target and include init-functions into rc.local
+  lineinfile:
+    dest: "/etc/rc.local"
+    line: ". /lib/lsb/init-functions"
+    insertafter: "# By default this script does nothing."
+    owner: root
+    group: root
+    mode: 0755
+    state: present
+    create: yes
+  when: ansible_lsb.major_release|int < 15
+
+- name: update target and start {{ install_role_name }} from rc.local
+  blockinfile:
+    dest: "/etc/rc.local"
+    insertbefore: "exit 0"
+    marker: "# {mark} MANAGED {{ install_role_name }} BLOCK"
+    owner: root
+    group: root
+    mode: 0755
+    state: present
+    create: yes
+    block: |
+      /etc/init.d/init-{{ install_role_name }}.sh
+      log_begin_msg "Starting {{ install_role_name }} daemon"
+      if [ $(ps -ef | grep -c aria2c) != 1 ]; then
+        service aria2-daemon restart
+      else
+        service aria2-daemon start
+      fi
+      log_end_msg 0
+  when: ansible_lsb.major_release|int < 15

@@ -1,0 +1,137 @@
+# --------------------------------
+# aria2 Downloader configuration
+#
+
+# --------------------------------
+# Basic options
+
+# The directory to store the downloaded file
+dir={{ aria2_root }}
+
+# The file name of the log file
+log=/var/log/aria2.log
+# Set log level to output, default: debug
+log-level=warn
+
+# Run as daemon, default: false
+daemon=true
+
+# Continue downloading a partially downloaded file
+continue=true
+
+# Set the maximum number of parallel downloads for every queue item. Default: 5
+max-concurrent-downloads=2
+
+# --------------------------------
+# HTTP/FTP/SFTP options
+
+# Set the connect timeout in seconds. Default: 60
+connect-timeout=60
+
+# The maximum number of connections to one server for each download. Default: 1
+max-connection-per-server=1
+
+# Force the download to fail when NUM times of recevies "file not found" status
+max-file-not-found=3
+
+# Set number of tries. 0 means unlimited. Default: 5
+max-tries=5
+
+# Split file into SIZE and download it
+min-split-size=25M
+
+# Retrieve timestamp of the remote file from the remote server if it is available
+remote-time=true
+
+# Set timeout in seconds, default: 60
+timeout=60
+
+# --------------------------------
+# BitTorrent/Metalink options
+
+# Specify maximum number of files to open in multi-file BT/Metalink download globally.
+bt-max-open-files=100
+
+# Specify the maximum number of peers per torrent. 0 means unlimited
+bt-max-peers=60
+
+# If the whole download speed is lower than <SPEED>, aria2 increases the number of peers to try for more download speed.
+bt-request-peer-speed-limit=50K
+
+# Stop BitTorrent download if download speed is 0 in consecutive SEC seconds.
+bt-stop-timeout=300
+
+# Enable IPv4 DHT functionality
+enable-dht=false
+
+# Enable IPv6 DHT functionality
+enable-dht6=false
+
+# Set max overall download speed in bytes/sec. 0 means unrestricted
+max-overall-download-limit=0
+
+# Set max download speed per each download in bytes/sec. 0 means unrestricted
+max-download-limit=0
+
+# Set max overall upload speed in bytes/sec. 0 means unrestricted
+max-overall-upload-limit=300K
+
+# Set max upload speed per each torrent in bytes/sec.
+max-upload-limit=300K
+
+# Specify share ratio. Seed completed torrents until share ratio reaches.
+seed-ratio=1.0
+
+# Specify seeding time in (fractional) minutes.
+seed-time=30
+
+# --------------------------------
+# RPC options
+
+# Enable JSON-RPC/XML-RPC server
+enable-rpc=true
+
+# Add Access-Control-Allow-Origin header field with value * to the RPC response.
+rpc-allow-origin-all=true
+
+# Listen incoming JSON-RPC/XML-RPC request on all network interfaces
+rpc-listen-all=true
+
+# Specify a port number for JSON/XML-RPC server to listen to.
+rpc-listen-port=6800
+
+# Set max size of JSON/XML-RPC request.
+rpc-max-request-size=2M
+
+# Set PRC secret authorization token.
+rpc-secret=PassWord
+
+# RPC transport will be encrypted by SSL/TLS.
+rpc-secure=false
+
+# --------------------------------
+# Advanced options
+
+# Restart download from scratch if the corresponding control file doesn't exist.
+allow-overwrite=true
+
+# Always resume download.
+always-resume=true
+
+# Rename file name if the same file already exists
+auto-file-renaming=false
+
+# Disable IPv6
+disable-ipv6=true
+
+# Enable disk cache, If SIZE is 0, the disk cache is disabled.
+disk-cache=0
+
+# Map files into memory. 
+enable-mmap=true
+
+# Specify file allocation method. none, prealloc, trunc, falloc
+file-allocation=falloc
+
+# Set maximum number of download result kept in memory.
+max-download-result=10

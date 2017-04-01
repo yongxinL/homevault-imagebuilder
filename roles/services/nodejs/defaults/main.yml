@@ -20,21 +20,15 @@
 # ------------------------------------
 install_role_name: 'nodejs'
 
-# .. envvar:: target_appdata_root
-#
-# Specify folder that will be use as new location of application data files
-# in case if you want to collect all appdata files in one
-target_appdata_root:
-
 # .. envvar:: nodejs_repo_key
 #
 # APT GPG key server and id used to sign the Docker packages.
-nodejs_repo_key: 'https://deb.nodesource.com/gpgkey/nodesource.gpg.key'
+nodejs_repo_key: 'http://deb.nodesource.com/gpgkey/nodesource.gpg.key'
 
 # .. envvar:: nodejs_version
 #
 # APT GPG key server and id used to sign the Docker packages.
-nodejs_version: '0.12'
+nodejs_version: '6.x'
 
 
 # .. envvar:: apt_proxy

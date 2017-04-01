@@ -22,8 +22,8 @@ install_role_name: 'nfsv4'
 
 # .. envvar:: target_data_root
 #
-# Specify folder that will be use as root of data directory
-target_data_root:
+# Specify folder that will be use as root of user data directory
+target_data_root: '/var'
 
 # .. envvar:: nfsv4_base_packages
 #
@@ -47,13 +47,14 @@ nfsv4_packages: []
 # List of configuration file will be copy to Linux base filesystems
 nfsv4_configuration:
   - { name: 'etc-exports.j2', dest: '/etc/exports' }
+  - { name: 'etc-init.d-init-nfsv4.sh.j2', dest: '/etc/init.d/init-nfsv4.sh', mode: "0755" }
 
 # .. envvar:: nfsv4_conf_share
 #
 # Which hash variables are used to configure [share] section samba.conf
 nfsv4_conf_share:
-  nfsexport:
-    path: '{{ target_data_root }}/nfsexport'
+  imagestore:
+    path: '{{ target_data_root }}/vmstorage'
 
 # .. envvar:: build_kernel_version
 #

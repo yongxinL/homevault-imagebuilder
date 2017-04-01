@@ -1,0 +1,71 @@
+#! /bin/sh
+# /etc/init.d/aria2
+
+### BEGIN INIT INFO
+# Provides: aria2cRPC
+# Required-Start: $network $local_fs $remote_fs
+# Required-Stop: $network $local_fs $remote_fs
+# Default-Start: 2 3 4 5
+# Default-Stop: 0 1 6
+# Short-Description: aria2c RPC init script.
+# Description: Starts and stops aria2 RPC services.
+### END INIT INFO
+
+# HOME="$HOMEDIR" start-stop-daemon -b -o -c $dbuser -S -u $dbuser -x $DAEMON
+
+dbuser="root"
+config_file="/etc/init/aria2.conf"
+daemon="/usr/bin/aria2c"
+daemon_opts=" --conf-path=$config_file"
+homedir="/root"
+logpath="/var/log"
+
+
+start() {
+   echo "Starting Aria2 downloader ..."
+
+   # Checking Log Directory
+   [ ! -d $logpath ] && { sudo mkdir $logpath; }
+   [ -d $logpath ] && { sudo chown $dbuser:$dbuser $logpath; }
+
+   umask 0000
+   if [ -x $daemon ]; then
+                HOME="$homedir" start-stop-daemon -b -o -c $dbuser -S -u $dbuser -x $daemon -- $daemon_opts
+   fi
+}
+stop() {
+   echo "Stopping Aria2 downloader ..."
+   if [ -x $daemon ]; then
+       start-stop-daemon -o -c $dbuser -K -u $dbuser -x $daemon
+   fi
+}
+status() {
+   dbpid=`pgrep -u $dbuser aria2c`
+
+   if [ -z $dbpid ] ; then
+       echo "Aria2 for USER $dbuser: not running."
+   else
+       echo "Aria2 for USER $dbuser: running (pid $dbpid)"
+   fi
+}
+
+case "$1" in
+
+   start)
+       start
+       ;;
+   stop)
+       stop
+       ;;
+   restart|reload|force-reload)
+       stop
+       start
+       ;;
+   status)
+       status
+       ;;
+   *)
+       echo "Usage: /etc/init.d/aria2-deamon {start|stop|reload|force-reload|restart|status}"
+       exit 1
+esac
+exit 0

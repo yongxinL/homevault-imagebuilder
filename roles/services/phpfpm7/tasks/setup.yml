@@ -1,0 +1,129 @@
+# =============================================================================
+#
+# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# =============================================================================
+
+---
+- name: copy {{ install_role_name }} configure files
+  template:
+    src: "{{ item.name }}"
+    dest: "{{ item.dest }}"
+    owner: root
+    group: root
+    mode: "{{ item.mode|default('0644') }}"
+  with_items: "{{ phpfpm_configuration }}"
+
+- name: update {{ install_role_name }} php.ini configuration
+  lineinfile:
+    dest: '/etc/php/{{ phpfpm_version }}/fpm/php.ini'
+    regexp: "{{ item.regxp }}"
+    line: "{{ item.line }}"
+    state: present
+  with_items:
+    - { regxp: '^post_max_size.*', line: 'post_max_size = 768M' }
+    - { regxp: '^upload_max_filesize.*', line: 'upload_max_filesize = 768M' }
+    - { regxp: '^allow_url_fopen.*', line: 'allow_url_fopen = off' }
+    - { regxp: '^session.use_trans_sid.*', line: 'session.use_trans_sid = 0' }
+    - { regxp: '^;opcache.enable.*', line: 'opcache.enable = 1' }
+    - { regxp: '^;opcache.enable_cli.*', line: 'opcache.enable_cli = 1' }
+    - { regxp: '^;opcache.memory_consumption.*', line: 'opcache.;opcache.memory_consumption = 64' }
+    - { regxp: '^;opcache.interned_strings_buffer.*', line: 'opcache.interned_strings_buffer = 8' }
+    - { regxp: '^;opcache.max_accelerated_files.*', line: 'opcache.max_accelerated_files = 8000' }
+    - { regxp: '^;opcache.max_wasted_percentage.*', line: 'opcache.max_wasted_percentage = 5' }
+    - { regxp: '^;opcache.validate_timestamps.*', line: 'opcache.validate_timestamps = 1' }
+    - { regxp: '^;opcache.revalidate_freq.*', line: 'opcache.revalidate_freq = 60' }
+    - { regxp: '^;opcache.fast_shutdown.*', line: 'opcache.fast_shutdown = 1' }
+
+- name: update {{ install_role_name }} php-fpm.conf configuration file
+  lineinfile:
+    dest: '/etc/php/{{ phpfpm_version }}/fpm/php-fpm.conf'
+    regexp: "{{ item.regxp }}"
+    line: "{{ item.line }}"
+    state: present
+  with_items:
+    - { regxp: '^pid.*', line: 'pid = /run/php/php{{ phpfpm_version }}-fpm.pid' }
+
+- name: update {{ install_role_name }} www.conf configuration file
+  lineinfile:
+    dest: '/etc/php/{{ phpfpm_version }}/fpm/pool.d/www.conf'
+    regexp: "{{ item.regxp }}"
+    line: "{{ item.line }}"
+    state: present
+  with_items:
+    - { regxp: '^user.*', line: 'user = root' }
+    - { regxp: '^group.*', line: 'group = root' }
+    - { regxp: '^(.?)listen =.*', line: 'listen = 9000' }
+    - { regxp: '^(.?)listen.owner.*', line: 'listen.owner = root' }
+    - { regxp: '^(.?)listen.group.*', line: 'listen.group = root' }
+    - { regxp: '^(.?)listen.mode.*', line: 'listen.mode = 0660' }
+    - { regxp: '^(.?)listen.allowed_clients.*', line: 'listen.allowed_clients = 127.0.0.1' }
+    - { regxp: '^;security.limit_extensions.*', line: 'security.limit_extensions = .php .php3 .php4 .php5' }
+
+- name: allow to run as root user for {{ install_role_name }} services
+  lineinfile:
+    dest: '{{ item }}'
+    regexp: '^DAEMON_ARGS.*'
+    line: 'DAEMON_ARGS="--daemonize --allow-to-run-as-root --fpm-config $CONFFILE"'
+    state: present
+  with_items:
+    - /etc/init.d/php{{ phpfpm_version }}-fpm
+
+- name: configure {{ install_role_name }} service (systemd)
+  lineinfile:
+    dest: "/lib/systemd/system/php{{ phpfpm_version }}-fpm.service"
+    line: 'ExecStart=/usr/sbin/php-fpm{{ phpfpm_version }} --nodaemonize --allow-to-run-as-root --fpm-config /etc/php/{{ phpfpm_version }}/fpm/php-fpm.conf'
+    regexp: "^ExecStart.*"
+    state: present
+  when: ansible_lsb.major_release|int > 15
+
+- name: enable {{ install_role_name }} services
+  file:
+    src: "/lib/systemd/system/php{{ phpfpm_version }}-fpm.service"
+    dest: "/etc/systemd/system/multi-user.target.wants/php{{ phpfpm_version }}-fpm.service"
+    state: link
+  when:  ansible_lsb.major_release|int > 15
+
+- name: remove {{ install_role_name }} services from booting
+  command: update-rc.d -f {{ item }} remove
+  with_items:
+    - update-rc.d -f php{{ phpfpm_version }}-fpm remove
+    - touch /etc/init/php{{ phpfpm_version }}-fpm.override
+  when: ansible_lsb.major_release|int < 15
+
+- name: include init-functions into rc.local
+  lineinfile:
+    dest: "/etc/rc.local"
+    line: ". /lib/lsb/init-functions"
+    insertafter: "# By default this script does nothing."
+    owner: root
+    group: root
+    mode: 0755
+    state: present
+    create: yes
+  when: ansible_lsb.major_release|int < 15
+
+- name: start {{ install_role_name }} from rc.local
+  blockinfile:
+    dest: "/etc/rc.local"
+    insertbefore: "exit 0"
+    marker: "# {mark} MANAGED {{ install_role_name }} BLOCK"
+    owner: root
+    group: root
+    mode: 0755
+    state: present
+    create: yes 
+    block: |
+      log_begin_msg "Starting {{ install_role_name }} daemon"
+      if [ $(ps -ef | grep -c php-fpm) != 1 ]; then
+        /etc/init.d/php{{ phpfpm_version }}-fpm restart > /dev/null
+      else
+        /etc/init.d/php{{ phpfpm_version }}-fpm start > /dev/null
+      fi
+      log_end_msg 0
+  when: ansible_lsb.major_release|int < 15

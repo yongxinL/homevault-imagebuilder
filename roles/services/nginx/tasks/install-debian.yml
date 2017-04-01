@@ -10,12 +10,12 @@
 # =============================================================================
 
 ---
-- name: update target and add {{ install_role_name }} repository key
+- name: add {{ install_role_name }} repository key
   apt_key:
     url: "{{ nginx_repo_key }}"
     state: present
 
-- name: update target and add {{ install_role_name }} repository list
+- name: add {{ install_role_name }} repository list
   lineinfile: 
     dest: "{{ item.dest }}"
     line: "{{ item.line }}"
@@ -23,7 +23,7 @@
     state: present
   with_items: "{{ nginx_repository }}"
 
-- name: update target and install required {{ install_role_name }} packages
+- name: install required {{ install_role_name }} packages
   apt: 
     name: "{{ item.package }}={{ item.version|default('*') }}"
     install_recommends: no
@@ -36,9 +36,39 @@
     - "{{ nginx_base_packages }}"
     - "{{ nginx_packages }}"
 
-- name: update target and remove {{ install_role_name }} repository list
+- name: remove {{ install_role_name }} repository list
   file: 
     path: "{{ item.dest }}"
     state: absent
   with_flattened:
     - "{{ nginx_repository }}"
+
+- name: check {{ target_host_domain }} certificates
+  stat:
+    path: "/etc/ssl/private/{{ target_host_domain }}.crt"
+  register: certificate_exist
+
+- name: generate {{ target_host_domain }} certificates
+  environment:
+    SUBJ:  "/C=AU/ST=New South Wales/O={{ target_host_domain }} Solutions/LocalityName=Sydney/commonName=*.{{ target_host_domain }}/organizationalUnitName=Home/emailAddress=yongxinL@outlook.com"
+    PASSPHRASE: $(head -c 500 /dev/urandom | tr -dc a-z0-9A-Z | head -c 128; echo)
+  command:  openssl {{ item }}
+            chdir=/etc/ssl/private
+  with_items:
+    - genrsa -des3 -out {{ target_host_domain }}.key.secret -passout env:PASSPHRASE 2048
+    - req -new -subj $SUBJ -key {{ target_host_domain }}.key.secret -out {{ target_host_domain }}.csr -passin env:PASSPHRASE
+    - rsa -in {{ target_host_domain }}.key.secret -out {{ target_host_domain }}.key -passin env:PASSPHRASE
+    - x509 -req -days 3650 -in {{ target_host_domain }}.csr -signkey {{ target_host_domain }}.key -out {{ target_host_domain }}.crt
+  when: certificate_exist.stat.exists == False
+
+- name: check dh_1024.pem {{ target_host_domain }} certificates
+  stat:
+    path: "/etc/ssl/private/dh_1024.pem"
+  register: dh_1024_pem_exist
+
+- name: generate dh_1024.pem for {{ install_role_name }}
+  command:  openssl {{ item }}
+            chdir=/etc/ssl/private
+  with_items:
+    - dhparam -2 -out dh_1024.pem 1024
+  when: dh_1024_pem_exist.stat.exists == False
