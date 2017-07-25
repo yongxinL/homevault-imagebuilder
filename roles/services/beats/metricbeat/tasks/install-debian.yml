@@ -1,0 +1,58 @@
+# =============================================================================
+#
+# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# =============================================================================
+
+---
+- name: add {{ install_role_name }} repository key
+  apt_key: 
+    url: "{{ beat_repo_key }}"
+    state: present
+
+- name: add {{ install_role_name }} repository list
+  lineinfile: 
+    dest: "{{ item.dest }}"
+    line: "{{ item.line }}"
+    create: yes
+    state: present
+  with_items: "{{ beat_repository }}"
+
+- name: install required {{ install_role_name }} packages
+  apt: 
+    name: "{{ item.package }}={{ item.version|default('*') }}"
+    install_recommends: no
+    update_cache: yes
+  register: install_pkgs
+  until: install_pkgs|success
+  retries: 2
+  delay: 5
+  with_flattened:
+    - "{{ beat_base_packages }}"
+
+- name: copy {{ install_role_name }} configuration files
+  copy:
+    src: "{{ item.name }}"
+    dest: "{{ item.dest }}"
+    owner: root
+    group: root
+    mode: "{{ item.mode|default('0644') }}"
+    backup: no
+  with_items: "{{ beat_configuration }}"
+
+- name: remove {{ install_role_name }} repository list
+  file: 
+    path: "{{ item.dest }}"
+    state: absent
+  with_flattened:
+    - "{{ beat_repository }}"
+
+- name: disable {{ install_role_name }} service list
+  service: 
+    name: "{{ install_role_name }}"
+    enabled: "{{ beat_boot_on_start }}"
