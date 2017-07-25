@@ -59,3 +59,10 @@ ansible_packages:
   - { package: 'python-markupsafe' }
   - { package: 'python-paramiko' }
   - { package: 'python-yaml' }
+
+# .. envvar:: ansible_modules
+#
+# List of additional modules will install with Ansible
+ansible_modules:
+  - { package: 'pysphere' }         # for vSphere support
+  - { package: 'pyvmomi' }          # for vSphere support

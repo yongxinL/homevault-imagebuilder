@@ -37,6 +37,24 @@
     - "{{ ansible_base_packages }}"
     - "{{ ansible_packages }}"
 
+- name: check if pip is already install
+  command: "pip --version"
+  ignore_errors: true
+  changed_when: false
+  check_mode: no
+  register: pip_installed
+
+- name: install pip
+  easy_install:
+    name: pip
+    state: latest
+  when: pip_installed.rc != 0
+
+- name: install required {{ install_role_name }} modules via pip
+  pip:
+    name: "{{ item.package }}"
+  with_items: "{{ ansible_modules }}"
+
 - name: remove {{ install_role_name }} repository list
   file: 
     path: "{{ item.dest }}"
