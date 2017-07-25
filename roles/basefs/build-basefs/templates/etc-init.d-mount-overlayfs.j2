@@ -29,6 +29,7 @@
 root_rw_mnt="{{ overylay_private_root }}"
 root_rw_work="${root_rw_mnt}/tmp"
 module_driver="overlayfs"
+swap_rw_mnt="{{ target_data_root }}"
 
 # function
 do_mount() {
@@ -80,11 +81,31 @@ do_unmount() {
     log_end_msg 0
 }
 
+do_swapfile() {
+
+    local _size=$1
+
+    log_begin_msg "Create and enable swapfile ${_size}.swap in ${swap_rw_mnt} ..."
+    if [ $(cat /proc/self/mounts | grep -c "${swap_rw_mnt}") != 0 ]; then
+        if [ ! -f ${swap_rw_mnt}/${_size}.swap ]; then
+            log_warning_msg "Create swapfile ${_size}.swap in ${swap_rw_mnt} ..."
+            fallocate -l ${_size} ${swap_rw_mnt}/${_size}.swap
+            chmod 600 ${swap_rw_mnt}/${_size}.swap
+            mkswap ${swap_rw_mnt}/${_size}.swap
+        fi
+        log_warning_msg "Enable swapfile ${_size}.swap in ${swap_rw_mnt} ..."
+        swapon ${swap_rw_mnt}/${_size}.swap
+    fi
+}
+
 # parse booting command line
 for param in $(cat /proc/cmdline); do
     case ${param} in
         readonlydriver=*)
             ro_drivers=${param#readonlydriver=}
+            ;;
+        swapfilesize=*)
+            swapfilesize=${param#swapfilesize=}
             ;;
     esac
 done
@@ -96,11 +117,12 @@ if [ -z "${ro_drivers}" ] && [ "${ro_drivers}" = "/" ]; then
 fi
 
 # check if kernel module exists
-modprobe -qb ${module_driver}
-if [ $? -ne 0 ]; then
-    log_failure_msg "ERROR: missing kernal module ${driver_module} "
-    exit 0
-fi
+# comment below lines as overlayfs is enabled in default since kernel 4.8
+#modprobe -qb ${module_driver}
+#if [ $? -ne 0 ]; then
+#    log_failure_msg "ERROR: missing kernal module ${driver_module} "
+#    exit 0
+#fi
 
 # make the mount point on the read-write driver
 [ -d ${root_rw_mnt} ] || mkdir -p ${root_rw_mnt}
@@ -116,6 +138,7 @@ fi
 
 # remove first and last quote (single and double) if exist
 ro_drivers=$(tr -d \'\" <<< "${ro_drivers}")
+swapfilesize=$(tr -d \'\" <<< "${swapfilesize}")
 
 # get separator character
 if [[ "$ro_drivers" == *","* ]]; then
@@ -132,6 +155,9 @@ case "$1" in
         for param in "${_opt[@]}"; do
             do_mount "${param}"
         done
+        if [ ! -z ${swapfilesize} ]; then
+            do_swapfile ${swapfilesize}
+        fi
         ;;
     stop)
         read -ra _opt <<< "${ro_drivers}"
