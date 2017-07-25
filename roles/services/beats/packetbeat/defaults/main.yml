@@ -1,0 +1,62 @@
+# =============================================================================
+#
+# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# =============================================================================
+
+# Default variables
+# =================
+
+# .. contents:: Sections
+#    :local:
+#
+# ------------------------------------
+#   Packages and installation
+# ------------------------------------
+install_role_name: 'packetbeat'
+
+# .. envvar:: beat_repo_key
+#
+# APT GPG key server and id used to sign the Docker packages.
+beat_repo_key: 'https://artifacts.elastic.co/GPG-KEY-elasticsearch'
+
+# .. envvar:: beat_version
+#
+# APT GPG key server and id used to sign the Docker packages.
+beat_version: '5.x'
+
+# .. envvar:: apt_proxy
+#
+# Specify apt cacher / proxy link, like 'x.x.x.x:3142/'
+apt_proxy:
+
+# .. envvar:: beat_repository
+#
+# address of the Docker upstream APT repository.
+beat_repository:
+  - { dest: '/etc/apt/sources.list.d/{{ install_role_name }}.list', line: 'deb https://artifacts.elastic.co/packages/{{ beat_version }}/apt stable main' }
+
+# .. envvar:: beat_base_packages
+#
+# List of base packages to install by Ansible
+# package: package will be installed
+# version: package version, default is '*'
+# example: - { package: 'package', version: '1.2' }
+beat_base_packages:
+  - { package: '{{ install_role_name }}' }
+
+# .. envvar:: beat_configuration
+#
+# List of configuration file will be copy to Linux base filesystems
+beat_configuration:
+  - { name: '{{ install_role_name }}.yml', dest: '/etc/{{ install_role_name }}/{{ install_role_name }}.yml' }
+
+# .. envvar:: nodejs_base_packages
+#
+# Start the service when booting
+beat_boot_on_start: no
