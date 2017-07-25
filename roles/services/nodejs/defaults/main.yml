@@ -30,7 +30,6 @@ nodejs_repo_key: 'http://deb.nodesource.com/gpgkey/nodesource.gpg.key'
 # APT GPG key server and id used to sign the Docker packages.
 nodejs_version: '6.x'
 
-
 # .. envvar:: apt_proxy
 #
 # Specify apt cacher / proxy link, like 'x.x.x.x:3142/'
