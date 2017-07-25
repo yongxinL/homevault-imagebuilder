@@ -53,9 +53,6 @@ http {
     gzip_disable                    "MSIE [1-6]\.";
 
     ## Start: Size Limits & Buffer Overflows ##
-    client_body_buffer_size         1K;
-    client_header_buffer_size       1k;
-    large_client_header_buffers     2 1k;
     # getting 413 request entity too large error
     client_max_body_size            768M;
     ## END: Size Limits & Buffer Overflows ##
@@ -63,7 +60,7 @@ http {
     ## Start: Timeouts ##
     client_body_timeout             10;
     client_header_timeout           10;
-    keepalive_timeout               60 60;
+    keepalive_timeout               60;
     send_timeout                    10;
     ## End: Timeouts ##
 
