@@ -26,4 +26,4 @@ e2label /dev/sda2 data1
 /cdrom/syslinux/syslinux -f -i /dev/sda1
 mount -o loop /dev/sda1 /mnt
 cp /cdrom/* /mnt -R
-sed -i 's/captainL/sandbox/g' /mnt/syslinux/syslinux.cfg
+sed -i 's/{{ target_host_name }}/sandbox/g' /mnt/syslinux/syslinux.cfg
