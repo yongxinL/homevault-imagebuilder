@@ -1,0 +1,45 @@
+#!/bin/bash
+### BEGIN INIT INFO
+# Provides:          init-{{ install_role_name }}.sh
+# Required-Start:
+# Required-Stop:
+# Default-Start:
+# Default-Stop:
+# Short-Description: Initialization before starting {{ install_role_name }}services
+# Description:       Initialization before starting {{ install_role_name }}services
+### END INIT INFO
+
+# =============================================================================
+#
+# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - Initialization before starting {{ install_role_name }}services
+#
+# - This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# =============================================================================
+
+. /lib/lsb/init-functions
+
+# check {{ install_role_name }} setup stamp
+if [ ! -f "/etc/setup_{{ install_role_name }}.stamp" ]; then
+    log_begin_msg "initializing environment before starting {{ install_role_name }} services"
+
+	if [ ! -e "/dev/vmci" ]; then
+		# comment all network adapter configuration
+		sed -i 's/^\([^#]\)/#\1/g' /etc/network/interfaces.d/{{ install_role_name }}.cfg
+	else
+		# uncomment all network adapter configuration
+		sed -i 's/^#auto\(.*\)/auto\1/g' /etc/network/interfaces.d/{{ install_role_name }}.cfg
+		sed -i 's/^#iface\(.*\)/iface\1/g' /etc/network/interfaces.d/{{ install_role_name }}.cfg
+		sed -i 's/^#\(.*\)address/\1address\1/g' /etc/network/interfaces.d/{{ install_role_name }}.cfg
+		sed -i 's/^#\(.*\)netmask/\1netmask\1/g' /etc/network/interfaces.d/{{ install_role_name }}.cfg
+		sed -i 's/^#\(.*\)gateway/\1gateway\1/g' /etc/network/interfaces.d/{{ install_role_name }}.cfg
+		sed -i 's/^#\(.*\)dns-nameservers/\1dns-nameservers\1/g' /etc/network/interfaces.d/{{ install_role_name }}.cfg
+	fi
+    touch "/etc/setup_{{ install_role_name }}.stamp"
+    log_end_msg 0
+fi
