@@ -10,6 +10,13 @@
 # =============================================================================
 
 ---
+- name: check if pip is already install
+  command: "pip --version"
+  ignore_errors: true
+  changed_when: false
+  check_mode: no
+  register: pip_installed
+
 - name: add {{ install_role_name }} repository key
   apt_key: 
     keyserver: "{{ docker_repo_keyserver }}"
@@ -28,7 +35,7 @@
   command: >
     apt-cache policy docker-engine
 
-- name: install required {{ install_role_name }} packages
+- name: install required {{ install_role_name }} packages (apt)
   apt: 
     name: "{{ item.package }}={{ item.version|default('*') }}"
     install_recommends: no
@@ -40,6 +47,12 @@
   with_flattened:
     - "{{ docker_base_packages }}"
     - "{{ docker_packages }}"
+
+- name: install required {{ install_role_name }} packages (pip)
+  pip: 
+    name: "{{ item.package }}"
+  with_items: "{{ docker_pip_packages }}"
+  when: pip_installed.rc == 0
 
 - name: add users to {{ install_role_name }} group
   user:
@@ -55,3 +68,10 @@
     state: absent
   with_flattened:
     - "{{ docker_repository }}"
+
+- name: install {{ install_role_name }} compose from github
+  get_url:
+    url: "https://github.com/docker/compose/releases/download/{{ docker_compose_version }}/docker-compose-linux-x86_64"
+    dest: /usr/bin/docker-compose
+    mode: 0755
+  when: pip_installed.rc != 0

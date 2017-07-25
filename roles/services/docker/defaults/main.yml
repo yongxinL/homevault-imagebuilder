@@ -44,6 +44,11 @@ apt_proxy:
 docker_repository:
   - { dest: '/etc/apt/sources.list.d/{{ install_role_name }}.list', line: 'deb http://{{ apt_proxy }}apt.dockerproject.org/repo {{ ansible_distribution | lower }}-{{ ansible_distribution_release }} main' }
 
+# .. envvar:: docker_compose_version
+#
+# Specify docker compose version to install
+docker_compose_version: '1.13.0'
+
 # .. envvar:: docker_base_packages
 #
 # List of base packages to install by Ansible
@@ -51,8 +56,9 @@ docker_repository:
 # version: package version, default is '*'
 # example: - { package: 'package', version: '1.2' }
 docker_base_packages:
+  - { package: "apt-transport-https" }
   - { package: 'aufs-tools' }
-  - { package: "docker-engine" }
+  - { package: "ca-certificates" }
 
 # .. envvar:: docker_packages
 #
@@ -61,8 +67,17 @@ docker_base_packages:
 # version: package version, default is '*'
 # example: - { package: 'package', version: '1.2' }
 docker_packages:
-  - { package: "apt-transport-https" }
-  - { package: "ca-certificates" }
+  - { package: "docker-engine" }
+
+# .. envvar:: docker_pip_packages
+#
+# List of docker packages to install by pip
+# package: package will be installed
+# version: package version, default is '*'
+# example: - { package: 'package', version: '1.2' }
+docker_pip_packages:
+  - { package: "docker" }
+  - { package: "docker-compose" }
 
 # .. envvar:: docker_configuration
 #
