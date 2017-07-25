@@ -32,15 +32,15 @@
   get_url:
     url: "http://{{ debstrap_base_mirror }}/ubuntu/pool/main/d/debootstrap/debootstrap_{{ debstrap_version }}_all.deb"
     dest: "/tmp/debootstrap_{{ debstrap_version }}_all.deb"
-  when: deb_version.stdout != "{{ debstrap_version }}"
+  when: deb_version.stdout != debstrap_version
 
 - name: upgrade debootstrap to {{ debstrap_version }}
   apt:
     deb: "/tmp/debootstrap_{{ debstrap_version }}_all.deb"
-  when: deb_version.stdout != "{{ debstrap_version }}"
+  when: deb_version.stdout != debstrap_version
 
 - name: remove debootstrap package
   file:
     path: "/tmp/debootstrap_{{ debstrap_version }}_all.deb"
     state: absent
-  when: deb_version.stdout != "{{ debstrap_version }}"
+  when: deb_version.stdout != debstrap_version
