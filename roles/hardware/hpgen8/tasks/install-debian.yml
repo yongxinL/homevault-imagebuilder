@@ -1,0 +1,55 @@
+# =============================================================================
+#
+# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# =============================================================================
+
+---
+- name: add {{ install_role_name }} repository key
+  apt_key:
+    url: "{{ item }}"
+    state: present
+  with_items: "{{ hpgen8_repo_key }}"
+
+- name: add {{ install_role_name }} repository list
+  lineinfile: 
+    dest: "{{ item.dest }}"
+    line: "{{ item.line }}"
+    create: yes
+    state: present
+  with_items: "{{ hpgen8_repository }}"
+
+- name: install required {{ install_role_name }} packages
+  apt: 
+    name: "{{ item.package }}={{ item.version|default('*') }}"
+    install_recommends: no
+    update_cache: yes
+  register: install_pkgs
+  until: install_pkgs|success
+  retries: 2
+  delay: 5
+  with_flattened:
+    - "{{ hpgen8_base_packages }}"
+    - "{{ hpgen8_packages }}"
+
+- name: remove {{ install_role_name }} repository list
+  file: 
+    path: "{{ item.dest }}"
+    state: absent
+  with_items: "{{ hpgen8_repository }}"
+
+- name: copy presistent files to backup storage
+  command: rsync -R {{ item }} /tmp/persistent
+  with_items: "{{ persistent_files }}"
+  when: persistent_files is defined and persistent_files
+
+- name: create presistent marker in backup storage
+  file:
+    path: "/tmp/persistent/persistent.stamp"
+    state: touch
+  when: persistent_files is defined and persistent_files
