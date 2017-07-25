@@ -24,12 +24,11 @@
   vars_files:
     - ../../{{ config_file }}
   roles:
-    - ../services/nodejs
-    - ../services/nginx
-    - ../services/phpfpm7
     - ../services/mariadb10
     - ../services/webmin
-    #- ../services/java8
+    - ../services/beats/filebeat
+    - ../services/beats/metricbeat
+    - ../services/beats/packetbeat
   post_tasks:
     - include: tasks/cleanup_rootfs_debian.yml
 

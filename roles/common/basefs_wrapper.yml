@@ -28,12 +28,14 @@
     - ../services/samba
     - ../services/nfsv4
     - ../services/git
-    - ../services/docker
     - ../services/ansible
-    - ../services/aptcacher
+    - ../services/docker
     - ../services/aria2
+    - ../services/nodejs
     - ../hardware/vmtools           # VMware tools and drivers
-    - ../hardware/hpgen8            # HP Gen8 management Pack    
+    - ../hardware/hpgen8            # HP Gen8 management Pack
+    - ../services/nginx
+    - ../services/phpfpm7
   post_tasks:
     - include: tasks/cleanup_rootfs_debian.yml
 
