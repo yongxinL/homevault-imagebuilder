@@ -101,6 +101,7 @@ debstrap_version: '1.0.81ubuntu3'
 # .. envvar:: apt_proxy
 #
 # Specify apt cacher / proxy link, like '127.0.0.1:3142/'
+apt_proxy:
 
 # .. envvar:: debstrap_base_mirror
 #
