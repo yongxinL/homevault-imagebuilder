@@ -32,7 +32,7 @@ target_host_domain: 'lifamilyclub.com'
 # Specify apt cacher / proxy link, like 'x.x.x.x:3142/'
 apt_proxy:
 
-phpfpm_version: '7.0'
+phpfpm_version: '7.1'
 
 # .. envvar:: phpfpm_repo_keyserver
 # .. envvar:: phpfpm_repo_keyid
@@ -77,7 +77,7 @@ phpfpm_base_packages:
 # List of additional packages to install by Ansible
 # libmagickcore5-extra for libmagickcore-extra in trusty-updates
 phpfpm_packages:
-  - { package: 'exiftool' }                     # file meta information support
+  - { package: 'libimage-exiftool-perl' }       # file meta information support, replace exiftool
   - { package: 'ghostscript' }                  # ghostScript support
   - { package: 'libgs-dev' }                    # ghostScript support
   - { package: 'imagemagick' }                  # ghostScript support
