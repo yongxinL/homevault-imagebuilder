@@ -49,6 +49,7 @@ basefs_base_packages:
   - { package: 'iproute2' }
   - { package: 'iptables' }
   - { package: 'iputils-ping' }
+  - { package: 'ifupdown' }
   - { package: 'isc-dhcp-client' }
   - { package: 'mtools' }
   - { package: 'lshw' }
