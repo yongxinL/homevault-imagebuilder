@@ -50,8 +50,8 @@ hpgen8_base_packages:
   - { package: "hp-health" }
   - { package: "hponcfg" }
   - { package: "hp-ams" }
-  - { package: "hpssacli" }
-  - { package: "hpssaducli" }
+  - { package: "ssacli" }       # replace hpssacli
+  - { package: "ssaducli" }     # replace hpssaducli
   - { package: "lsof" }
 
 # .. envvar:: hpgen8_packages
