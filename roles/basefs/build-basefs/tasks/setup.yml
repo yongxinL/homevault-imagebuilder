@@ -110,13 +110,13 @@
   command: >
     /usr/sbin/dpkg-reconfigure --frontend noninteractive tzdata
 
-- name: Copy presistent files to backup storage
-  command: rsync -R {{ item }} /tmp/persistent
-  with_items: "{{ persistent_files }}"
-  when: uninstall_build_kernel == True
+#- name: Copy presistent files to backup storage
+#  command: rsync -R {{ item }} /tmp/persistent
+#  with_items: "{{ persistent_files }}"
+#  when: uninstall_build_kernel == True
 
-- name: Create presistent marker in backup storage
-  file:
-    path: "/tmp/persistent/persistent.stamp"
-    state: touch
-  when: uninstall_build_kernel == True
+#- name: Create presistent marker in backup storage
+#  file:
+#    path: "/tmp/persistent/persistent.stamp"
+#    state: touch
+#  when: uninstall_build_kernel == True

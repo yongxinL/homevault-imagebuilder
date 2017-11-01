@@ -49,7 +49,7 @@ basefs_configuration:
 # .. envvar:: uninstall_build_kernel
 #
 # Set below param to True if you don't want kernel modules in the Linux base filesystems
-uninstall_build_kernel: False
+# uninstall_build_kernel: False
 
 # .. envvar:: basefs_init_script
 #

@@ -10,17 +10,17 @@
 # =============================================================================m
 
 ---
-- name: uninstall Linux kernel image and dependency
-  apt: 
-    name: "linux-image-{{ build_kernel_version }}"
-    state: absent
-  when: uninstall_build_kernel == True
+#- name: uninstall Linux kernel image and dependency
+#  apt: 
+#    name: "linux-image-{{ build_kernel_version }}"
+#    state: absent
+#  when: uninstall_build_kernel == True
 
-- name: uninstall Linux kernel image extra for physical machine support
-  apt: 
-    name: "linux-image-extra-{{ build_kernel_version }}"
-    state: absent
-  when: uninstall_build_kernel == True
+#- name: uninstall Linux kernel image extra for physical machine support
+#  apt: 
+#    name: "linux-image-extra-{{ build_kernel_version }}"
+#    state: absent
+#  when: uninstall_build_kernel == True
 
 - name: upload rootfs cleanup script
   template: 

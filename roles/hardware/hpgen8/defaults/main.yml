@@ -74,8 +74,8 @@ build_kernel_version: '4.4.0-35-generic'
 
 # .. envvar:: uninstall_build_kernel
 #
-# Set below param to yes if you don't want kernel modules in the Linux base filesystems
-uninstall_build_kernel: True
+# Set below param to True if you don't want kernel modules in the Linux base filesystems
+# uninstall_build_kernel: False
 
 # .. envvar:: persistent_files
 #
