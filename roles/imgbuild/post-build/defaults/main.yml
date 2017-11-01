@@ -38,6 +38,11 @@ syslinux_configuration:
 # Specify package root directory in ubuntu
 syslinux_package_root: '/usr/lib'
 
+# .. envvar:: target_swap_size
+#
+# Specify swap file when booting
+target_swap_size: 3g
+
 # .. envvar:: syslinux_base_packages
 #
 # List of syslinux packages will copy to iso image
