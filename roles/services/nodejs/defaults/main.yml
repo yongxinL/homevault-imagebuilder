@@ -56,4 +56,9 @@ nodejs_base_packages:
 # package: package will be installed
 # version: package version, default is '*'
 # example: - { package: 'package', version: '1.2' }
-nodejs_packages: []
+nodejs_packages:
+  - { package: 'avahi-daemon' }		            # Homebridge
+  - { package: 'avahi-discover' }	            # Homebridge
+  - { package: 'build-essential' }	            # Homebridge
+  - { package: 'libavahi-compat-libdnssd-dev' }	# Homebridge
+  - { package: 'libnss-mdns' }		            # Homebridge

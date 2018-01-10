@@ -23,6 +23,13 @@
     state: present
   with_items: "{{ nodejs_repository }}"
 
+- name: remove existing package before install
+  apt:
+    name: "{{ item }}"
+    state: absent
+  with_items:
+    - libdbus
+  
 - name: install required {{ install_role_name }} packages
   apt: 
     name: "{{ item.package }}={{ item.version|default('*') }}"
