@@ -10,5 +10,5 @@
 # =============================================================================
 
 ---
-- include: install-debian.yml
+- import_tasks: install-debian.yml
   
