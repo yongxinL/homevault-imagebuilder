@@ -10,5 +10,5 @@
 # =============================================================================
 
 ---
-- include: build.yml
-- include: setup.yml
+- import_tasks: build.yml
+- import_tasks: setup.yml
