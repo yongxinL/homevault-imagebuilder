@@ -14,8 +14,8 @@
   vars_files:
     - ../../{{ config_file }}
   pre_tasks:
-    - include: tasks/unmount_rootfs.yml
-    - include: tasks/mount_rootfs.yml
+    - import_tasks: tasks/unmount_rootfs.yml
+    - import_tasks: tasks/mount_rootfs.yml
   roles:
     - ../basefs/pre-build
 
@@ -34,10 +34,9 @@
     - ../services/nodejs
     - ../hardware/vmtools           # VMware tools and drivers
     - ../hardware/hpgen8            # HP Gen8 management Pack
-    - ../services/nginx
-    - ../services/phpfpm7
+
   post_tasks:
-    - include: tasks/cleanup_rootfs_debian.yml
+    - import_tasks: tasks/cleanup_rootfs_debian.yml
 
 - hosts: build_local
   vars_files:
@@ -45,4 +44,4 @@
   roles:
     - ../basefs/post-build
   post_tasks:
-    - include: tasks/unmount_rootfs.yml
+    - import_tasks: tasks/unmount_rootfs.yml

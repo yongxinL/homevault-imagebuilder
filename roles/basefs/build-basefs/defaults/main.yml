@@ -57,10 +57,3 @@ basefs_configuration:
 basefs_init_script:
   - { name: "etc-init.d-mount-overlayfs.j2", dest: "/etc/init.d/mount-overlayfs", mode: "0755" }
   - { name: "lib-systemd-system-overlayfs.service.j2", dest: "/lib/systemd/system/overlayfs.service", mode: "0644" }
-
-# .. envvar:: persistent_files
-#
-# List of files will be remain after cleaning up kernel and base filesystems
-persistent_files:
-  - '/lib/modules/{{ build_kernel_version }}/modules.dep.bin'
-  - '/lib/modules/{{ build_kernel_version }}/kernel/fs/nls/nls_iso8859-1.ko'

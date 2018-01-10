@@ -14,8 +14,8 @@
   vars_files:
     - ../../{{ config_file }}
   pre_tasks:
-    - include: tasks/unmount_rootfs.yml
-    - include: tasks/mount_rootfs.yml
+    - import_tasks: tasks/unmount_rootfs.yml
+    - import_tasks: tasks/mount_rootfs.yml
   roles:
     - ../initrd/pre-build
 
@@ -31,4 +31,4 @@
   roles:
     - ../initrd/post-build
   post_tasks:
-    - include: tasks/unmount_rootfs.yml
+    - import_tasks: tasks/unmount_rootfs.yml

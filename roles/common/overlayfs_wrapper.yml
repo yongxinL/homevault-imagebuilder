@@ -14,9 +14,9 @@
   vars_files:
     - ../../{{ config_file }}
   pre_tasks:
-    - include: tasks/unmount_rootfs.yml
-    - include: tasks/unmount_overlay.yml
-    - include: tasks/mount_overlay.yml
+    - import_tasks: tasks/unmount_rootfs.yml
+    - import_tasks: tasks/unmount_overlay.yml
+    - import_tasks: tasks/mount_overlay.yml
   roles:
     - ../overlayfs/pre-build
 
@@ -24,13 +24,15 @@
   vars_files:
     - ../../{{ config_file }}
   roles:
+    - ../services/nginx
+    - ../services/phpfpm7
     - ../services/mariadb10
     - ../services/webmin
     - ../services/beats/filebeat
     - ../services/beats/metricbeat
     - ../services/beats/packetbeat
   post_tasks:
-    - include: tasks/cleanup_rootfs_debian.yml
+    - import_tasks: tasks/cleanup_rootfs_debian.yml
 
 - hosts: build_local
   vars_files:
@@ -38,4 +40,4 @@
   roles:
     - ../overlayfs/post-build
   post_tasks:
-    - include: tasks/unmount_overlay.yml
+    - import_tasks: tasks/unmount_overlay.yml

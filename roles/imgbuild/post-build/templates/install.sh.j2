@@ -10,7 +10,8 @@
 #
 # =============================================================================
 
-partA=512
+partA=2048
+newName=sandbox
 
 parted -a optimal -s /dev/sda mklabel msdos -- mkpart primary fat32 1 $partA
 parted -s /dev/sda -- mkpart primary ext4 $partA -1
@@ -26,4 +27,4 @@ e2label /dev/sda2 data1
 /cdrom/syslinux/syslinux -f -i /dev/sda1
 mount -o loop /dev/sda1 /mnt
 cp /cdrom/* /mnt -R
-sed -i 's/{{ target_host_name }}/sandbox/g' /mnt/syslinux/syslinux.cfg
+sed -i 's/{{ target_host_name }}/'${newName}'/g' /mnt/syslinux/syslinux.cfg

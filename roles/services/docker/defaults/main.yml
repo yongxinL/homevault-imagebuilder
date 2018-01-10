@@ -47,7 +47,7 @@ docker_repository:
 # .. envvar:: docker_compose_version
 #
 # Specify docker compose version to install
-docker_compose_version: '1.13.0'
+docker_compose_version: '1.18.0'
 
 # .. envvar:: docker_base_packages
 #
