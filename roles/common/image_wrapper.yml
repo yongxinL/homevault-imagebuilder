@@ -14,9 +14,9 @@
   vars_files:
     - ../../{{ config_file }}
   pre_tasks:
-    - include: tasks/unmount_rootfs.yml
-    - include: tasks/unmount_overlay.yml
-    - include: tasks/mount_overlay.yml
+    - import_tasks: tasks/unmount_rootfs.yml
+    - import_tasks: tasks/unmount_overlay.yml
+    - import_tasks: tasks/mount_overlay.yml
   roles:
     - ../imgbuild/pre-build
 
@@ -32,4 +32,4 @@
   roles:
     - ../imgbuild/post-build
   post_tasks:
-    - include: tasks/unmount_overlay.yml
+    - import_tasks: tasks/unmount_overlay.yml
