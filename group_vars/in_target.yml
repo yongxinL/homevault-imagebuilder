@@ -86,7 +86,7 @@ build_image_iso: '{{ target_host_name }}_{{ debstrap_dist }}_{{ debstrap_suite }
 # http://mirror.optus.net/ubuntu/pool/main/l/linux/
 # - 4.4.0-51-generic  => trusty
 # - 3.16.0-60-generic => trusty
-build_kernel_version: '4.8.0-58-generic'
+build_kernel_version: '4.10.0-37-generic'
 
 # .. envvar:: debstrap_dist
 # .. envvar:: debstrap_arch
