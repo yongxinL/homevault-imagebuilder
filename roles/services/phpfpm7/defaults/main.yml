@@ -108,3 +108,4 @@ phpfpm_packages:
 phpfpm_configuration:
   - { name: 'etc-nginx-confd-default.conf.j2', dest: '/etc/nginx/conf.d/default.conf' }
   - { name: 'etc-nginx-confd-default.ini.j2', dest: '/etc/nginx/conf.d/default.ini' }
+  - { name: 'etc-nginx-confd-reverseproxy.conf.j2', dest: '/etc/nginx/conf.d/reverseproxy.conf' }
