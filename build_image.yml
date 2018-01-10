@@ -10,6 +10,6 @@
 # =============================================================================
 
 ---
-- include: roles/common/image_wrapper.yml
+- import_playbook: roles/common/image_wrapper.yml
   vars:
     config_file: vars/image.yml

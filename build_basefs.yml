@@ -10,6 +10,6 @@
 # =============================================================================
 
 ---
-- include: roles/common/basefs_wrapper.yml
+- import_playbook: roles/common/basefs_wrapper.yml
   vars:
     config_file: vars/basefs.yml
