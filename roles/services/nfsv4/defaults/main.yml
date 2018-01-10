@@ -53,23 +53,7 @@ nfsv4_configuration:
 #
 # Which hash variables are used to configure [share] section samba.conf
 nfsv4_conf_share:
-  imagestore:
-    path: '{{ target_data_root }}/vmstorage'
+  vmfs:
+    path: '{{ target_data_root }}/vmfs'
 
-# .. envvar:: build_kernel_version
-#
-# Specify Linux kernel version will be use in the target image.
-build_kernel_version: '4.2.0-30-generic'
 
-# .. envvar:: uninstall_build_kernel
-#
-# Set below param to True if you don't want kernel modules in the Linux base filesystems
-# uninstall_build_kernel: False
-
-# .. envvar:: persistent_files
-#
-# List of files will be remain after cleaning up kernel and base filesystems
-persistent_files:
-  - '/lib/modules/{{ build_kernel_version }}/kernel/net/sunrpc'
-  - '/lib/modules/{{ build_kernel_version }}/kernel/fs/nfs'
-  - '/lib/modules/{{ build_kernel_version }}/kernel/fs/nfs_common'
