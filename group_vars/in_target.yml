@@ -44,7 +44,7 @@ target_data_root: '/yongxin'
 # this will be setup in script/casper-bottom/12fstab
 target_mount_device:
   - { label: 'data1', mountas: '{{ target_data_root }}' }
-  - { label: 'vmstorage', mountas: '{{ target_data_root }}/vmstorage' }
+  - { label: 'vmfs', mountas: '{{ target_data_root }}/vmfs' }
   - { label: 'archive', mountas: '{{ target_data_root }}/archive' }
 
 # .. envvar:: target_appdata_root
