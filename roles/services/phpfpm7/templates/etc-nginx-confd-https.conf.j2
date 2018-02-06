@@ -3,20 +3,22 @@
 # designed to be included in any http {} block.
 #
 
-# httpd server at port 80. or --> https redirection
+# https server at port 443
 server {
 
-    listen                  80 default_server;
-    listen                  [::]:80 default_server;
+    listen                  443 ssl http2 default_server;
+    listen                  [::]:443 ssl http2 default_server;
 
     # virtual host domains
     server_name             _;
 
-    # redirecting all HTTP request to HTTPS if you want to use the HTTP/2
-    #return                 301 https://$host$request_uri;
-
     # public html root
     root                    {{ target_web_root }};
+
+    # certificate and private key
+    ssl_certificate         /etc/ssl/private/{{ target_host_domain }}.crt;
+    ssl_certificate_key     /etc/ssl/private/{{ target_host_domain }}.key;
+    ssl_dhparam             /etc/ssl/private/dh_2048.pem;
 
     # global restriction rules
     include                 /etc/nginx/conf.d/restrictions.ini;

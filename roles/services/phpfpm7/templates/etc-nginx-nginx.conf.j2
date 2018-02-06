@@ -1,0 +1,74 @@
+# {{ ansible_managed }}
+# Nginx general startup file
+user                                {{ nginx_service_user }};
+
+# usually equal to number of CPUs you have. 
+worker_processes                    2;
+
+# defines the scheduling priority for worker processes, a negative number means higher priority.
+worker_priority                     -10;
+
+# changes the limit on the maximum number of open files for worker processes.
+worker_rlimit_nofile                4096;
+
+error_log                           /var/log/nginx/error.log warn;
+pid                                 /var/run/nginx.pid;
+
+events {
+    # sets the maximum number of simultaneous connections that can be opened by a worker process.
+    worker_connections              1024;
+}
+
+http {
+
+    include                         /etc/nginx/mime.types;
+    default_type                    application/octet-stream;
+    # document root
+    index                           index.php index.html index.htm;
+    # 
+    autoindex                       off;
+
+    # enables or disables emitting nginx version on error page and in the "Server" response header field
+    server_tokens                   off;
+
+    access_log                      /var/log/nginx/access.log;
+    error_log                       /var/log/nginx/error.log;
+    log_format                      main  '$remote_addr - $remote_user [$time_local] "$request" '
+                                    '$status $body_bytes_sent "$http_referer" '
+                                    '"$http_user_agent" "$http_x_forwarded_for"';
+
+    # enables or disables the use of sendfile()
+    sendfile                        on;
+    # Set the maximum size of the types hash tables
+    types_hash_max_size             2048;
+
+    # enables or disables gzipping of responses
+    gzip                            on;
+
+    # sets the maximum allowed size of the client request body
+    client_max_body_size            768M;
+
+    # timeouts
+    client_body_timeout             60s;
+    client_header_timeout           60s;
+    keepalive_timeout               60s;
+    send_timeout                    60s;
+
+    # HTTP options
+    # Sets the types and sizes of caches that store session parameters
+    ssl_session_cache               shared:SSL:10m;
+    # Specify a time during which a client may reuse the session parameters
+    ssl_session_timeout             5m;
+    # Returns the list of ciphers supported by the client, Have avoid old ciphers for HTTP/2 support.
+    ssl_ciphers                     EECDH+CHACHA20:EECDH+AES128:RSA+AES128:EECDH+AES256:RSA+AES256:EECDH+3DES:RSA+3DES:!MD5;
+    
+    # custom file paths
+    client_body_temp_path           /var/cache/nginx/client_temp;
+    fastcgi_temp_path               /var/cache/nginx/fastcgi_temp;
+    proxy_temp_path                 /var/cache/nginx/proxy_temp;
+    scgi_temp_path                  /var/cache/nginx/scgi_temp;
+    uwsgi_temp_path                 /var/cache/nginx/uwsgi_temp;
+    
+    # virtual hosts configs
+    include                         /etc/nginx/httpd-enabled/*.conf;
+}

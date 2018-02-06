@@ -1,22 +1,31 @@
 #
-# nginx configuration for virtual host: {{ target_host_domain }}
+# nginx global restrictions rules for virtual host: {{ target_host_domain }}
+# designed to be included in any server {} block
 #
+
 # redirect server error pages to the static page /404.html
 #
-error_page              403 404         /50x.html;
+#error_page              403 404         /50x.html;
 
 # redirect server error pages to the static page /50x.html
 #
-error_page              500 502 503 504  /50x.html;
+#error_page              500 502 503 504  /50x.html;
+
 location = /50x.html {
     root                /usr/share/nginx/html;
     internal;
 }
 
-# deny access to .htaccess files, if Apache's document root
-# concurs with nginx's one
-#
-location ~ /\.ht {
+# Deny all attempts to access hidden files such as .htaccess, .htpasswd, .DS_Store (Mac).
+# Keep logging the requests to parse later (or to pass to firewall utilities such as fail2ban)
+location ~ /\. {
+    deny                all;
+}
+
+# Deny access to any files with a .php extension in the uploads directory
+# Works in sub-directory installs and also in multisite network
+# Keep logging the requests to parse later (or to pass to firewall utilities such as fail2ban)
+location ~* /(?:uploads|files)/.*\.php$ {
     deny                all;
 }
 
@@ -28,6 +37,12 @@ location ~* /(images|cache|media|logs|tmp)/.*\.(php|pl|py|jsp|asp|sh|cgi)$ {
 
 # Exclude favicon from the logs to avoid bloating when it's not available
 location /favicon.ico {
+    log_not_found       off;
+    access_log          off;
+}
+
+location = /robots.txt {
+    allow               all;
     log_not_found       off;
     access_log          off;
 }

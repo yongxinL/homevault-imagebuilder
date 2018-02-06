@@ -3,14 +3,14 @@
 # designed to be included in any http {} block.
 #
 
-# httpd server at port 80. or --> https redirection
+# https server at port 80. or --> https redirection
 server {
 
-    listen                  80 default_server;
-    listen                  [::]:80 default_server;
+    listen                  80;
+    listen                  [::]:80;
 
     # virtual host domains
-    server_name             _;
+    server_name             {{ target_host_domain }} *.{{ target_host_domain }};
 
     # redirecting all HTTP request to HTTPS if you want to use the HTTP/2
     #return                 301 https://$host$request_uri;
@@ -40,5 +40,4 @@ server {
         # include the "?$args" part so non-default permalinks doesn't break when using query string
         try_files           $uri $uri/ /index.php?$args;
     }
-
 }
