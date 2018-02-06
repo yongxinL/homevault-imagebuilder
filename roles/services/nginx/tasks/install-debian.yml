@@ -61,14 +61,14 @@
     - x509 -req -days 3650 -in {{ target_host_domain }}.csr -signkey {{ target_host_domain }}.key -out {{ target_host_domain }}.crt
   when: certificate_exist.stat.exists == False
 
-- name: check dh_1024.pem {{ target_host_domain }} certificates
+- name: check dh_2048.pem {{ target_host_domain }} certificates
   stat:
-    path: "/etc/ssl/private/dh_1024.pem"
-  register: dh_1024_pem_exist
+    path: "/etc/ssl/private/dh_2048.pem"
+  register: dh_2048_pem_exist
 
-- name: generate dh_1024.pem for {{ install_role_name }}
+- name: generate dh_2048.pem for {{ install_role_name }}
   command:  openssl {{ item }}
             chdir=/etc/ssl/private
   with_items:
-    - dhparam -2 -out dh_1024.pem 1024
-  when: dh_1024_pem_exist.stat.exists == False
+    - dhparam -2 -out dh_2048.pem 2048
+  when: dh_2048_pem_exist.stat.exists == False

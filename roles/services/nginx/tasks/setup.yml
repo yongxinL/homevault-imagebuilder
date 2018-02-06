@@ -71,12 +71,12 @@
 
 - name: Check {{ install_role_name }} service file (systemd)
   stat:
-    path: "/lib/systemd/system/docker.service"
+    path: "/lib/systemd/system/{{ install_role_name }}.service"
   register: service_file
 
 - name: configure {{ install_role_name }} service (systemd)
   lineinfile:
-    dest: "/lib/systemd/system/docker.service"
+    dest: "/lib/systemd/system/{{ install_role_name }}.service"
     line: 'ExecStartPre=/etc/init.d/init-{{ install_role_name }}.sh'
     insertbefore: "^ExecStart.*"
     state: present
