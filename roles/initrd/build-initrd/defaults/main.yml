@@ -31,7 +31,7 @@ target_mount_device:
 # .. envvar:: target_host_domain
 #
 # Specify hostname and domain that should be set in the target image.
-target_host_domain: 'lifamilyclub.com'
+target_host_domain: 'lifamilylife.com'
 
 # .. envvar:: initrd_custom_casper_script
 #

@@ -25,7 +25,7 @@ install_role_name: 'certificate'
 #
 # Specify hostname and domain that should be set in the target image.
 target_host_name: '*'
-target_host_domain: 'lifamilyclub.com'
+target_host_domain: 'lifamilylife.com'
 
 # .. envvar:: requested_owner
 #
