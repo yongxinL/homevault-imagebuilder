@@ -36,7 +36,7 @@ mariadb_repo_keyid: '0xF1656F24C74CD1D8'
 # .. envvar:: mariadb_version
 #
 # MariaDB version will to install
-mariadb_version: '10.1'
+mariadb_version: '10.2'
 
 # .. envvar:: mariadb_repository
 #
