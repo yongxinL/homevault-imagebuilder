@@ -26,7 +26,6 @@
   roles:
     - ../services/nginx
     - ../services/phpfpm7
-    - ../services/mariadb10
     - ../services/webmin
     - ../services/beats/filebeat
     - ../services/beats/metricbeat

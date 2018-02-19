@@ -32,8 +32,10 @@
     - ../services/docker
     - ../services/aria2
     - ../services/nodejs
+    - ../services/mariadb10         # install database server in the base
     - ../hardware/vmtools           # VMware tools and drivers
     - ../hardware/hpgen8            # HP Gen8 management Pack
+
 
   post_tasks:
     - import_tasks: tasks/cleanup_rootfs_debian.yml

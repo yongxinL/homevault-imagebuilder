@@ -23,7 +23,7 @@
 #
 # Specify chroot mount point and size for building Linux base filesystems
 build_root: '{{ build_rootfs }}'
-build_root_size: '1500m'
+build_root_size: '2100m'
 
 # .. envvar:: basefs_exclude_packages
 #
