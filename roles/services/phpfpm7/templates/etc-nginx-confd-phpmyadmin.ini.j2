@@ -1,0 +1,30 @@
+#
+# nginx global restrictions rules for virtual host: {{ target_host_domain }}
+# designed to be included in any server {} block
+#
+
+location /phpmyadmin {
+
+    # location of phpmyadmin
+    root                  {{ target_appdata_root }};
+
+    # Pass the PHP scripts to FastCGI server (locally with unix: param to avoid network overhead)
+    location ~ ^/phpmyadmin/(.+\.php)$ {
+        # Prevent Zero-day exploit
+        try_files           $uri = 404;
+
+        # NOTE: you should have "cgi.fix_pathinfo = 0;" in php.ini
+        include             /etc/nginx/fastcgi_params;
+        fastcgi_intercept_errors    on;
+        fastcgi_pass        127.0.0.1:9000;
+        fastcgi_param       SCRIPT_FILENAME     $document_root$fastcgi_script_name;
+    }
+
+    location ~* ^/phpmyadmin/(.+\.(jpg|jpeg|gif|css|png|js|ico|html|xml|txt))$ {
+        root               {{ target_appdata_root }};
+    }
+}
+
+location ^~ /phpmyadmin/setup {
+    deny all;
+}

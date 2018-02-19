@@ -114,3 +114,4 @@ phpfpm_configuration:
   - { name: 'etc-nginx-confd-wordpress.conf.j2', dest: '/etc/nginx/conf.d/wordpress.conf' }
   - { name: 'etc-nginx-confd-wordpresscache.ini.j2', dest: '/etc/nginx/conf.d/wordpresscache.ini' }
   - { name: 'etc-nginx-confd-wordpressmu.conf.j2', dest: '/etc/nginx/conf.d/wordpressmu.conf' }
+  - { name: 'etc-nginx-confd-phpmyadmin.ini.j2', dest: '/etc/nginx/conf.d/phpmyadmin.ini' }
