@@ -1,6 +1,6 @@
 # =============================================================================
 #
-# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+# - Copyright (C) 2026     George Li <yongxinl@outlook.com>
 #
 # - This is part of HomeVault imagebuilder project.
 # - This program is distributed in the hope that it will be useful,
@@ -20,11 +20,6 @@
 # ------------------------------------
 install_role_name: 'mariadb'
 
-# .. envvar:: apt_proxy
-#
-# Specify apt cacher / proxy link, like 'x.x.x.x:3142/'
-apt_proxy:
-
 # .. envvar:: mariadb_repo_keyserver
 # .. envvar:: mariadb_repo_keyid
 #
@@ -42,7 +37,7 @@ mariadb_version: '10.1'
 #
 # Address of the ansible APT repository.
 mariadb_repository:
-  - { dest: '/etc/apt/sources.list.d/{{ install_role_name }}.list', line: 'deb http://{{ apt_proxy }}mirror.aarnet.edu.au/pub/MariaDB/repo/{{ mariadb_version }}/{{ ansible_distribution | lower }} {{ ansible_distribution_release }} main' }
+  - { dest: '/etc/apt/sources.list.d/{{ install_role_name }}.list', line: 'deb http://mirror.aarnet.edu.au/pub/MariaDB/repo/{{ mariadb_version }}/{{ ansible_distribution | lower }} {{ ansible_distribution_release }} main' }
 
 # .. envvar:: target_root_password
 #
