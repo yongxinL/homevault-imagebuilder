@@ -1,6 +1,6 @@
 # =============================================================================
 #
-# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+# - Copyright (C) 2026     George Li <yongxinl@outlook.com>
 #
 # - This is part of HomeVault imagebuilder project.
 # - This program is distributed in the hope that it will be useful,
@@ -24,8 +24,8 @@ install_role_name: 'nginx'
 # .. envvar:: target_host_domain
 #
 # Specify hostname and domain that should be set in the target image.
-target_host_name: 'homevault'
-target_host_domain: 'lifamilyclub.com'
+target_host_name: 'server'
+target_host_domain: 'myhome.local'
 
 # .. envvar:: target_data_root
 #
@@ -42,11 +42,6 @@ target_web_root: '{{ target_data_root }}/public_html'
 # Specify root password
 target_root_password: 'secret'
 
-# .. envvar:: apt_proxy
-#
-# Specify apt cacher / proxy link, like 'x.x.x.x:3142/'
-apt_proxy:
-
 # .. envvar:: nginx_repo_key
 #
 # APT GPG key server and id used to sign the ansible packages.
@@ -56,7 +51,7 @@ nginx_repo_key: 'http://nginx.org/keys/nginx_signing.key'
 #
 # Address of the ansible APT repository.
 nginx_repository:
-  - { dest: '/etc/apt/sources.list.d/{{ install_role_name }}.list', line: 'deb http://{{ apt_proxy }}nginx.org/packages/mainline/{{ ansible_distribution | lower }}/ {{ ansible_distribution_release }} nginx' }
+  - { dest: '/etc/apt/sources.list.d/{{ install_role_name }}.list', line: 'deb http://nginx.org/packages/mainline/{{ ansible_distribution | lower }}/ {{ ansible_distribution_release }} nginx' }
 
 # .. envvar:: nginx_service_user
 #
