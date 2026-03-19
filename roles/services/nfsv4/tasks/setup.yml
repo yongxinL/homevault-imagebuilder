@@ -1,6 +1,6 @@
 # =============================================================================
 #
-# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+# - Copyright (C) 2026     George Li <yongxinl@outlook.com>
 #
 # - This is part of HomeVault imagebuilder project.
 # - This program is distributed in the hope that it will be useful,
@@ -76,3 +76,14 @@
     insertbefore: "^ExecStart.*"
     state: present
   when: service_file.stat.exists == True
+
+# ---- UFW firewall rule ----
+
+- name: "nfsv4 | Check if ufw is available"
+  ansible.builtin.stat:
+    path: /usr/sbin/ufw
+  register: ufw_bin
+
+- name: "nfsv4 | Allow NFSv4 through ufw (port 2049/tcp)"
+  ansible.builtin.command: ufw allow 2049/tcp
+  when: ufw_bin.stat.exists
