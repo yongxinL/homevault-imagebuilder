@@ -1,6 +1,6 @@
 # =============================================================================
 #
-# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+# - Copyright (C) 2026     George Li <yongxinl@outlook.com>
 #
 # - This is part of HomeVault imagebuilder project.
 # - This program is distributed in the hope that it will be useful,
@@ -9,43 +9,64 @@
 #
 # =============================================================================
 
-# Default group variables
-# =================
-
-# .. contents:: Sections
-#    :local:
+# Default variables for the imgbuild/post-build role
+# ===================================================
+# Controls the ISO assembly phase that produces a hybrid BIOS + UEFI bootable image.
 #
+# Changes from Ubuntu 16 (Xenial):
+#   ADDED    grub_efi_packages  — UEFI boot support via grub-efi-amd64-bin
+#   ADDED    xorriso            — hybrid ISO tool (replaces genisoimage for EFI)
+#   ADDED    EFI/boot directory structure and grub.cfg template
+#   KEPT     isolinux / syslinux for BIOS boot backward compatibility
+
 # .. envvar:: apt_proxy
 #
-# Specify apt cacher / proxy link, like 'x.x.x.x:3142/'
-apt_proxy:
+# Optional APT caching proxy used when installing build-host tools.
+apt_proxy: ''
 
 # .. envvar:: pciid_base_mirror
 #
-# Specify download mirror link for pciid tool
-pciid_base_mirror: 'http://pciids.sourceforge.net/v2.2/pci.ids'
-
-# .. envvar:: syslinux_configuration
-#
-# List of configuration file will be copy to Linux base filesystems
-syslinux_configuration:
-  - { name: 'syslinux.cfg.j2', dest: 'syslinux/syslinux.cfg' }
-  - { name: 'isolinux.cfg.j2', dest: 'isolinux/isolinux.cfg' }
-  - { name: 'install.sh.j2', dest: 'syslinux/install.sh', mode: '0755' }
-
-# .. envvar:: syslinux_package_root
-#
-# Specify package root directory in ubuntu
-syslinux_package_root: '/usr/lib'
+# Download URL for the PCI ID database used by the Hardware Detection Tool (HDT)
+# in the syslinux boot menu.
+pciid_base_mirror: 'https://pci-ids.ucw.cz/v2.2/pci.ids'
 
 # .. envvar:: target_swap_size
 #
-# Specify swap file when booting
+# Default swap file size passed to the kernel command line via the boot menu.
+# The overlayfs mount script creates this swap file on the data partition at boot.
+# Format: fallocate size string (e.g. '3g', '4g', '8g').
 target_swap_size: 3g
+
+# .. envvar:: syslinux_configuration
+#
+# Boot menu configuration files and the disk install helper script.
+syslinux_configuration:
+  - { name: 'syslinux.cfg.j2',
+      dest: 'syslinux/syslinux.cfg' }
+  - { name: 'isolinux.cfg.j2',
+      dest: 'isolinux/isolinux.cfg' }
+  - { name: 'grub.cfg.j2',
+      dest: 'EFI/boot/grub.cfg' }
+  - { name: 'loader.cfg.j2',
+      dest: 'EFI/boot/loader.cfg' }
+  - { name: 'install.sh.j2',
+      dest: 'syslinux/install.sh',
+      mode: '0755' }
+
+# .. envvar:: syslinux_package_root
+#
+# Base directory in the chroot where syslinux libraries are installed.
+syslinux_package_root: '/usr/lib'
+
+# .. envvar:: debstrap_arch
+#
+# Target architecture — used when naming downloaded syslinux .deb packages.
+debstrap_arch: 'amd64'
 
 # .. envvar:: syslinux_base_packages
 #
-# List of syslinux packages will copy to iso image
+# Syslinux .c32 module files and MBR binaries copied from the chroot into the
+# ISO directory tree for BIOS boot support.
 syslinux_base_packages:
   - syslinux/modules/bios/menu.c32
   - syslinux/modules/bios/vesa.c32
@@ -115,7 +136,7 @@ syslinux_base_packages:
 
 # .. envvar:: syslinux_packages
 #
-# List of syslinux packages will copy to iso image
+# Utility binaries copied from the chroot into the ISO directory tree.
 syslinux_packages:
   - bin/cpio
   - usr/bin/mcopy

@@ -1,0 +1,70 @@
+# =============================================================================
+# EFI/boot/grub.cfg — GRUB 2 EFI boot menu configuration
+# =========================================================
+# Managed by Ansible (HomeVault imagebuilder — imgbuild/post-build role)
+#
+# This file provides the EFI boot menu with the same entries as syslinux.cfg
+# so the system behaves consistently regardless of firmware (BIOS or UEFI).
+#
+# Boot entries:
+#   USR-A  — Normal live boot with overlayfs and swap file enabled (default)
+#   USR-B  — Debug boot with overlays disabled (troubleshooting)
+#   local  — Chain-boot the first local disk
+#   reboot — Reboot the system
+#
+# Kernel parameters:
+#   boot=casper              — Activates the casper live-boot framework
+#   hostname=<name>          — Sets the hostname at live-boot time
+#   readonlydriver=<dirs>    — Directories to mount as read-write overlays
+#   swapfilesize=<size>      — Creates a swap file on the data partition
+#   disable_overlay=yes      — Disables overlayfs (USR-B debug mode)
+#
+# NOTE: ip=frommedia removed — it was a Xenial-era parameter that causes Noble's
+#       casper to spin in a DHCP loop when no network device is available during
+#       early boot.  Local squashfs boot does not require any ip= parameter.
+# =============================================================================
+
+set default=0
+set timeout=5
+
+insmod all_video
+insmod gfxterm
+insmod png
+
+terminal_output gfxterm
+
+menuentry "{{ debstrap_dist }}-{{ debstrap_suite }} overlay (USR-A — default)" {
+    search --set=root --label --no-floppy "{{ target_host_name }}"
+    linux   /casper/{{ build_image_vmlinuz }} \
+            boot=casper \
+            hostname={{ target_host_name }} \
+            initrd=/casper/{{ build_image_initrd }} \
+            readonlydriver="{{ overylay_private_folder }}" \
+            swapfilesize={{ target_swap_size }} \
+            quiet splash
+    initrd  /casper/{{ build_image_initrd }}
+}
+
+menuentry "{{ debstrap_dist }}-{{ debstrap_suite }} DEBUG (USR-B — overlays disabled)" {
+    search --set=root --label --no-floppy "{{ target_host_name }}"
+    linux   /casper/{{ build_image_vmlinuz }} \
+            boot=casper \
+            hostname={{ target_host_name }} \
+            initrd=/casper/{{ build_image_initrd }} \
+            disable_overlay=yes \
+            debug=cv
+    initrd  /casper/{{ build_image_initrd }}
+}
+
+menuentry "Boot from first local disk" {
+    set root=(hd0)
+    chainloader +1
+}
+
+menuentry "Reboot" {
+    reboot
+}
+
+menuentry "Power Off" {
+    halt
+}

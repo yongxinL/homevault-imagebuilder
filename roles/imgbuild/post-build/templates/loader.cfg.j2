@@ -1,0 +1,39 @@
+# =============================================================================
+# EFI/boot/loader.cfg — GRUB 2 EFI memdisk bootstrap
+# ====================================================
+# Managed by Ansible (HomeVault imagebuilder — imgbuild/post-build role)
+#
+# This file is embedded inside bootx64.efi by grub-mkstandalone.
+# Its sole job is to load the external grub.cfg so it can be patched at
+# install time by install.sh (hostname label replacement).
+#
+# Boot flows:
+#   ISO  live boot : EFI firmware loads bootx64.efi from efiboot.img (a small
+#                    FAT image embedded in the ISO).  grub.cfg is also copied
+#                    into efiboot.img during build, so ${cmdpath}/grub.cfg
+#                    resolves to the grub.cfg inside efiboot.img.
+#
+#   Installed ESP  : EFI firmware loads bootx64.efi directly from the ESP.
+#                    install.sh copies grub.cfg onto the ESP and patches the
+#                    hostname label, so ${cmdpath}/grub.cfg resolves to the
+#                    patched grub.cfg on the ESP.
+#
+# ${cmdpath} is set by GRUB EFI to the directory of the loaded EFI image
+# (e.g. (hd0,gpt1)/EFI/boot), so ${cmdpath}/grub.cfg is always the grub.cfg
+# sitting alongside bootx64.efi — no label search needed in the loader.
+# =============================================================================
+
+insmod part_gpt
+insmod fat
+insmod iso9660
+insmod search_fs_file
+
+if [ -f ${cmdpath}/grub.cfg ]; then
+    configfile ${cmdpath}/grub.cfg
+else
+    # Fallback: scan all devices in case cmdpath is unavailable
+    search --no-floppy --set=root --file /EFI/boot/grub.cfg
+    if [ -n "${root}" ]; then
+        configfile ($root)/EFI/boot/grub.cfg
+    fi
+fi

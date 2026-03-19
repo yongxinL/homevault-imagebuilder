@@ -1,77 +1,174 @@
 # =============================================================================
+# imgbuild/post-build — Assemble the hybrid BIOS + UEFI ISO image
+# ================================================================
+# Runs on: build_local (the Ansible controller / build host)
 #
-# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
-#
-# - This is part of HomeVault imagebuilder project.
-# - This program is distributed in the hope that it will be useful,
-#   but WITHOUT ANY WARRANTY; without even the implied warranty of
-#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-#
+# Steps:
+#   1. Create ISO directory tree (casper/, isolinux/, syslinux/, EFI/boot/).
+#   2. Unmount /proc and /dev bind mounts from the chroot.
+#   3. Download the PCI ID database for the Hardware Detection Tool.
+#   4. Copy syslinux .c32 modules and MBR binaries from the chroot.
+#   5. Copy utility binaries (mtools, syslinux) from the chroot.
+#   6. Render boot menu configuration templates:
+#        syslinux.cfg  — BIOS USB/HDD boot menu
+#        isolinux.cfg  — BIOS CD-ROM boot menu
+#        grub.cfg      — UEFI GRUB boot menu (same entries as syslinux)
+#        install.sh    — automated disk installer helper script
+#   7. Install xorriso and grub-efi-amd64-bin on the build host.
+#   8. Create the GRUB EFI standalone image (EFI/boot/bootx64.efi).
+#   9. Create the EFI disk image (efiboot.img) for embedding in the ISO.
+#  10. Move basefs.squashfs out of the ISO tree temporarily.
+#  11. Run xorriso to create the final hybrid BIOS + UEFI ISO image.
 # =============================================================================
 
 ---
-- name: update local and create image directory
-  file:
+# ---- Create ISO directory tree ----
+
+- name: "post-build | Create ISO directory tree"
+  ansible.builtin.file:
     path: "{{ build_image_root }}/{{ item }}"
     state: directory
-  with_items:
+  loop:
     - casper
     - isolinux
-    - syslinux    
+    - syslinux
+    - EFI/boot
 
-- name: update local and unmount rootfs in build directory
-  mount: 
+# ---- Unmount chroot bind mounts ----
+
+- name: "post-build | Unmount /proc, /dev, /dev/pts bind mounts from chroot"
+  ansible.builtin.mount:
     name: "{{ build_root }}/{{ item }}"
     src: none
     fstype: none
     state: unmounted
-  with_items:
+  loop:
     - proc
     - dev
     - dev/pts
 
-- name: update local and download hardware detection tool (PCIID)
-  get_url:
+# ---- PCI ID database for HDT ----
+
+- name: "post-build | Download PCI ID database for Hardware Detection Tool"
+  ansible.builtin.get_url:
     url: "{{ pciid_base_mirror }}"
     dest: "{{ build_image_root }}/syslinux/pci.ids"
-    force: yes
+    force: true
 
-- name: update local and download base syslinux packages
-  command: cp "{{ build_root }}/usr/lib/{{ item }}" "{{ build_image_root }}/syslinux"
-  with_flattened:
-    - "{{ syslinux_base_packages }}"
+# ---- Copy syslinux bootloader files from chroot ----
 
-- name: update local and download syslinux packages
-  command: cp "{{ build_root }}/{{ item }}" "{{ build_image_root }}/syslinux"
-  with_flattened:
-    - "{{ syslinux_packages }}"
+- name: "post-build | Copy syslinux .c32 modules and MBR binaries from chroot"
+  ansible.builtin.command: >
+    cp {{ build_root }}/usr/lib/{{ item }} {{ build_image_root }}/syslinux/
+  loop: "{{ syslinux_base_packages }}"
 
-- name: update local and copy syslinux menu
-  template:
+- name: "post-build | Copy syslinux utility binaries from chroot"
+  ansible.builtin.command: >
+    cp {{ build_root }}/{{ item }} {{ build_image_root }}/syslinux/
+  loop: "{{ syslinux_packages }}"
+
+# ---- Render boot menu configuration templates ----
+
+- name: "post-build | Render boot menu and install script templates"
+  ansible.builtin.template:
     src: "{{ item.name }}"
     dest: "{{ build_image_root }}/{{ item.dest }}"
     owner: root
     group: root
-    mode: "{{ item.mode|default('0644') }}"
-  with_items: "{{ syslinux_configuration }}"
+    mode: "{{ item.mode | default('0644') }}"
+  loop: "{{ syslinux_configuration }}"
 
-- name: update target and remove unused files before creating image
-  file:
+# ---- Install EFI build tools on the build host ----
+
+- name: "post-build | Install xorriso and grub-efi-amd64-bin on build host"
+  ansible.builtin.apt:
+    name: "{{ item }}"
+    state: present
+    install_recommends: false
+    update_cache: true
+  loop:
+    - xorriso
+    - grub-efi-amd64-bin
+    - grub-pc-bin        # needed for grub-mkstandalone to include PC BIOS modules
+
+# ---- Create GRUB EFI standalone bootloader ----
+# grub-mkstandalone creates a single self-contained EFI binary (bootx64.efi)
+# that includes grub.cfg and all required grub modules.
+
+- name: "post-build | Create GRUB EFI standalone image (EFI/boot/bootx64.efi)"
+  ansible.builtin.command: >
+    grub-mkstandalone
+    --format=x86_64-efi
+    --output={{ build_image_root }}/EFI/boot/bootx64.efi
+    --locales=""
+    --fonts=""
+    boot/grub/grub.cfg={{ build_image_root }}/EFI/boot/loader.cfg
+
+# ---- Create FAT EFI boot disk image for embedding in the ISO ----
+# xorriso requires a small FAT image containing the EFI bootloader to embed
+# as the El Torito EFI boot partition in the hybrid ISO.
+
+- name: "post-build | Create FAT EFI boot disk image (efiboot.img)"
+  ansible.builtin.shell: |
+    dd if=/dev/zero of={{ build_image_root }}/EFI/boot/efiboot.img bs=1M count=10
+    mkfs.vfat {{ build_image_root }}/EFI/boot/efiboot.img
+    mmd -i {{ build_image_root }}/EFI/boot/efiboot.img EFI EFI/boot
+    mcopy -i {{ build_image_root }}/EFI/boot/efiboot.img \
+      {{ build_image_root }}/EFI/boot/bootx64.efi ::EFI/boot/bootx64.efi
+    mcopy -i {{ build_image_root }}/EFI/boot/efiboot.img \
+      {{ build_image_root }}/EFI/boot/grub.cfg ::EFI/boot/grub.cfg
+
+# ---- Remove transient build-time files ----
+
+- name: "post-build | Ensure ISO output directory exists ({{ build_iso_output_dir }})"
+  ansible.builtin.file:
+    path: "{{ build_iso_output_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: "post-build | Remove build-time transient files"
+  ansible.builtin.file:
     path: "{{ item }}"
     state: absent
-  with_items:
+  loop:
     - "{{ build_root }}/usr/sbin/policy-rc.d"
     - "{{ build_root }}/etc/hostname"
     - "{{ build_root }}/etc/hosts"
     - "{{ build_root }}/etc/resolv.conf"
-    - "/tmp/{{ build_image_iso }}"
+    - "{{ build_iso_output_dir }}/{{ build_image_iso }}"
 
-- name: update target and exclude base squashfs from image
-  command:  mv "{{ build_image_root }}/casper/{{ build_base_image }}" /tmp
+# ---- Temporarily move basefs.squashfs out of the ISO tree ----
+# basefs.squashfs is served from the data partition at runtime; it is not
+# included in the distributed ISO to keep the download size manageable.
 
-- name: generate iso image {{ build_image_iso }} in /tmp
-  command: >
-    genisoimage -V {{ target_host_name }} -quiet -l -r -J -input-charset utf-8 \
-    -o /tmp/{{ build_image_iso }} \
-    -b syslinux/isolinux.bin -c syslinux/boot.cat \
-    -no-emul-boot -boot-load-size 4 -boot-info-table {{ build_image_root }}
+- name: "post-build | Move basefs.squashfs out of ISO tree → {{ build_iso_output_dir }}/{{ build_base_image }}"
+  ansible.builtin.command: >
+    mv {{ build_image_root }}/casper/{{ build_base_image }} {{ build_iso_output_dir }}/{{ build_base_image }}
+
+# ---- Build hybrid BIOS + UEFI ISO with xorriso ----
+# Produces an ISO that boots via:
+#   - El Torito BIOS  : isolinux.bin  (legacy BIOS and VMware BIOS firmware VMs)
+#   - El Torito EFI   : efiboot.img   (UEFI firmware, VMware EFI firmware VMs)
+#   - isohybrid MBR   : isohdpfx.bin  (USB dd-write compatibility)
+
+- name: "post-build | Build hybrid BIOS + UEFI ISO → {{ build_iso_output_dir }}/{{ build_image_iso }}"
+  ansible.builtin.command: >
+    xorriso -as mkisofs
+    -V "{{ target_host_name }}"
+    -quiet -l -r -J -input-charset utf-8
+    -o {{ build_iso_output_dir }}/{{ build_image_iso }}
+    -isohybrid-mbr {{ build_image_root }}/syslinux/isohdpfx.bin
+    -c syslinux/boot.cat
+    -b syslinux/isolinux.bin
+    -no-emul-boot -boot-load-size 4 -boot-info-table
+    -eltorito-alt-boot
+    -e EFI/boot/efiboot.img
+    -no-emul-boot
+    -isohybrid-gpt-basdat
+    {{ build_image_root }}
+
+- name: "post-build | ISO ready"
+  ansible.builtin.debug:
+    msg: "ISO image written to: {{ build_iso_output_dir }}/{{ build_image_iso }}"

@@ -1,37 +1,52 @@
 # =============================================================================
+# imgbuild/build-image — Install syslinux bootloader packages into chroot
+# ========================================================================
+# Runs on: build_rootfs (inside the chroot)
 #
-# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+# Responsibilities:
+#   1. Install mtools and any additional build packages into the chroot.
+#   2. Download and install the correct syslinux .deb packages from the
+#      Ubuntu mirror into the chroot so their .c32 modules and MBR binaries
+#      are available to be copied into the ISO tree in the post-build phase.
 #
-# - This is part of HomeVault imagebuilder project.
-# - This program is distributed in the hope that it will be useful,
-#   but WITHOUT ANY WARRANTY; without even the implied warranty of
-#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-#
+# NOTE: syslinux provides BIOS bootloader support.
+#       GRUB EFI bootloader binaries (grub-efi-amd64-bin) are installed on the
+#       build HOST (not in the chroot) in the imgbuild/post-build/tasks/build.yml.
 # =============================================================================
 
 ---
-- name: update target and install extra packages
-  apt:
-    name: "{{ item.package }}={{ item.version|default('*') }}"
-    install_recommends: no
-    update_cache: yes
+# ---- Install extra build packages into chroot ----
+
+- name: "build-image | Install extra packages into chroot (mtools, etc.)"
+  ansible.builtin.apt:
+    name: "{{ item.package }}{% if item.version is defined and item.version != '*' %}={{ item.version }}{% endif %}"
+    state: present
+    install_recommends: false
+    update_cache: true
   register: install_pkgs
-  until: install_pkgs|success
+  until: install_pkgs is success
   retries: 2
   delay: 5
-  with_flattened:
-    - "{{ build_base_packages }}"
-    - "{{ build_packages }}"
+  environment:
+    DEBIAN_FRONTEND: noninteractive
+  loop: "{{ build_base_packages + build_packages }}"
 
-- name: update target and download syslinux from repository
-  get_url: 
+# ---- Download and install syslinux packages into chroot ----
+# The syslinux .deb packages provide the .c32 module files and MBR binaries
+# that are copied into the ISO tree during the post-build phase.
+
+- name: "build-image | Download syslinux packages from Ubuntu mirror into chroot"
+  ansible.builtin.get_url:
     url: "{{ debstrap_mirror }}/pool/main/s/syslinux/{{ item }}"
     dest: "/tmp/{{ item }}"
-    force: yes
-  with_items: "{{ syslinux_ubuntu_packages }}"
+    force: true
+  loop: "{{ syslinux_ubuntu_packages }}"
   when: ansible_distribution == "Ubuntu"
+  # get_url uses Python urllib, not apt — pass proxy via environment variable.
+  environment:
+    http_proxy: "{% if apt_proxy | default('') %}http://{{ apt_proxy }}/{% endif %}"
 
-- name: update target and install syslinux packages
-  command: "dpkg -i /tmp/{{ item }}"
-  with_items: "{{ syslinux_ubuntu_packages }}"
+- name: "build-image | Install syslinux packages into chroot (dpkg)"
+  ansible.builtin.command: "dpkg -i /tmp/{{ item }}"
+  loop: "{{ syslinux_ubuntu_packages }}"
   when: ansible_distribution == "Ubuntu"
