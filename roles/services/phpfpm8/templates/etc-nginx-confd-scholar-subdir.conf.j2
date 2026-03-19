@@ -1,0 +1,29 @@
+# nginx configuration for Moodle under subdirectory: www.thelijia.com
+#
+
+# Location of moodle data
+# ensure the path ends with /
+location /moodledata/ {
+    internal;
+}
+
+location /scholar {
+
+    #alias       /theLijia/public_html/m;
+    try_files   $uri $uri/ @moodle;
+
+    location ~ [^/]\.php(/|$) {
+        fastcgi_split_path_info     ^(.+\.php)(.*)$;
+        fastcgi_index               index.php;
+        fastcgi_pass                unix:{{ php_fastcgi }};
+        include                     /etc/nginx/fastcgi_params;
+        fastcgi_param               PATH_INFO   $fastcgi_path_info;
+        fastcgi_param               SCRIPT_FILENAME     $request_filename;
+        fastcgi_intercept_errors    on;
+        fastcgi_param               modHeadersAvailable true; #Avoid sending the security headers twice
+   }
+}
+
+location @moodle {
+    rewrite     ^/scholar/(.*\.php)(/)(.*)$ /scholar/$1?file=/$3 last;
+}

@@ -1,0 +1,30 @@
+#
+# nginx configuration for virtual host: {{ target_host_domain }}
+# https proxy server at port 443. You need to provide ssl config here.
+#
+
+#  http->https redirection
+server {
+    listen                  80;
+    listen                  [::]:80;
+
+    server_name             example.{{ target_host_domain }};
+    return      301         https://$server_name$request_uri;
+}
+
+## Add this section to proxy all Infor OS applications running on the derault port 443
+server {
+    listen                  443 ssl;
+    listen                  [::]:443 ssl;
+
+    # server name and certificate
+    server_name             example.{{ target_host_domain }};
+    ssl_certificate         /etc/ssl/private/self/{{ target_host_domain }}.pem;
+    ssl_certificate_key     /etc/ssl/private/self/{{ target_host_domain }}.key;
+
+    location / {
+        proxy_pass          https://{{ target_host_domain }}/;
+        proxy_set_header    Host $http_host;
+        proxy_set_header    X_FORWARDED_PROTO https;
+    }
+}

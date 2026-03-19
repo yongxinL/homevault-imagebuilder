@@ -1,0 +1,72 @@
+# =============================================================================
+#
+# - Copyright (C) 2026     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# =============================================================================
+
+---
+- name: add {{ install_role_name }} repository key
+  block:
+    - apt_key:
+        keyserver: "{{ item.server }}"
+        id: "{{ item.keyid }}"
+        state: present
+      with_items:
+        - "{{ repo_key | default([]) }}"
+
+    - apt_key:
+        url: "{{ item }}"
+        state: present
+      with_items:
+        - "{{ repo_gpg | default([]) }}"
+
+    - lineinfile:
+        dest: "{{ item.dest }}"
+        line: "{{ item.line }}"
+        create: yes
+        state: present
+      with_items:
+        - "{{ repository | default([]) }}"
+        
+- name: install packages for {{ install_role_name }}
+  block:
+    - apt:
+        autoclean: yes
+
+    - apt:
+        name: "{{ item.package }}={{ item.version | default('*') }}"
+        install_recommends: no
+        update_cache: yes
+      with_items:
+        - "{{ base_packages | default([]) }}"
+
+    - file:
+        path: "{{ item.dest }}"
+        state: absent
+      with_items:
+        - "{{ repository | default([]) }}"
+
+    - template:
+        src: "{{ item.name }}"
+        dest: "{{ item.dest }}"
+        owner: root
+        group: root
+        mode: "{{ item.mode|default('0644') }}"
+        backup: no
+      with_items: 
+        - "{{ configure_files | default([]) }}"
+
+    - copy:
+        src: "{{ item.name }}"
+        dest: "{{ item.dest }}"
+        owner: root
+        group: root
+        mode: "{{ item.mode|default('0644') }}"
+        backup: no
+      with_items: 
+        - "{{ extra_files | default([]) }}"

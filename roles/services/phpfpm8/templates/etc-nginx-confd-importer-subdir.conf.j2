@@ -1,0 +1,25 @@
+#
+# nginx configuration for Firefly iii importer under subdirectory: www.thelijia.com
+# include                  /theLiJIA/public_html/f/conf.d/importer-subdir.conf;
+#
+location ^~ /i/ {
+   deny all;
+}
+
+location ^~ /importer {
+   alias        /theLiJIA/public_html/i/public;
+   try_files    $uri $uri/ @importer;
+
+   location ~* \.php(?:$|/) {
+      include /etc/nginx/fastcgi_params;
+
+      fastcgi_param     SCRIPT_FILENAME $request_filename;
+      fastcgi_intercept_errors    on;
+      fastcgi_param     modHeadersAvailable true; #Avoid sending the security headers twice
+      fastcgi_pass      unix:{{ php_fastcgi }};
+   }
+}
+
+location @importer {
+   rewrite       ^/importer/(.*)$ /importer/index.php?$query_string last;
+}

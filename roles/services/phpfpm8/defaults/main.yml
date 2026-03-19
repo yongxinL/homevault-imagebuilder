@@ -1,0 +1,156 @@
+# =============================================================================
+#
+# - Copyright (C) 2026     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# =============================================================================
+
+# Default variables for the services/phpfpm8 role
+# ================================================
+# Installs PHP-FPM and a comprehensive set of PHP extensions via the
+# Ondřej Surý PPA (ppa:ondrej/php), which provides the latest PHP releases
+# for Ubuntu LTS.
+#
+# Changes from previous version (PHP 8.2):
+#   CHANGED  phpfpm_version: 8.2 → 8.3
+#   REMOVED  php-mongo          → package removed upstream; use php-mongodb instead
+#   REMOVED  ffmpeg2theora      → unmaintained, no longer in Noble repos;
+#                                  use ffmpeg directly for Ogg/Theora encoding
+#   ADDED    php-mongodb        → replaces deprecated php-mongo extension
+#   CHANGED  libmagickcore-6.q16-[0-9]-extra → libmagickcore-6.q16-dev
+#                                  (glob pattern no longer works in Noble)
+
+# .. envvar:: install_role_name
+install_role_name: "phpfpm"
+
+# .. envvar:: target_host_name
+# .. envvar:: target_host_domain
+#
+# Target system identity (used in Nginx virtual host configurations).
+target_host_name: "server"
+target_host_domain: "myhome.local"
+
+# .. envvar:: phpfpm_version
+#
+# PHP version to install.  The Ondrej PPA provides multiple PHP versions
+# simultaneously.  Change this to 8.2 or 8.1 for older compatibility.
+# See https://launchpad.net/~ondrej/+archive/ubuntu/php for available versions.
+phpfpm_version: "8.3"
+
+# .. envvar:: target_data_root
+#
+# Root directory for application data files on the persistent data partition.
+target_data_root: "/oneLijia"
+
+# .. envvar:: repo_gpg
+# .. envvar:: repo_key
+#
+# GPG signing key for the Ondřej Surý PHP PPA.
+# Key ID: 14AA40EC0831756756D7F66C4F4EA0AAE5267A6C
+repo_gpg: []
+repo_key:
+  - server: "keyserver.ubuntu.com"
+    keyid: "14AA40EC0831756756D7F66C4F4EA0AAE5267A6C"
+
+# .. envvar:: repository
+#
+# APT source entries for PHP packages.
+# The Ondrej PPA provides all PHP 8.x versions for Ubuntu Noble.
+repository:
+  - dest: "/etc/apt/sources.list.d/{{ install_role_name }}.list"
+    line: "deb http://ppa.launchpad.net/ondrej/php/{{ ansible_distribution | lower }} {{ ansible_distribution_release }} main"
+  - dest: "/etc/apt/sources.list.d/updates.list"
+    line: "deb {{ debstrap_mirror }} {{ ansible_distribution_release }}-updates main"
+  - dest: "/etc/apt/sources.list.d/updatesuniverse.list"
+    line: "deb {{ debstrap_mirror }} {{ ansible_distribution_release }}-updates universe"
+
+# .. envvar:: base_packages
+#
+# PHP packages and media processing libraries installed in the overlay layer.
+#
+# Package notes:
+#   php-mongo         REMOVED — deprecated upstream; replaced by php-mongodb
+#   php-mongodb       ADDED   — modern MongoDB driver for PHP 8.x
+#   ffmpeg2theora     REMOVED — unmaintained, not in Noble repos.
+#                               Use 'ffmpeg -c:v libtheora' for Ogg/Theora encoding.
+#   libmagickcore-6.q16-[0-9]-extra  CHANGED to libmagickcore-6.q16-dev
+#                               (glob package naming not supported in Noble)
+base_packages:
+  - { package: "php{{ phpfpm_version }}" }
+  - { package: "php{{ phpfpm_version }}-cli" }
+  - { package: "php{{ phpfpm_version }}-common" }
+  - { package: "php{{ phpfpm_version }}-fpm" }
+  - { package: "libimage-exiftool-perl" }         # File metadata/EXIF support
+  - { package: "ghostscript" }                    # PostScript / PDF rendering
+  - { package: "libgs-dev" }                      # Ghostscript development headers
+  - { package: "imagemagick" }                    # Image conversion and manipulation
+  - { package: "libmagickcore-6.q16-dev" }        # ImageMagick core library (replaces glob pattern)
+  - { package: "poppler-utils" }                  # PDF utilities (pdftotext, pdfinfo, etc.)
+  - { package: "php-apcu" }                       # APCu in-memory key-value cache
+  - { package: "php-pear" }                       # PHP Extension and Application Repository
+  - { package: "php-imagick" }                    # PHP ImageMagick extension
+  - { package: "php-mongodb" }                    # MongoDB driver (replaces removed php-mongo)
+  - { package: "php{{ phpfpm_version }}-bcmath" }
+  - { package: "php{{ phpfpm_version }}-curl" }
+  - { package: "php{{ phpfpm_version }}-gd" }
+  - { package: "php{{ phpfpm_version }}-imap" }
+  - { package: "php{{ phpfpm_version }}-intl" }
+  - { package: "php{{ phpfpm_version }}-ldap" }
+  - { package: "php{{ phpfpm_version }}-mbstring" }
+  - { package: "php{{ phpfpm_version }}-mysql" }
+  - { package: "php{{ phpfpm_version }}-opcache" }
+  - { package: "php{{ phpfpm_version }}-readline" }
+  - { package: "php{{ phpfpm_version }}-pgsql" }
+  - { package: "php{{ phpfpm_version }}-soap" }
+  - { package: "php{{ phpfpm_version }}-tidy" }
+  - { package: "php{{ phpfpm_version }}-xml" }
+  - { package: "php{{ phpfpm_version }}-xmlrpc" }
+  - { package: "php{{ phpfpm_version }}-zip" }
+  - { package: "ffmpeg" }                         # Video/audio transcoding (replaces ffmpeg2theora for Theora)
+  # ffmpeg2theora: REMOVED — unmaintained, not available in Ubuntu 22+.
+  # Use 'ffmpeg -c:v libtheora -c:a libvorbis' for Ogg/Theora output.
+
+# .. envvar:: configure_files
+#
+# Nginx configuration templates deployed into the overlay layer.
+configure_files:
+  - { name: "etc-nginx-nginx.conf.j2",
+      dest: "/etc/nginx/nginx.conf" }
+  - { name: "etc-nginx-confd-budget-subdir.conf.j2",
+      dest: "/etc/nginx/conf.d/budget-subdir.conf" }
+  - { name: "etc-nginx-confd-drive-subdir.conf.j2",
+      dest: "/etc/nginx/conf.d/drive-subdir.conf" }
+  - { name: "etc-nginx-confd-importer-subdir.conf.j2",
+      dest: "/etc/nginx/conf.d/importer-subdir.conf" }
+  - { name: "etc-nginx-confd-restrictions.ini.j2",
+      dest: "/etc/nginx/conf.d/restrictions.ini" }
+  - { name: "etc-nginx-confd-revproxy-example.conf.j2",
+      dest: "/etc/nginx/conf.d/revproxy-example.conf" }
+  - { name: "etc-nginx-confd-scholar-subdir.conf.j2",
+      dest: "/etc/nginx/conf.d/scholar-subdir.conf" }
+  - { name: "etc-nginx-confd-wiki-subdir.conf.j2",
+      dest: "/etc/nginx/conf.d/wiki-subdir.conf" }
+  - { name: "etc-nginx-confd-wordpresscache.ini.j2",
+      dest: "/etc/nginx/conf.d/wordpresscache.ini" }
+  - { name: "etc-nginx-confd-wpmd-httpd.conf.j2",
+      dest: "/etc/nginx/conf.d/wpmd-httpd.conf" }
+  - { name: "etc-nginx-confd-wpmd-https.conf.j2",
+      dest: "/etc/nginx/conf.d/wpmd-https.conf" }
+  - { name: "etc-nginx-confd-wpmu-httpd.conf.j2",
+      dest: "/etc/nginx/conf.d/wpmu-httpd.conf" }
+  - { name: "etc-nginx-confd-wpmu-https.conf.j2",
+      dest: "/etc/nginx/conf.d/wpmu-https.conf" }
+
+# .. envvar:: extra_files
+#
+# Additional files to deploy (none by default).
+extra_files: []
+
+# .. envvar:: php_fastcgi
+#
+# PHP-FPM unix socket path used in Nginx fastcgi_pass directives.
+php_fastcgi: "/var/run/php/php{{ phpfpm_version }}-fpm.sock"

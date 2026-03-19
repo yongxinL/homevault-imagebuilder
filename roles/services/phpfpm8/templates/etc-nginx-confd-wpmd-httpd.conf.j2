@@ -1,0 +1,86 @@
+#
+# nginx default configuration for unknown virtual host
+# designed to be included in any http {} block.
+# Ref: https://codex.wordpress.org/Nginx
+#
+
+map $uri $blogname{
+    ~^(?P<blogpath>/[^/]+/)files/(.*)       $blogpath ;
+}
+
+map $blogname $blogid{
+    default -999;
+
+    #Ref: http://wordpress.org/extend/plugins/nginx-helper/
+    #include {{ target_data_root }}/public_html/wp-content/plugins/nginx-helper/map.conf ;
+}
+
+# httpd server at port 80. or --> https redirection
+server {
+
+    listen                  80 default_server;
+    listen                  [::]:80 default_server;
+
+    # virtual host domains
+    server_name             _;
+
+    # redirect to https for primary domain
+    #if ( $http_host ~* "{{ target_host_domain|lower }}" ) {
+    #    rewrite            ^(.*)$ https://$http_host$request_uri;
+    #}
+
+    # or redirect all to HTTPS if you want to use the HTTP/2
+    #return 301 https://$host$request_uri;
+
+    # public html root
+    root                    {{ target_data_root }}/public_html;
+
+    # global restriction rules, comment out for SSL certificate authorization
+    include                 /etc/nginx/conf.d/restrictions.ini;
+
+    # wordpress multisite subdirectory
+    location ~ ^(/[^/]+/)?files/(.+) {
+        try_files           /wp-content/blogs.dir/$blogid/files/$2 /wp-includes/ms-files.php?file=$2 ;
+        access_log off;     log_not_found off; expires max;
+    }
+
+    # avoid php readfile()
+    location ^~ /blogs.dir {
+        internal;
+        alias               {{ target_data_root }}/public_html/wp-content/blogs.dir ;
+        access_log off;     log_not_found off; expires max;
+    }
+
+    if (!-e $request_filename) {
+        # Don't use `$uri` here, see https://github.com/yandex/gixy/issues/77
+        rewrite             /wp-admin$ $scheme://$host$request_uri/ permanent;
+        rewrite             ^(/[^/]+)?(/wp-.*) $2 last;
+        rewrite             ^(/[^/]+)?(/.*\.php) $2 last;
+    }
+
+    location / {
+        # include the "?$args" part so non-default permalinks doesn't break when using query string
+        try_files           $uri $uri/ /index.php?$args;
+        add_header          Access-Control-Allow-Origin *;
+        add_header          X-Frame-Options "ALLOW-FROM {{ target_host_domain }}";
+        add_header          Content-Security-Policy "frame-ancestors {{ target_host_domain }}";
+    }
+
+    # Pass the PHP scripts to FastCGI server (locally with unix: param to avoid network overhead)
+    location ~ \.php$ {
+        # Prevent Zero-day exploit
+        try_files           $uri = 404;
+        fastcgi_split_path_info ^(.+\.php)(/.+)$;
+
+        # NOTE: you should have "cgi.fix_pathinfo = 0;" in php.ini
+        include             /etc/nginx/fastcgi_params;
+        fastcgi_intercept_errors    on;
+        fastcgi_pass        unix:{{ php_fastcgi }};
+        fastcgi_param       SCRIPT_FILENAME     $document_root$fastcgi_script_name;
+        fastcgi_buffers     16 16k;
+        fastcgi_buffer_size 32k;
+    }
+
+    # add some rules for static content expiry-headers here
+
+}

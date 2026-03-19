@@ -1,0 +1,85 @@
+#
+# nginx global restrictions rules for virtual host: {{ target_host_domain }}
+# designed to be included in any server {} block
+#
+
+# redirect server error pages to the static page /404.html
+#
+#error_page              403 404         /50x.html;
+
+# redirect server error pages to the static page /50x.html
+#
+#error_page              500 502 503 504  /50x.html;
+
+location = /50x.html {
+    root                /usr/share/nginx/html;
+    internal;
+}
+
+# Deny all attempts to access hidden files such as .htaccess, .htpasswd, .DS_Store (Mac).
+# but allow .well-known directory
+# Keep logging the requests to parse later (or to pass to firewall utilities such as fail2ban)
+location ~ /\.(?!well-known).* {
+    deny                all;
+    access_log          off;
+    log_not_found       off;
+}
+
+# Deny access to any files with a .php extension in the uploads directory
+# Works in sub-directory installs and also in multisite network
+# Keep logging the requests to parse later (or to pass to firewall utilities such as fail2ban)
+location ~* /(?:uploads|files)/.*\.php$ {
+    deny                all;
+}
+
+# deny running scripts inside writable directories
+location ~* /(images|cache|media|logs|tmp)/.*\.(php|pl|py|jsp|asp|sh|cgi)$ {
+    return              403;
+    error_page          403 /403_error.html;
+}
+
+# Exclude favicon from the logs to avoid bloating when it's not available
+location /favicon.ico {
+    log_not_found       off;
+    access_log          off;
+}
+
+location = /robots.txt {
+    allow               all;
+    log_not_found       off;
+    access_log          off;
+}
+
+## Block download agents ##
+if ($http_user_agent ~* LWP::Simple|BBBike|wget) {
+    return              403;
+}
+
+## Block some robots ##
+if ($http_user_agent ~* msnbot|scrapbot) {
+    return              403;
+}
+
+# Prevent Clickjacking
+add_header                X-Frame-Options "SAMEORIGIN";
+
+# allow wordpress-social-login plugin
+location ~ ^/wp\-content/plugins/wordpress-social-login/hybridauth/callbacks/.*\.(?:php[1-7]?|pht|phtml?|phps)$ {
+    # Prevent Zero-day exploit
+    try_files           $uri = 404;
+    fastcgi_split_path_info ^(.+\.php)(/.+)$;
+
+    # NOTE: you should have "cgi.fix_pathinfo = 0;" in php.ini
+    include             /etc/nginx/fastcgi_params;
+    fastcgi_intercept_errors    on;
+    fastcgi_pass        unix:/var/run/php/php8.2-fpm.sock;
+    fastcgi_param       SCRIPT_FILENAME     $document_root$fastcgi_script_name;
+    fastcgi_buffers     16 16k;
+    fastcgi_buffer_size 32k;
+}
+
+# Only allow these request methods and do not accept DELETE, SEARCH and other methods
+# only enabled when below methods are enough
+#if ($request_method !~ ^(GET|HEAD|POST|PUT|DELETE|PROPFIND|OPTIONS)$ ) {
+#    return              444;
+#}
