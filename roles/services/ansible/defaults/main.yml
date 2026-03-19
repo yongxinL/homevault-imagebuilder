@@ -1,6 +1,6 @@
 # =============================================================================
 #
-# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+# - Copyright (C) 2026     George Li <yongxinl@outlook.com>
 #
 # - This is part of HomeVault imagebuilder project.
 # - This program is distributed in the hope that it will be useful,
@@ -9,60 +9,64 @@
 #
 # =============================================================================
 
-# Default variables
-# =================
-
-# .. contents:: Sections
-#    :local:
+# Default variables for the services/ansible role
+# ================================================
+# Installs ansible-core into the target image using pip3.
 #
-# ------------------------------------
-#   Packages and installation
-# ------------------------------------
+# Ubuntu 24 (Noble) ships ansible-core 2.16.x in the universe repository.
+# For ansible-core 2.20+ (as required by this project), pip3 is used because
+# the Ubuntu archive does not yet carry 2.20.
+#
+# Python: Always uses the python3 interpreter bundled with the target Ubuntu
+# release — no separate Python installation is added to the image.
+#
+# Changes from Ubuntu 16 (Xenial):
+#   REMOVED  PPA ppa:ansible/ansible   — does not support Noble
+#   REMOVED  python-httplib2 / python-jinja2 / python-yaml (Python 2 packages)
+#   REMOVED  easy_install               — removed in Ansible 2.10+
+#   REMOVED  pysphere pip module        — superseded by pyvmomi
+#   ADDED    pip3 install ansible-core  — installs 2.20 via PyPI
+
+# .. envvar:: install_role_name
+#
+# Internal name used for log messages.
 install_role_name: 'ansible'
 
-# .. envvar:: apt_proxy
+# .. envvar:: ansible_core_version
 #
-# Specify apt cacher / proxy link, like 'x.x.x.x:3142/'
-apt_proxy:
-
-# .. envvar:: ansible_repo_keyserver
-# .. envvar:: ansible_repo_keyid
-#
-# APT GPG key server and id used to sign the ansible packages.
-ansible_repo_keyserver: 'keyserver.ubuntu.com'
-ansible_repo_keyid: '7BB9C367'
-
-# .. envvar:: ansible_repository
-#
-# Address of the ansible APT repository.
-ansible_repository:
-  - { dest: '/etc/apt/sources.list.d/{{ install_role_name }}.list', line: 'deb http://{{ apt_proxy }}ppa.launchpad.net/ansible/ansible/{{ ansible_distribution | lower }} {{ ansible_distribution_release }} main' }
+# The ansible-core version to install via pip3.
+# Use '2.20.*' to allow patch releases, or pin to an exact version like '2.20.0'.
+# See https://pypi.org/project/ansible-core/#history for available versions.
+ansible_core_version: '2.20.*'
 
 # .. envvar:: ansible_base_packages
 #
-# List of base packages to install by Ansible
-# package: package will be installed
-# version: package version, default is '*'
-# example: - { package: 'package', version: '1.2' }
+# Ubuntu packages installed before pip3 is used to install ansible-core.
+# python3-pip provides the pip3 command from the Ubuntu archive.
+# python3-venv is included for use with pipx if required in future.
 ansible_base_packages:
-  - { package: 'ansible' }
+  - { package: 'python3-pip' }
+  - { package: 'python3-venv' }
 
 # .. envvar:: ansible_packages
 #
-# List of additional packages to install by Ansible
-# package: package will be installed
-# version: package version, default is '*'
-# example: - { package: 'package', version: '1.2' }
+# Python 3 packages installed via pip3 alongside ansible-core.
+# These provide optional Ansible module dependencies.
+#
+# Changes from Ubuntu 16:
+#   REMOVED  python-httplib2   → python3-httplib2 available via apt or pip
+#   REMOVED  python-jinja2     → bundled with ansible-core
+#   REMOVED  python-markupsafe → bundled with ansible-core
+#   REMOVED  python-paramiko   → bundled with ansible-core
+#   REMOVED  python-yaml       → bundled with ansible-core
 ansible_packages:
-  - { package: 'python-httplib2' }
-  - { package: 'python-jinja2' }
-  - { package: 'python-markupsafe' }
-  - { package: 'python-paramiko' }
-  - { package: 'python-yaml' }
+  - { package: 'httplib2' }      # HTTP client library for Ansible URI module
+  - { package: 'paramiko' }      # SSH library for Ansible (fallback to OpenSSH)
 
 # .. envvar:: ansible_modules
 #
-# List of additional modules will install with Ansible
+# Additional pip3 packages providing Ansible collection dependencies.
+# pyvmomi: VMware vSphere / ESXi API Python bindings (required for vmware_* modules).
+# NOTE: pysphere is superseded by pyvmomi and removed.
 ansible_modules:
-  - { package: 'pysphere' }         # for vSphere support
-  - { package: 'pyvmomi' }          # for vSphere support
+  - { package: 'pyvmomi' }       # VMware vSphere Python SDK (for vmware_* Ansible modules)

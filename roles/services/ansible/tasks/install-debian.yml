@@ -1,62 +1,69 @@
 # =============================================================================
+# services/ansible — Install Ansible Core via pip3
+# =================================================
+# Runs on: build_rootfs (inside the chroot)
 #
-# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+# Steps:
+#   1. Install python3-pip and python3-venv from the Ubuntu repository.
+#   2. Install ansible-core via pip3 (version controlled by ansible_core_version).
+#   3. Install additional Python packages (httplib2, paramiko) via pip3.
+#   4. Install pyvmomi for VMware vSphere module support.
 #
-# - This is part of HomeVault imagebuilder project.
-# - This program is distributed in the hope that it will be useful,
-#   but WITHOUT ANY WARRANTY; without even the implied warranty of
-#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# Why pip3 instead of the Ubuntu PPA?
+#   - ppa:ansible/ansible does not support Ubuntu 24 (Noble).
+#   - Ubuntu Noble's universe repository ships ansible-core 2.16.x only.
+#   - pip3 allows pinning to ansible-core 2.20.x as required by this project.
 #
+# Note: --break-system-packages is required on Ubuntu 24 (Noble) / Python 3.12+
+#   due to PEP 668, which marks the system Python as externally managed and
+#   blocks system-wide pip installs by default. This is safe in a chroot build
+#   environment where the image is isolated from the host.
+#
+# Python interpreter: always uses /usr/bin/python3 bundled with Ubuntu Noble.
 # =============================================================================
 
 ---
-- name: add {{ install_role_name }} repository key
-  apt_key:
-    keyserver: "{{ ansible_repo_keyserver }}"
-    id: "{{ ansible_repo_keyid }}"
-    state: present
+# ---- Ubuntu package prerequisites ----
 
-- name: add {{ install_role_name }} repository list
-  lineinfile: 
-    dest: "{{ item.dest }}"
-    line: "{{ item.line }}"
-    create: yes
+- name: "ansible | Install python3-pip and python3-venv from Ubuntu repository"
+  ansible.builtin.apt:
+    name: "{{ item.package }}"
     state: present
-  with_items: "{{ ansible_repository }}"
-
-- name: install required {{ install_role_name }} packages
-  apt: 
-    name: "{{ item.package }}={{ item.version|default('*') }}"
-    install_recommends: no
-    update_cache: yes
+    install_recommends: false
+    update_cache: true
   register: install_pkgs
-  until: install_pkgs|success
+  until: install_pkgs is success
   retries: 2
   delay: 5
-  with_flattened:
-    - "{{ ansible_base_packages }}"
-    - "{{ ansible_packages }}"
+  environment:
+    DEBIAN_FRONTEND: noninteractive
+  loop: "{{ ansible_base_packages }}"
 
-- name: check if pip is already install
-  command: "pip --version"
-  ignore_errors: true
-  changed_when: false
-  check_mode: no
-  register: pip_installed
+# ---- Install ansible-core via pip3 ----
 
-- name: install pip
-  easy_install:
-    name: pip
-    state: latest
-  when: pip_installed.rc != 0
+- name: "ansible | Install ansible-core {{ ansible_core_version }} via pip3"
+  ansible.builtin.pip:
+    name: "ansible-core=={{ ansible_core_version }}"
+    state: present
+    executable: pip3
+    extra_args: "--break-system-packages"
 
-- name: install required {{ install_role_name }} modules via pip
-  pip:
+# ---- Install companion Python packages via pip3 ----
+
+- name: "ansible | Install Python companion packages via pip3"
+  ansible.builtin.pip:
     name: "{{ item.package }}"
-  with_items: "{{ ansible_modules }}"
+    state: present
+    executable: pip3
+    extra_args: "--break-system-packages"
+  loop: "{{ ansible_packages }}"
 
-- name: remove {{ install_role_name }} repository list
-  file: 
-    path: "{{ item.dest }}"
-    state: absent
-  with_items: "{{ ansible_repository }}"
+# ---- Install Ansible module dependencies ----
+
+- name: "ansible | Install Ansible module dependencies via pip3 (e.g. pyvmomi)"
+  ansible.builtin.pip:
+    name: "{{ item.package }}"
+    state: present
+    executable: pip3
+    extra_args: "--break-system-packages"
+  loop: "{{ ansible_modules }}"
