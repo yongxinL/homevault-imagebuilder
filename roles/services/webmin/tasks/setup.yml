@@ -1,6 +1,6 @@
 # =============================================================================
 #
-# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+# - Copyright (C) 2026     George Li <yongxinl@outlook.com>
 #
 # - This is part of HomeVault imagebuilder project.
 # - This program is distributed in the hope that it will be useful,
@@ -43,6 +43,17 @@
   command: >
     /usr/share/webmin/changepass.pl /etc/webmin root {{ target_root_password }}
   when: target_root_password is defined
+
+# ---- UFW firewall rule ----
+
+- name: "webmin | Check if ufw is available"
+  ansible.builtin.stat:
+    path: /usr/sbin/ufw
+  register: ufw_bin
+
+- name: "webmin | Allow Webmin through ufw (port {{ webmin_config_port }}/tcp)"
+  ansible.builtin.command: ufw allow {{ webmin_config_port }}/tcp
+  when: ufw_bin.stat.exists
 
 - name: remove {{ install_role_name }} services from booting
   command: update-rc.d -f {{ item }} remove

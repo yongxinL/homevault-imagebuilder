@@ -1,50 +1,66 @@
 # =============================================================================
+# services/webmin — Install Webmin 2.x from the official repository
+# ==================================================================
+# Runs on: build_rootfs (inside the chroot)
 #
-# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
-#
-# - This is part of HomeVault imagebuilder project.
-# - This program is distributed in the hope that it will be useful,
-#   but WITHOUT ANY WARRANTY; without even the implied warranty of
-#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-#
+# Steps:
+#   1. Download and add the Webmin repository GPG key.
+#   2. Add the Webmin apt source entry.
+#   3. Disable GzipIndexes in apt.conf (required by the Webmin repository).
+#   4. Install Webmin and Perl dependency packages.
+#   5. Remove the build-time apt source entry.
 # =============================================================================
 
 ---
-- name: add {{ install_role_name }} repository key
-  apt_key:
+# ---- GPG key ----
+# Webmin uses apt-key style key addition via apt_key URL.
+# The Webmin repo uses a legacy single-key approach compatible with Noble.
+
+- name: "webmin | Add Webmin GPG repository signing key"
+  ansible.builtin.apt_key:
     url: "{{ webmin_repo_key }}"
     state: present
 
-- name: add {{ install_role_name }} repository list
-  lineinfile: 
+# ---- APT source entry ----
+
+- name: "webmin | Add Webmin apt repository"
+  ansible.builtin.lineinfile:
     dest: "{{ item.dest }}"
     line: "{{ item.line }}"
-    create: yes
+    create: true
     state: present
-  with_items: "{{ webmin_repository }}"
+  loop: "{{ webmin_repository }}"
 
-- name: set GzipIndexes to false in apt.conf
-  lineinfile: 
+# ---- apt.conf workaround ----
+# The Webmin repository does not support gzip-compressed index files.
+
+- name: "webmin | Disable GzipIndexes in apt.conf (required for Webmin repo)"
+  ansible.builtin.lineinfile:
     dest: "/etc/apt/apt.conf"
     line: 'Acquire::GzipIndexes "false";'
-    create: yes
+    create: true
     state: present
 
-- name: install required {{ install_role_name }} packages
-  apt: 
-    name: "{{ item.package }}={{ item.version|default('*') }}"
-    install_recommends: no
-    update_cache: yes
+# ---- Install Webmin packages ----
+
+- name: "webmin | Install Webmin and Perl dependency packages"
+  ansible.builtin.apt:
+    name: "{{ item.package }}{% if item.version is defined and item.version != '*' %}={{ item.version }}{% endif %}"
+    state: present
+    install_recommends: false
+    update_cache: true
   register: install_pkgs
-  until: install_pkgs|success
+  until: install_pkgs is success
   retries: 2
   delay: 5
-  with_flattened:
-    - "{{ webmin_base_packages }}"
-    - "{{ webmin_packages }}"
+  environment:
+    DEBIAN_FRONTEND: noninteractive
+  loop: "{{ webmin_base_packages + webmin_packages }}"
 
-- name: remove {{ install_role_name }} repository list
-  file: 
+# ---- Remove build-time apt source entry ----
+
+- name: "webmin | Remove Webmin apt source entry"
+  ansible.builtin.file:
     path: "{{ item.dest }}"
     state: absent
-  with_items: "{{ webmin_repository }}"
+  loop: "{{ webmin_repository }}"
