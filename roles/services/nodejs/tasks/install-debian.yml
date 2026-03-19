@@ -1,51 +1,80 @@
 # =============================================================================
+# services/nodejs — Install Node.js from NodeSource repository
+# =============================================================
+# Runs on: build_rootfs (inside the chroot)
 #
-# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
-#
-# - This is part of HomeVault imagebuilder project.
-# - This program is distributed in the hope that it will be useful,
-#   but WITHOUT ANY WARRANTY; without even the implied warranty of
-#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-#
+# Steps:
+#   1. Create /etc/apt/keyrings directory for GPG key storage.
+#   2. Download the NodeSource GPG key and dearmor into the keyring directory.
+#   3. Add the NodeSource apt source entry (signed-by reference).
+#   4. Remove any conflicting pre-existing packages (nodejs, libdbus).
+#   5. Install Node.js and companion packages.
+#   6. Remove the temporary apt source entry (key remains for live-system updates).
 # =============================================================================
 
 ---
-- name: add {{ install_role_name }} repository key
-  apt_key: 
-    url: "{{ nodejs_repo_key }}"
-    state: present
+# ---- GPG keyring setup (modern apt signed-by approach) ----
+# Replaces the deprecated apt-key approach removed in Ubuntu 22+.
 
-- name: add {{ install_role_name }} repository list
-  lineinfile: 
+- name: "nodejs | Create /etc/apt/keyrings directory for trusted signing keys"
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: 0755
+
+- name: "nodejs | Download and dearmor NodeSource GPG signing key"
+  ansible.builtin.shell: >
+    curl -fsSL {{ nodejs_repo_key_url }}
+    | gpg --dearmor -o {{ nodejs_repo_keyring }}
+  args:
+    creates: "{{ nodejs_repo_keyring }}"
+
+- name: "nodejs | Set permissions on NodeSource keyring"
+  ansible.builtin.file:
+    path: "{{ nodejs_repo_keyring }}"
+    mode: 0644
+
+# ---- APT source entry ----
+
+- name: "nodejs | Add NodeSource Node.js {{ nodejs_version }} apt repository"
+  ansible.builtin.lineinfile:
     dest: "{{ item.dest }}"
     line: "{{ item.line }}"
     create: yes
     state: present
-  with_items: "{{ nodejs_repository }}"
+  loop: "{{ nodejs_repository }}"
 
-- name: remove existing package before install
-  apt:
+# ---- Remove conflicting packages ----
+
+- name: "nodejs | Remove conflicting packages before install"
+  ansible.builtin.apt:
     name: "{{ item }}"
     state: absent
-  with_items:
-    - libdbus
-  
-- name: install required {{ install_role_name }} packages
-  apt: 
-    name: "{{ item.package }}={{ item.version|default('*') }}"
+  loop:
+    - libdbus   # older libdbus conflicts with nodejs native addon builds
+  ignore_errors: true  # package may not be installed
+
+# ---- Install Node.js and companion packages ----
+
+- name: "nodejs | Install Node.js {{ nodejs_version }} and companion packages"
+  ansible.builtin.apt:
+    name: "{{ item.package }}{% if item.version is defined and item.version != '*' %}={{ item.version }}{% endif %}"
+    state: present
     install_recommends: no
     update_cache: yes
   register: install_pkgs
-  until: install_pkgs|success
+  until: install_pkgs is success
   retries: 2
   delay: 5
-  with_flattened:
-    - "{{ nodejs_base_packages }}"
-    - "{{ nodejs_packages }}"
+  environment:
+    DEBIAN_FRONTEND: noninteractive
+  loop: "{{ nodejs_base_packages + nodejs_packages }}"
 
-- name: remove {{ install_role_name }} repository list
-  file: 
+# ---- Remove build-time apt source entry ----
+# The GPG keyring is kept so the live system can run apt-get upgrade.
+
+- name: "nodejs | Remove NodeSource apt source entry (clean image — key is retained)"
+  ansible.builtin.file:
     path: "{{ item.dest }}"
     state: absent
-  with_flattened:
-    - "{{ nodejs_repository }}"
+  loop: "{{ nodejs_repository }}"
