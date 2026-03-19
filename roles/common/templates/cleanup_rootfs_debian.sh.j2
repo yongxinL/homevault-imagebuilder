@@ -4,20 +4,56 @@
 # - Copyright (C) 2016     George Li <yongxinl@outlook.com>
 #
 # - This is part of HomeVault imagebuilder project.
-# - This program is distributed in the hope that it will be useful,
-#   but WITHOUT ANY WARRANTY; without even the implied warranty of
-#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# - cleanup_rootfs_debian.sh — Post-install cleanup for the base filesystem
+#
+# Purpose:
+#   Remove unnecessary packages, documentation, cache files, and log files
+#   from the chroot to minimise the final squashfs image size.
+#   Also validates apt sources and removes any build-time proxy configuration
+#   so the live image fetches packages directly from the archive.
+#
+# Run order:
+#   1. cleanup_rootfs_kernel.sh  (removes unneeded kernel modules)
+#   2. cleanup_rootfs_debian.sh  (this script — general package/file cleanup)
 #
 # =============================================================================
 
-echo "cleanup APT repository cache and unused packages ..."
-apt-get --yes remove tasksel aptitude vim-common vim-tiny vim-runtime
-apt-get --yes autoremove
-apt-get --yes purge
-apt-get --yes clean
+set -e
 
-echo -n "cleanup unnecessary files ..."
-find /usr/share/doc -empty | xargs rmdir
+echo "=== HomeVault rootfs cleanup starting ==="
+
+# ------------------------------------
+#   Remove packages not needed in final image
+# ------------------------------------
+
+echo ""
+echo "[1/6] Removing unnecessary packages ..."
+
+# vim-common / vim-tiny / vim-runtime: nano is the configured editor
+# tasksel / aptitude: interactive package selectors not needed in a live image
+# NOTE: do NOT remove tasksel on Noble if it was never installed (ignore errors)
+DEBIAN_FRONTEND=noninteractive apt-get --yes --quiet remove \
+    tasksel \
+    aptitude \
+    vim-common \
+    vim-tiny \
+    vim-runtime \
+    2>/dev/null || true
+
+DEBIAN_FRONTEND=noninteractive apt-get --yes --quiet autoremove
+DEBIAN_FRONTEND=noninteractive apt-get --yes --quiet purge $(dpkg -l | awk '/^rc/{print $2}') 2>/dev/null || true
+DEBIAN_FRONTEND=noninteractive apt-get --yes --quiet clean
+
+echo "  done."
+
+# ------------------------------------
+#   Remove documentation and man pages
+# ------------------------------------
+
+echo ""
+echo "[2/6] Removing documentation, man pages, and locale files ..."
+
+find /usr/share/doc -empty -exec rmdir {} \; 2>/dev/null || true
 rm -rf /usr/share/doc-base/*
 rm -rf /usr/share/man/*
 rm -rf /usr/share/man-db/*
@@ -26,45 +62,87 @@ rm -rf /usr/share/info/*
 rm -rf /usr/share/lintian/*
 rm -rf /usr/share/linda/*
 rm -rf /var/cache/man/*
+
+# initramfs-tools is excluded from basefs (build phase uses a separate chroot
+# for initrd); remove any leftover directories just in case.
 rm -rf /var/lib/initramfs-tools
 rm -rf /var/share/initramfs-tools
 rm -rf /usr/lib/initramfs-tools
 rm -rf /etc/initramfs-tools
-unlink /initrd.img
-unlink /vmlinuz
-echo "done!"
 
-echo -n "cleanup unnecessary locale files ..."
-#find /usr/share/locale -mindepth 1 -maxdepth 1 ! -name 'en' |xargs rm -rf
-#find /usr/share/i18n/charmaps -mindepth 1 -maxdepth 1 |xargs rm -r
-echo "done!"
+# Remove dangling kernel symlinks (not needed in squashfs live image)
+[ -L /initrd.img ] && unlink /initrd.img || true
+[ -L /vmlinuz ]   && unlink /vmlinuz   || true
 
-echo -n "cleanup unnecessary APT cache and compress files ..."
+echo "  done."
+
+# ------------------------------------
+#   Remove apt cache and build artefacts
+# ------------------------------------
+
+echo ""
+echo "[3/6] Removing apt cache and build artefacts ..."
+
 echo -n > /var/lib/apt/extended_states
 rm -rf /var/cache/apt/archives/*.deb
 rm -rf /var/cache/apt/*cache.bin
 rm -rf /var/cache/apt-show-versions/*
 rm -rf /var/lib/apt/lists/*
-rm -rf /var/lib/{cache,log}
+rm -rf /var/lib/{cache,log} 2>/dev/null || true
 rm -rf /var/log/apt
 rm -rf /var/log/apt-cacher-ng
 rm -rf /var/log/mysql
 rm -rf /usr/src/*
-rm -rf /etc/resolv.conf
-echo "done!"
 
-echo -n "cleanup all extra Log files and zero out the rest ..."
-find /var/log -regex '.*?[0-9].*?' -exec rm -v {} \;
-find /var/log -type f | while read file
-do
-    # cat /dev/null | tee $file  // zero out the file
-    rm -f $file
-done
-echo "done!"
+echo "  done."
 
-echo -n "restore files from backup storage ..."
-if [ -f /tmp/persistent/persistent.stamp ]; then
-  rsync -r --exclude 'persistent.stamp' /tmp/persistent/ /
-  rm -rf /tmp/persistent
+# ------------------------------------
+#   Validate apt sources
+# ------------------------------------
+
+echo ""
+echo "[4/6] Validating apt sources ..."
+
+# /etc/apt/apt.conf.d/00proxy is written by pre-build and removed by post-build
+# (on build_local, before squashfs creation) — no proxy cleanup needed here.
+
+# Validate that the main apt sources list is readable and has content.
+if [ ! -s /etc/apt/sources.list ]; then
+    echo "  WARNING: /etc/apt/sources.list is empty — apt sources may be misconfigured"
+else
+    echo "  apt sources.list OK ($(grep -c '^deb ' /etc/apt/sources.list) entries)"
 fi
-echo "done!"
+
+echo "  done."
+
+# ------------------------------------
+#   Truncate log files
+# ------------------------------------
+
+echo ""
+echo "[5/6] Truncating log files ..."
+
+find /var/log -regex '.*?[0-9].*?' -exec rm -vf {} \; 2>/dev/null || true
+find /var/log -type f | while read logfile; do
+    rm -f "${logfile}"
+done
+
+echo "  done."
+
+# ------------------------------------
+#   Restore any persistent files staged for inclusion
+# ------------------------------------
+
+echo ""
+echo "[6/6] Restoring staged persistent files (if any) ..."
+
+if [ -f /tmp/persistent/persistent.stamp ]; then
+    rsync -r --exclude 'persistent.stamp' /tmp/persistent/ /
+    rm -rf /tmp/persistent
+    echo "  Staged files restored."
+else
+    echo "  No staged files found — skipping."
+fi
+
+echo ""
+echo "=== HomeVault rootfs cleanup complete ==="

@@ -4,122 +4,194 @@
 # - Copyright (C) 2016     George Li <yongxinl@outlook.com>
 #
 # - This is part of HomeVault imagebuilder project.
-# - This program is distributed in the hope that it will be useful,
-#   but WITHOUT ANY WARRANTY; without even the implied warranty of
-#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# - cleanup_rootfs_kernel.sh — Kernel module pruning for the live image
+#
+# Purpose:
+#   Remove kernel modules that are not needed in a headless server/NAS
+#   environment running inside VMware ESXi.  Removing unused modules
+#   significantly reduces the initrd and squashfs image sizes.
+#
+#   Modules removed:
+#     - GPU / video drivers  (no display hardware in ESXi VMs)
+#     - Sound / multimedia   (no audio hardware in ESXi VMs)
+#     - Wireless / Bluetooth (server NIC only)
+#     - Exotic network protocols (AppleTalk, CAN, BATMAN, etc.)
+#     - Obscure filesystems  (9p, adfs, affs, etc.)
+#     - Unused SCSI adapters (Brocade, Emulex, QLogic FC HBAs)
+#     - Miscellaneous hardware (parport, PCMCIA, NFC, etc.)
+#
+# Kept modules:
+#   virtio, vmxnet3, vmw_pvscsi, overlay, squashfs, ext4, btrfs, xfs,
+#   ntfs3, fat, vfat, mdadm (raid), lvm2, network fundamentals
+#
+# IMPORTANT: This script uses the kernel version from the Ansible variable
+#   {{ build_kernel_version }} — set in group_vars/in_target.yml.
+#   The path /lib/modules/{{ build_kernel_version }}/ must exist.
 #
 # =============================================================================
 
-echo -n "cleanup unwanted Kernel module and driver - Video ..."
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/gpu/drm/nouveau    #nVidia
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/gpu/drm/radeon     #ATI Radeon
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/gpu/drm/amd
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/gpu/drm/ast
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/gpu/drm/gma500
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/gpu/drm/i2c
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/gpu/drm/i810
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/gpu/drm/i915
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/gpu/drm/mga
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/gpu/drm/qxl
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/gpu/drm/savage
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/gpu/drm/sis
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/gpu/drm/tdfx
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/gpu/drm/vgem
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/gpu/drm/via
-echo "done!"
+set -e
 
-echo -n "cleanup unwanted Kernel module and driver - Multimedia ..."
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/sound
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/media
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/staging/media
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/staging/speakup
-echo "done!"
+KVER="{{ build_kernel_version }}"
+KMOD_PATH="/lib/modules/${KVER}/kernel"
 
-echo -n "cleanup unwanted Kernel module and driver - Filesystem ... "
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/fs/9p
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/fs/adfs
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/fs/affs
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/fs/afs
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/fs/bfs
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/fs/coda
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/fs/ocfs2
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/scsi/bfa
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/scsi/lpfc
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/scsi/qla2xxx
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/scsi/aic7xxx
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/scsi/qla4xxx
-echo "done!"
+echo "=== Kernel module cleanup for ${KVER} ==="
 
-echo -n "cleanup unwanted Kernel module and driver - Network ..."
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/bluetooth
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/firewire
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/net/appletalk
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/net/arcnet
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/net/caif
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/net/can
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/net/ethernet/mellanox
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/net/ethernet/qlogic
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/net/fddi
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/net/hamradio
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/net/ieee802154
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/net/irda
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/net/plip
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/net/usb
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/net/wan
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/net/wimax
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/net/wireless
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/isdn
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/net/6lowpan
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/net/appletalk
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/net/atm
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/net/ax25
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/net/batman-adv
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/net/bluetooth
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/net/caif
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/net/can
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/net/ceph
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/net/irda
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/net/mac80211
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/net/wireless
-echo "done!"
+if [ ! -d "${KMOD_PATH}" ]; then
+    echo "  WARNING: kernel module path ${KMOD_PATH} not found — skipping module cleanup"
+    exit 0
+fi
 
-echo -n "cleanup unwanted Kernel module and driver - Misc ..."
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/atm
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/auxdisplay
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/bcma
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/dca
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/dma
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/extcon
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/hsi
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/ipack
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/leds
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/macintosh
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/mailbox
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/mcb
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/memstick
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/mfd
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/nfc
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/ntb
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/nvdimm
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/parport
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/pcmcia
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/pinctrl
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/rapidio
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/regulator
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/remoteproc
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/rtc
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/spi
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/spmi
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/ssb
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/thunderbolt
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/vme
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/w1
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/staging/comedi
-rm -rf /lib/modules/{{ build_kernel_version }}/kernel/drivers/staging/lustre
-echo "done!"
+# ------------------------------------
+#   GPU / Video drivers
+# ------------------------------------
+echo ""
+echo "[1/5] Removing GPU and video drivers ..."
 
-echo -n  "Handle dependency for loadable kernel modules"
-for i in `ls /lib/modules/`; do
-    depmod $i
+rm -rf "${KMOD_PATH}/drivers/gpu/drm/nouveau"    # nVidia (not present in ESXi VMs)
+rm -rf "${KMOD_PATH}/drivers/gpu/drm/radeon"     # AMD Radeon (not present in ESXi VMs)
+rm -rf "${KMOD_PATH}/drivers/gpu/drm/amd"        # AMDGPU
+rm -rf "${KMOD_PATH}/drivers/gpu/drm/ast"        # ASPEED server BMC (not needed headless)
+rm -rf "${KMOD_PATH}/drivers/gpu/drm/gma500"     # Intel GMA500 (not in ESXi VMs)
+rm -rf "${KMOD_PATH}/drivers/gpu/drm/i2c"
+rm -rf "${KMOD_PATH}/drivers/gpu/drm/i810"
+rm -rf "${KMOD_PATH}/drivers/gpu/drm/i915"       # Intel HD Graphics
+rm -rf "${KMOD_PATH}/drivers/gpu/drm/mga"
+rm -rf "${KMOD_PATH}/drivers/gpu/drm/qxl"        # QEMU QXL (not used in ESXi)
+rm -rf "${KMOD_PATH}/drivers/gpu/drm/savage"
+rm -rf "${KMOD_PATH}/drivers/gpu/drm/sis"
+rm -rf "${KMOD_PATH}/drivers/gpu/drm/tdfx"
+rm -rf "${KMOD_PATH}/drivers/gpu/drm/vgem"
+rm -rf "${KMOD_PATH}/drivers/gpu/drm/via"
+
+echo "  done."
+
+# ------------------------------------
+#   Multimedia / Sound drivers
+# ------------------------------------
+echo ""
+echo "[2/5] Removing sound and multimedia drivers ..."
+
+rm -rf "${KMOD_PATH}/sound"
+rm -rf "${KMOD_PATH}/drivers/media"
+rm -rf "${KMOD_PATH}/drivers/staging/media"
+rm -rf "${KMOD_PATH}/drivers/staging/speakup"
+
+echo "  done."
+
+# ------------------------------------
+#   Filesystem modules (uncommon/exotic)
+# ------------------------------------
+echo ""
+echo "[3/5] Removing unused filesystem and SCSI drivers ..."
+
+rm -rf "${KMOD_PATH}/fs/9p"     # Plan 9 (not needed)
+rm -rf "${KMOD_PATH}/fs/adfs"   # Acorn ADFS
+rm -rf "${KMOD_PATH}/fs/affs"   # Amiga FFS
+rm -rf "${KMOD_PATH}/fs/afs"    # AFS network filesystem
+rm -rf "${KMOD_PATH}/fs/bfs"    # SCO BFS
+rm -rf "${KMOD_PATH}/fs/coda"   # Coda distributed filesystem
+rm -rf "${KMOD_PATH}/fs/ocfs2"  # Oracle Cluster FS
+
+# SCSI HBA drivers not present in ESXi VMs
+rm -rf "${KMOD_PATH}/drivers/scsi/bfa"     # Brocade HBA
+rm -rf "${KMOD_PATH}/drivers/scsi/lpfc"    # Emulex HBA
+rm -rf "${KMOD_PATH}/drivers/scsi/qla2xxx" # QLogic Fibre Channel
+rm -rf "${KMOD_PATH}/drivers/scsi/aic7xxx" # Adaptec AIC-7xxx
+rm -rf "${KMOD_PATH}/drivers/scsi/qla4xxx" # QLogic iSCSI
+
+echo "  done."
+
+# ------------------------------------
+#   Network drivers and protocols (unused in ESXi server environment)
+# ------------------------------------
+echo ""
+echo "[4/5] Removing unused network drivers and protocols ..."
+
+rm -rf "${KMOD_PATH}/drivers/bluetooth"
+rm -rf "${KMOD_PATH}/drivers/firewire"
+rm -rf "${KMOD_PATH}/drivers/net/appletalk"
+rm -rf "${KMOD_PATH}/drivers/net/arcnet"
+rm -rf "${KMOD_PATH}/drivers/net/caif"
+rm -rf "${KMOD_PATH}/drivers/net/can"
+rm -rf "${KMOD_PATH}/drivers/net/ethernet/mellanox"
+rm -rf "${KMOD_PATH}/drivers/net/ethernet/qlogic"
+rm -rf "${KMOD_PATH}/drivers/net/fddi"
+rm -rf "${KMOD_PATH}/drivers/net/hamradio"
+rm -rf "${KMOD_PATH}/drivers/net/ieee802154"
+rm -rf "${KMOD_PATH}/drivers/net/irda"
+rm -rf "${KMOD_PATH}/drivers/net/plip"
+rm -rf "${KMOD_PATH}/drivers/net/usb"     # USB NICs not used in ESXi VMs
+rm -rf "${KMOD_PATH}/drivers/net/wan"
+rm -rf "${KMOD_PATH}/drivers/net/wimax"
+rm -rf "${KMOD_PATH}/drivers/net/wireless"
+rm -rf "${KMOD_PATH}/drivers/isdn"
+rm -rf "${KMOD_PATH}/net/6lowpan"
+rm -rf "${KMOD_PATH}/net/appletalk"
+rm -rf "${KMOD_PATH}/net/atm"
+rm -rf "${KMOD_PATH}/net/ax25"
+rm -rf "${KMOD_PATH}/net/batman-adv"
+rm -rf "${KMOD_PATH}/net/bluetooth"
+rm -rf "${KMOD_PATH}/net/caif"
+rm -rf "${KMOD_PATH}/net/can"
+rm -rf "${KMOD_PATH}/net/ceph"
+rm -rf "${KMOD_PATH}/net/irda"
+rm -rf "${KMOD_PATH}/net/mac80211"
+rm -rf "${KMOD_PATH}/net/wireless"
+
+echo "  done."
+
+# ------------------------------------
+#   Miscellaneous hardware (not present in ESXi VMs)
+# ------------------------------------
+echo ""
+echo "[5/5] Removing miscellaneous unused hardware drivers ..."
+
+rm -rf "${KMOD_PATH}/drivers/atm"
+rm -rf "${KMOD_PATH}/drivers/auxdisplay"
+rm -rf "${KMOD_PATH}/drivers/bcma"
+rm -rf "${KMOD_PATH}/drivers/dca"
+rm -rf "${KMOD_PATH}/drivers/dma"
+rm -rf "${KMOD_PATH}/drivers/extcon"
+rm -rf "${KMOD_PATH}/drivers/hsi"
+rm -rf "${KMOD_PATH}/drivers/ipack"
+rm -rf "${KMOD_PATH}/drivers/leds"
+rm -rf "${KMOD_PATH}/drivers/macintosh"
+rm -rf "${KMOD_PATH}/drivers/mailbox"
+rm -rf "${KMOD_PATH}/drivers/mcb"
+rm -rf "${KMOD_PATH}/drivers/memstick"
+rm -rf "${KMOD_PATH}/drivers/mfd"
+rm -rf "${KMOD_PATH}/drivers/nfc"
+rm -rf "${KMOD_PATH}/drivers/ntb"
+rm -rf "${KMOD_PATH}/drivers/nvdimm"
+rm -rf "${KMOD_PATH}/drivers/parport"
+rm -rf "${KMOD_PATH}/drivers/pcmcia"
+rm -rf "${KMOD_PATH}/drivers/pinctrl"
+rm -rf "${KMOD_PATH}/drivers/rapidio"
+rm -rf "${KMOD_PATH}/drivers/regulator"
+rm -rf "${KMOD_PATH}/drivers/remoteproc"
+rm -rf "${KMOD_PATH}/drivers/rtc"
+rm -rf "${KMOD_PATH}/drivers/spi"
+rm -rf "${KMOD_PATH}/drivers/spmi"
+rm -rf "${KMOD_PATH}/drivers/ssb"
+rm -rf "${KMOD_PATH}/drivers/thunderbolt"
+rm -rf "${KMOD_PATH}/drivers/vme"
+rm -rf "${KMOD_PATH}/drivers/w1"
+rm -rf "${KMOD_PATH}/drivers/staging/comedi"
+rm -rf "${KMOD_PATH}/drivers/staging/lustre" 2>/dev/null || true
+
+echo "  done."
+
+# ------------------------------------
+#   Rebuild module dependency database
+# ------------------------------------
+echo ""
+echo "Rebuilding kernel module dependency database (depmod) ..."
+
+for kver in $(ls /lib/modules/); do
+    depmod "${kver}"
 done
-echo "done!"
+
+echo "  done."
+echo ""
+echo "=== Kernel module cleanup complete ==="

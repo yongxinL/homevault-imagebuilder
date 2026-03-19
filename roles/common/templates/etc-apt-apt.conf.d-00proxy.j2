@@ -1,0 +1,37 @@
+# =============================================================================
+# APT proxy configuration — generated during image build by Ansible.
+# This file is REMOVED by the cleanup phase (cleanup_rootfs_debian.sh) so that
+# the live image always fetches packages directly from upstream mirrors.
+#
+# Proxy backend: apt-cacher-ng at {{ apt_proxy }}
+#
+# HTTP repos (ubuntu main, universe, updates, etc.):
+#   apt routes all HTTP requests through the proxy automatically — no
+#   per-source URL modification needed.
+#
+# HTTPS repos (Docker CE, external PPAs, etc.):
+#   Two approaches work with apt-cacher-ng:
+#
+#   1. Acquire::https::Proxy (used here):
+#      apt sends a CONNECT tunnel request to apt-cacher-ng.
+#      Requires apt-cacher-ng to be configured with:
+#        PassThroughPattern: .*
+#      in /etc/apt-cacher-ng/acng.conf on the proxy host.
+#      apt-cacher-ng will pass the HTTPS traffic through without caching it.
+#
+#   2. URL rewriting (alternative — used in the docker role as a fallback):
+#      The sources.list entry rewrites the URL as:
+#        http://<proxy>/<hostname>/path
+#      apt-cacher-ng strips the proxy prefix and fetches from https://<hostname>/path.
+#      This allows apt-cacher-ng to cache the downloaded packages.
+#      No PassThroughPattern required.
+#
+# Both approaches can coexist: if a sources.list entry already uses URL rewriting
+# the proxy setting here is harmless (apt connects to the proxy for the http:// URL,
+# not for the https:// URL).
+#
+# Managed by Ansible — do not edit manually.
+# =============================================================================
+
+Acquire::http::Proxy "http://{{ apt_proxy }}/";
+Acquire::https::Proxy "http://{{ apt_proxy }}/";

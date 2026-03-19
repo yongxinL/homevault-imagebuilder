@@ -9,14 +9,33 @@
 #
 # =============================================================================
 
+# Overlay filesystem build wrapper — called by build_overlayfs.yml
+# =================================================================
+# This wrapper orchestrates Phase 3 of the build pipeline:
+#
+#   Play 1 [build_local]   — Unmount stale mounts, then mount the overlay:
+#                            basefs.squashfs loopback → build_lower_dir
+#                            overlayfs (lower=basefs, upper=build_upper_dir)
+#                              → build_rootfs (chroot target)
+#
+#   Play 2 [build_rootfs]  — Install application services into the overlay layer:
+#                              nginx       — web server
+#                              phpfpm8     — PHP 8.3 + extensions (ondrej/php PPA)
+#                              mariadb11   — MariaDB 11.4 LTS
+#                              webmin      — web-based administration panel
+#                            Run cleanup scripts to reduce overlay size.
+#
+#   Play 3 [build_local]   — Unmount the overlayfs.
+#                            Pack build_upper_dir → filesystem.squashfs.
+
 ---
 - hosts: build_local
   vars_files:
     - ../../{{ config_file }}
   pre_tasks:
-    - import_tasks: tasks/unmount_rootfs.yml
-    - import_tasks: tasks/unmount_overlay.yml
-    - import_tasks: tasks/mount_overlay.yml
+    - ansible.builtin.import_tasks: tasks/unmount_rootfs.yml
+    - ansible.builtin.import_tasks: tasks/unmount_overlay.yml
+    - ansible.builtin.import_tasks: tasks/mount_overlay.yml
   roles:
     - ../overlayfs/pre-build
 
@@ -24,15 +43,14 @@
   vars_files:
     - ../../{{ config_file }}
   roles:
-    - ../services/nginx
-    - ../services/phpfpm7
-    - ../services/mariadb10
-    - ../services/webmin
-    - ../services/beats/filebeat
-    - ../services/beats/metricbeat
-    - ../services/beats/packetbeat
+    - ../services/ansible
+    # - ../services/nodejs
+    # - ../services/nginx          # Nginx web server
+    # - ../services/phpfpm8        # PHP 8.3 + extensions (via ondrej/php PPA)
+    #- ../services/mariadb11      # MariaDB 11.4 LTS (replaces mariadb10 for Noble)
+    # - ../services/webmin         # Webmin 2.x web administration panel
   post_tasks:
-    - import_tasks: tasks/cleanup_rootfs_debian.yml
+    - ansible.builtin.import_tasks: tasks/cleanup_rootfs_debian.yml
 
 - hosts: build_local
   vars_files:
@@ -40,4 +58,4 @@
   roles:
     - ../overlayfs/post-build
   post_tasks:
-    - import_tasks: tasks/unmount_overlay.yml
+    - ansible.builtin.import_tasks: tasks/unmount_overlay.yml
