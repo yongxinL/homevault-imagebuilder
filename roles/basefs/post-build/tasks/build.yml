@@ -1,61 +1,105 @@
 # =============================================================================
+# basefs/post-build — Step 4: Finalise and pack the base filesystem
+# ==================================================================
+# Runs on: build_local (the Ansible controller / build host)
 #
-# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
-#
-# - This is part of HomeVault imagebuilder project.
-# - This program is distributed in the hope that it will be useful,
-#   but WITHOUT ANY WARRANTY; without even the implied warranty of
-#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-#
+# Responsibilities:
+#   1. Create the casper/ output directory inside build_image_root.
+#   2. Unmount /proc, /dev, and /dev/pts from the chroot (bind mounts).
+#   3. Replace the build-time proxy-aware apt sources with clean production
+#      mirror entries so the live system fetches packages directly.
+#   4. Remove transient files (policy-rc.d, hostname, hosts, resolv.conf)
+#      that should not exist in the distributed image.
+#   5. Pack the chroot into basefs.squashfs using mksquashfs.
 # =============================================================================
 
 ---
-- name: update local and create image directory
-  file:
+# ---- Output directory ----
+
+- name: "post-build | Create casper output directory in image root"
+  ansible.builtin.file:
     path: "{{ build_image_root }}/{{ item }}"
     state: directory
-  with_items:
+  loop:
     - casper
 
-- name: update local and unmount rootfs in build directory
-  mount: 
+# ---- Unmount bind mounts ----
+
+- name: "post-build | Unmount /proc, /dev, /dev/pts bind mounts from chroot"
+  ansible.builtin.mount:
     name: "{{ build_root }}/{{ item }}"
     src: none
     fstype: none
     state: unmounted
-  with_items:
+  loop:
     - proc
     - dev
     - dev/pts
 
-- name: update target and remove repository list from target rootfs
-  file:
+# ---- Replace build-time apt sources with production mirror ----
+# During the build phase apt sources point at the proxy-aware mirror URL so
+# packages are cached locally.  The final image must use the direct mirror URL
+# without any proxy so the live system works on any network.
+
+- name: "post-build | Remove build-time proxy-aware apt source entries"
+  ansible.builtin.file:
     path: "{{ build_root }}/{{ item.dest }}"
     state: absent
-  with_flattened:
-    - "{{ ubuntu_repo_lists }}"
+  loop: "{{ ubuntu_repo_lists }}"
 
-- name: update target and update repository list to target rootfs
-  lineinfile:
+- name: "post-build | Write production apt source entries (direct mirror, no proxy)"
+  ansible.builtin.lineinfile:
     dest: "{{ build_root }}/{{ item.dest }}"
     line: "{{ item.line }}"
     state: present
     create: yes
-  with_items:
-    - { dest: '/etc/apt/sources.list', line: 'deb http://au.archive.ubuntu.com/ubuntu/ {{ debstrap_suite }} main' }
-    - { dest: '/etc/apt/sources.list.d/universe.list', line: 'deb http://au.archive.ubuntu.com/ubuntu/ {{ debstrap_suite }} universe' }
+  loop:
+    - { dest: 'etc/apt/sources.list',
+        line: 'deb http://{{ debstrap_base_mirror }}/{{ debstrap_dist }}/ {{ debstrap_suite }} main restricted' }
+    - { dest: 'etc/apt/sources.list.d/universe.list',
+        line: 'deb http://{{ debstrap_base_mirror }}/{{ debstrap_dist }}/ {{ debstrap_suite }} universe' }
+    - { dest: 'etc/apt/sources.list.d/security.list',
+        line: 'deb http://security.ubuntu.com/ubuntu {{ debstrap_suite }}-security main restricted universe' }
 
-- name: update target and remove unused files before creating image
-  file:
+# ---- Ensure /var/crash exists with placeholder crash.ini ----
+# Noble's casper-bottom cleanup script runs "rm /root/var/crash/crash.ini"
+# during initrd without the -f flag.  If the file is absent the rm prints a
+# warning and the boot continues, but the message is confusing.  Pre-creating
+# the file lets casper remove it cleanly.
+
+- name: "post-build | Ensure /var/crash directory exists in chroot"
+  ansible.builtin.file:
+    path: "{{ build_root }}/var/crash"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: "post-build | Create placeholder crash.ini so casper cleanup succeeds"
+  ansible.builtin.file:
+    path: "{{ build_root }}/var/crash/crash.ini"
+    state: touch
+    owner: root
+    group: root
+    mode: '0644'
+
+# ---- Remove transient build-time files ----
+
+- name: "post-build | Remove build-time transient files before squashfs creation"
+  ansible.builtin.file:
     path: "{{ item }}"
     state: absent
-  with_items:
+  loop:
     - "{{ build_root }}/usr/sbin/policy-rc.d"
     - "{{ build_root }}/etc/hostname"
     - "{{ build_root }}/etc/hosts"
     - "{{ build_root }}/etc/resolv.conf"
+    - "{{ build_root }}/etc/apt/apt.conf.d/00proxy"
     - "{{ build_image_root }}/casper/{{ build_base_image }}"
 
-- name: create squashfs image from chroot
-  command: >
-    mksquashfs {{ build_root }} {{ build_image_root }}/casper/{{ build_base_image }} -e boot -noappend
+# ---- Create squashfs image ----
+
+- name: "post-build | Create {{ build_base_image }} from chroot (mksquashfs)"
+  ansible.builtin.command: >
+    mksquashfs {{ build_root }} {{ build_image_root }}/casper/{{ build_base_image }}
+    -e boot -noappend

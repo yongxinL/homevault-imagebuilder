@@ -1,46 +1,134 @@
 # =============================================================================
+# basefs/pre-build — Step 1: Bootstrap the chroot environment
+# =============================================================
+# Runs on: build_local (the Ansible controller / build host)
 #
-# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
-#
-# - This is part of HomeVault imagebuilder project.
-# - This program is distributed in the hope that it will be useful,
-#   but WITHOUT ANY WARRANTY; without even the implied warranty of
-#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-#
+# Responsibilities:
+#   1. Install debootstrap and squashfs-tools on the build host.
+#   2. Run debootstrap to create a minimal Ubuntu Noble chroot at build_root.
+#   3. Configure hostname, /etc/hosts, and /etc/resolv.conf inside the chroot.
+#   4. Install dpkg configuration (nodoc, nolocales, apt.conf) to keep the image lean.
+#   5. Install a policy-rc.d stub to prevent services starting during the build.
+#   6. Write apt source list entries (using the proxy-aware mirror URL).
+#   7. Bind-mount /proc and /dev into the chroot so package post-installs work.
 # =============================================================================
 
 ---
-- name: Install build dependencies
-  apt: 
+# ---- Build host dependencies ----
+
+- name: "pre-build | Install build host dependencies (debootstrap, squashfs-tools)"
+  ansible.builtin.apt:
     name: "{{ item }}"
     state: present
     install_recommends: no
     update_cache: yes
   register: install_pkgs
-  until: install_pkgs|success
+  until: install_pkgs is success
   retries: 2
   delay: 5
-  with_items:
+  loop:
     - debootstrap
     - squashfs-tools
 
-- name: check debootstrap version
-  command: dpkg-query -W -f='${Version}' debootstrap
-  register: deb_version
+# ---- Bootstrap the chroot ----
 
-- name: download latest version of debootstrap
-  get_url:
-    url: "http://{{ debstrap_base_mirror }}/ubuntu/pool/main/d/debootstrap/debootstrap_{{ debstrap_version }}_all.deb"
-    dest: "/tmp/debootstrap_{{ debstrap_version }}_all.deb"
-  when: deb_version.stdout != debstrap_version
+- name: "pre-build | Bootstrap Ubuntu {{ debstrap_suite }} chroot at {{ build_root }}"
+  ansible.builtin.command: >
+    debootstrap
+    --arch={{ debstrap_arch }}
+    --variant=minbase
+    --include={{ debstrap_include_packages }}
+    --exclude={{ basefs_exclude_packages }}
+    {{ debstrap_suite }}
+    {{ build_root }}
+    {{ debstrap_mirror }}
+  # debootstrap fetches packages directly (no apt.conf.d inside the chroot yet),
+  # so pass the proxy via the standard http_proxy environment variable.
+  environment:
+    http_proxy: "{% if apt_proxy | default('') %}http://{{ apt_proxy }}/{% endif %}"
 
-- name: upgrade debootstrap to {{ debstrap_version }}
-  apt:
-    deb: "/tmp/debootstrap_{{ debstrap_version }}_all.deb"
-  when: deb_version.stdout != debstrap_version
+# ---- Hostname and network identity ----
 
-- name: remove debootstrap package
-  file:
-    path: "/tmp/debootstrap_{{ debstrap_version }}_all.deb"
+- name: "pre-build | Remove default hostname and network files created by debootstrap"
+  ansible.builtin.file:
+    path: "{{ build_root }}/{{ item }}"
     state: absent
-  when: deb_version.stdout != debstrap_version
+  loop:
+    - etc/hostname
+    - etc/hosts
+    - etc/resolv.conf
+
+- name: "pre-build | Write hostname, /etc/hosts, and build-time DNS resolver"
+  ansible.builtin.lineinfile:
+    dest: "{{ build_root }}/{{ item.dest }}"
+    line: "{{ item.line }}"
+    state: present
+    create: yes
+  loop:
+    - { dest: 'etc/hostname',    line: '{{ target_host_name }}.{{ target_host_domain }}' }
+    - { dest: 'etc/hosts',       line: '127.0.0.1  localhost' }
+    - { dest: 'etc/hosts',       line: '127.0.0.1  {{ target_host_name }}  {{ target_host_name }}.{{ target_host_domain }}' }
+    - { dest: 'etc/resolv.conf', line: 'domain {{ target_host_domain }}' }
+    - { dest: 'etc/resolv.conf', line: 'search {{ target_host_domain }}' }
+    - { dest: 'etc/resolv.conf', line: 'nameserver {{ target_dns_resolver }}' }
+
+# ---- dpkg configuration to minimise image size ----
+
+- name: "pre-build | Install dpkg / apt configuration files (nodoc, nolocales, apt.conf)"
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/files/{{ item.name }}"
+    dest: "{{ build_root }}/etc/{{ item.dest }}"
+  loop:
+    - { name: "01_nodoc",    dest: "dpkg/dpkg.cfg.d/01_nodoc" }
+    - { name: "01_nolocales",dest: "dpkg/dpkg.cfg.d/01_nolocales" }
+    - { name: "apt.conf",    dest: "apt/apt.conf" }
+
+# ---- policy-rc.d stub to prevent service starts during build ----
+
+- name: "pre-build | Install policy-rc.d stub to block service starts inside chroot"
+  ansible.builtin.blockinfile:
+    dest: "{{ build_root }}/usr/sbin/policy-rc.d"
+    owner: root
+    group: root
+    mode: 0755
+    create: yes
+    block: |
+      #!/bin/sh
+      exit 101
+
+# ---- APT sources (proxy-aware, build-time mirror) ----
+
+- name: "pre-build | Write apt source list entries (build-time, proxy-aware mirror)"
+  ansible.builtin.lineinfile:
+    dest: "{{ build_root }}/{{ item.dest }}"
+    line: "{{ item.line }}"
+    state: present
+    create: yes
+  loop: "{{ ubuntu_repo_lists }}"
+
+# ---- APT proxy configuration ----
+# Written here (build_local, before chroot entry) so every apt operation inside
+# the chroot is routed through the build-time cache automatically.
+# Removed in post-build alongside other transient files before squashfs creation.
+
+- name: "pre-build | Write APT proxy configuration into chroot (00proxy)"
+  ansible.builtin.template:
+    src: "{{ playbook_dir }}/templates/etc-apt-apt.conf.d-00proxy.j2"
+    dest: "{{ build_root }}/etc/apt/apt.conf.d/00proxy"
+    owner: root
+    group: root
+    mode: 0644
+  when: apt_proxy | default('') != ''
+
+# ---- Bind mounts for package post-install scripts ----
+
+- name: "pre-build | Bind-mount /proc and /dev into chroot (required by package post-installs)"
+  ansible.builtin.mount:
+    name: "{{ build_root }}/{{ item }}"
+    src: "/{{ item }}"
+    fstype: none
+    opts: "bind"
+    state: mounted
+  loop:
+    - proc
+    - dev

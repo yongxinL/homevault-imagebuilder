@@ -1,5 +1,19 @@
+# =============================================================================
+# /lib/systemd/system/overlayfs.service
+# ======================================
+# Managed by Ansible (HomeVault imagebuilder — basefs/build-basefs role)
+#
+# Systemd service unit that runs /etc/init.d/mount-overlayfs at boot time.
+# Must execute before sysinit.target so that /etc, /var/log, /home, and /opt
+# are writable before any other services start.
+#
+# The 'Wants=network-pre.target' dependency ensures network configuration
+# (Netplan / systemd-networkd) starts after the overlays are in place so
+# changes to /etc/netplan persisted on the data partition take effect.
+# =============================================================================
+
 [Unit]
-Description=Mount overlayFS drivers
+Description=Mount writable overlay filesystems (HomeVault overlayfs service)
 DefaultDependencies=no
 After=local-fs.target
 Before=sysinit.target network-pre.target

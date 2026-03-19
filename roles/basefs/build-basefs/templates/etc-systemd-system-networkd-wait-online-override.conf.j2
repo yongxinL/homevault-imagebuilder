@@ -1,0 +1,22 @@
+# =============================================================================
+# /etc/systemd/system/systemd-networkd-wait-online.service.d/override.conf
+# =========================================================================
+# Managed by Ansible (HomeVault imagebuilder — basefs/build-basefs role)
+#
+# Override the default systemd-networkd-wait-online timeout so the boot
+# sequence continues after {{ target_dhcp_timeout }} seconds if no network
+# interface obtains a DHCP address.
+#
+# Without this override, systemd-networkd-wait-online blocks boot indefinitely
+# when no DHCP server is available (e.g. first boot without network cable).
+#
+# The --any flag means the service considers the network 'up' as soon as ANY
+# interface reaches the 'routable' state.  Combined with the timeout, the
+# system boots successfully whether or not DHCP responds.
+#
+# To change the timeout, update target_dhcp_timeout in group_vars/in_target.yml.
+# =============================================================================
+
+[Service]
+ExecStart=
+ExecStart=/lib/systemd/systemd-networkd-wait-online --timeout={{ target_dhcp_timeout }} --any

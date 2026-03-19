@@ -1,0 +1,51 @@
+# =============================================================================
+# /etc/netplan/01-netcfg.yaml — Netplan network configuration
+# =============================================================
+# Managed by Ansible (HomeVault imagebuilder — basefs/build-basefs role)
+#
+# Configures all Ethernet interfaces for DHCP on the live system.
+# Uses the networkd renderer (systemd-networkd backend).
+#
+# DHCP behaviour:
+#   - dhcp4: true         → Request an IPv4 address via DHCP on boot.
+#   - optional: true      → Mark interfaces as optional so the boot sequence
+#                           is not blocked if DHCP fails or no cable is plugged in.
+#   - The wait-online timeout is separately configured in:
+#     /etc/systemd/system/systemd-networkd-wait-online.service.d/override.conf
+#     (timeout = {{ target_dhcp_timeout }}s — set via target_dhcp_timeout variable)
+#
+# Interface naming:
+#   The match clause uses 'name: "e*"' to match all Ethernet interfaces
+#   regardless of whether the kernel assigns predictable names (ens192, ens160)
+#   or legacy names (eth0).  This makes the image portable across VMware VMXNET3,
+#   E1000, and bare-metal hardware without extra kernel parameters.
+#
+# To switch to a static address, replace the dhcp4 block with:
+#   addresses: [192.168.1.100/24]
+#   routes:
+#     - to: default
+#       via: 192.168.1.1
+#   nameservers:
+#     addresses: [8.8.8.8, 8.8.4.4]
+# =============================================================================
+
+network:
+  version: 2
+  renderer: networkd
+
+  ethernets:
+    # Match all Ethernet interfaces (predictable and legacy names)
+    all-eth:
+      match:
+        name: "e*"
+      # Request IPv4 address via DHCP
+      dhcp4: true
+      dhcp6: false
+      # Mark optional: system continues boot even without a DHCP address.
+      # The wait-online timeout ({{ target_dhcp_timeout }}s) applies before giving up.
+      optional: true
+      dhcp4-overrides:
+        # Use DNS servers advertised by DHCP server
+        use-dns: true
+        # Use NTP servers advertised by DHCP server
+        use-ntp: true

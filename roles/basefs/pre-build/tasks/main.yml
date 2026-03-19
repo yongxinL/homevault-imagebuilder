@@ -1,6 +1,6 @@
 # =============================================================================
 #
-# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+# - Copyright (C) 2026     George Li <yongxinl@outlook.com>
 #
 # - This is part of HomeVault imagebuilder project.
 # - This program is distributed in the hope that it will be useful,
@@ -11,4 +11,3 @@
 
 ---
 - import_tasks: build.yml
-- import_tasks: setup.yml

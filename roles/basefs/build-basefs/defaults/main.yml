@@ -1,6 +1,6 @@
 # =============================================================================
 #
-# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+# - Copyright (C) 2026     George Li <yongxinl@outlook.com>
 #
 # - This is part of HomeVault imagebuilder project.
 # - This program is distributed in the hope that it will be useful,
@@ -9,51 +9,60 @@
 #
 # =============================================================================
 
-# Default variables
-# =================
+# Default variables for the basefs/build-basefs role
+# ===================================================
+# These defaults are used when the corresponding variable is not set in
+# group_vars/in_target.yml or any vars/ file.
 
-# .. contents:: Sections
-#    :local:
-#
 # .. envvar:: target_root_password
 #
-# Specify root password
+# Fallback root password (plain-text; hashed with SHA-512 during build).
+# Override this in group_vars/in_target.yml.
 target_root_password: 'secret'
 
 # .. envvar:: target_timezone
 #
-# Specify timezone in target host
+# Fallback IANA timezone string.  Override in group_vars/in_target.yml.
 target_timezone: 'Australia/Sydney'
 
 # .. envvar:: target_ntpserver
 #
-# Specify ntp server in target host
+# Fallback NTP pool base name used to configure chrony.
+# Override in group_vars/in_target.yml.
 target_ntpserver: 'au.pool.ntp.org'
 
 # .. envvar:: target_data_root
 #
-# Specify folder that will be use as root of user data directory
+# Fallback data root directory.  Override in group_vars/in_target.yml.
 target_data_root: '/var'
 
-# .. envvar:: private_overlay_root
+# .. envvar:: overylay_private_root
 #
-# Specify the folder that will be use to mount as overlay
+# Fallback read-write overlay root directory on the persistent data partition.
 overylay_private_root: '{{ target_data_root }}/private'
 
 # .. envvar:: basefs_configuration
 #
-# List of configuration file will be copy to Linux base filesystems
-basefs_configuration:
-    - { name: "etc-network-interfaces.j2", dest: "/etc/network/interfaces" }
-
-# .. envvar:: uninstall_build_kernel
-#
-# Set below param to True if you don't want kernel modules in the Linux base filesystems
-# uninstall_build_kernel: False
+# List of configuration templates deployed into the base filesystem.
+# The network configuration uses Netplan (replaces legacy ifupdown interfaces file).
+# Each entry must provide:
+#   name — template file name (relative to the role templates/ directory)
+#   dest — absolute destination path inside the chroot
+#   mode — (optional) file permission mode, default '0644'
+basefs_configuration: []
+# NOTE: Network configuration is now handled directly in setup.yml using the
+# etc-netplan-01-netcfg.yaml.j2 template. No additional entries needed here.
 
 # .. envvar:: basefs_init_script
 #
-# List of scripts will be copy and executed when system booting up
+# Boot scripts deployed into the base filesystem.
+# - mount-overlayfs (init.d script): provides start/stop logic for writable overlays.
+# - overlayfs.service (systemd unit): enables the script as a systemd service that
+#   runs before sysinit.target so /etc and /var/log are writable from first use.
 basefs_init_script:
-  - { name: "etc-init.d-mount-overlayfs.j2", dest: "/etc/init.d/mount-overlayfs", mode: "0755" }
-  - { name: "lib-systemd-system-overlayfs.service.j2", dest: "/lib/systemd/system/overlayfs.service", mode: "0644" }
+  - { name: "etc-init.d-mount-overlayfs.j2",
+      dest: "/etc/init.d/mount-overlayfs",
+      mode: "0755" }
+  - { name: "lib-systemd-system-overlayfs.service.j2",
+      dest: "/lib/systemd/system/overlayfs.service",
+      mode: "0644" }

@@ -5,169 +5,256 @@
 # Required-Stop:     $local_fs
 # Default-Start:     S
 # Default-Stop:      0 6
-# Short-Description: Mounting specific folder with overlay filesystem
-# Description:       Mounting specific folder with overlay filesystem
+# Short-Description: Mount writable overlay filesystems over read-only squashfs layers
+# Description:       Mounts specific directories with kernel overlayfs so they become
+#                    writable on a read-only live system.  Called by overlayfs.service
+#                    (systemd) early in the boot sequence before sysinit.target.
 ### END INIT INFO
 
 # =============================================================================
 #
-# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+# - Copyright (C) 2026     George Li <yongxinl@outlook.com>
 #
 # - This is part of HomeVault imagebuilder project.
-# - Mounting specific folder with overlay filesystem
 #
-# - This program is distributed in the hope that it will be useful,
-#   but WITHOUT ANY WARRANTY; without even the implied warranty of
-#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# How it works:
+#   1. Reads the 'readonlydriver' kernel boot parameter to determine which
+#      directories to overlay (e.g. readonlydriver="/etc;/var/log;/home;/opt").
+#   2. For each directory:
+#      a. Creates an upper-dir on the persistent data partition (overylay_private_root).
+#      b. Creates a per-directory work-dir (required by the kernel overlayfs driver;
+#         must reside on the same filesystem as the upper-dir and be exclusive to
+#         that one mount — sharing a workdir across mounts is NOT supported).
+#      c. On first boot, rsyncs the full read-only content — including symlinks —
+#         to the upper-dir.
+#      d. On subsequent boots, merges any new files from the lower (read-only) layer
+#         into the existing upper-dir without overwriting user changes.
+#      e. Mounts kernel overlayfs over the directory with the upper-dir as the
+#         writable layer.  Changes survive reboots (stored on the data partition).
+#   3. Optionally creates and enables a swap file if 'swapfilesize' is passed on
+#      the kernel command line (e.g. swapfilesize=3g).
 #
+# Kernel boot parameters (passed via syslinux / grub boot menu):
+#   readonlydriver=/etc;/var/log;/home;/opt
+#       Semicolon- or comma-separated list of directories to mount as overlays.
+#   swapfilesize=3g
+#       Size of the swap file to create on the data partition (fallocate syntax).
+#   disable_overlay=yes
+#       Skip all overlay mounts (used in DEBUG boot mode for diagnostics).
+#
+# Managed by Ansible — do not edit manually.
 # =============================================================================
 
 . /lib/lsb/init-functions
 
-# declaration
-# readwrite drivers are predefined by caller of this script.
+# ------------------------------------
+#   Configuration (from Ansible variables)
+# ------------------------------------
+
+# Root of the writable overlay upper-dirs on the persistent data partition.
+# Each overlaid directory gets a sub-directory here as its writable upper layer.
 root_rw_mnt="{{ overylay_private_root }}"
-root_rw_work="${root_rw_mnt}/tmp"
-module_driver="overlayfs"
+
+# Root of the persistent data partition (used for swap file creation).
 swap_rw_mnt="{{ target_data_root }}"
 
-# function
+# ------------------------------------
+#   Internal functions
+# ------------------------------------
+
+# do_mount <directory>
+# Mount <directory> as a kernel overlayfs with a writable upper layer on
+# the persistent data partition.
+#
+# Upper-dir layout on the data partition:
+#   <root_rw_mnt>/<basename>          — writable upper layer (user changes persist here)
+#   <root_rw_mnt>/.work/<basename>    — kernel work directory (exclusive per mount)
+#
+# IMPORTANT: The kernel overlayfs driver requires each mount to have its own
+# dedicated workdir on the same filesystem as the upper-dir.  A single shared
+# workdir for multiple overlay mounts will cause EINVAL on the second mount.
 do_mount() {
 
     local ro_driver=$1
+    # Derive consistent names from the directory's basename.
+    # /etc → etc, /var/log → log  (unique for all standard overlay targets)
+    local _name="${ro_driver##*/}"
+    local upper_dir="${root_rw_mnt}/${_name}"
+    local work_dir="${root_rw_mnt}/.work/${_name}"
 
-    if [ ! -d ${ro_driver} ]; then
-        log_failure_msg "ERROR: Driver ${ro_driver} does not exist!"
-    elif [ $(cat /proc/self/mounts | grep -c "overlay.*${ro_driver}") != 0 ]; then
-        # check if driver has be mounted
-        log_warning_msg "WARNING: Driver ${ro_driver} is mounted!"
-    else
-        if [ ! -d "${root_rw_mnt}/${ro_driver##*/}" ]; then
-            mkdir -p "${root_rw_mnt}/${ro_driver##*/}"
-            if [ $? -ne 0 ]; then
-                log_failure_msg "ERROR: failed to create ${root_rw_mnt}"
-                exit 0
-            fi
-            log_warning_msg "Synchronize all files to overlay driver"
-            rsync --archive --quiet --no-links "${ro_driver}" "${root_rw_mnt}/"
-        else
-            log_warning_msg "Synchronize new files to overlay driver"
-            rsync --archive --update --quiet --no-links --ignore-existing "${ro_driver}" "${root_rw_mnt}/"
-        fi
-
-        log_begin_msg "Mounting ${ro_driver} by ${module_driver}"
-        mount -t overlay overlay -o rw,lowerdir=${ro_driver},upperdir=${root_rw_mnt}/${ro_driver##*/},workdir=${root_rw_work} ${ro_driver}
-        if [ $? -ne 0 ]; then
-            log_failure_msg "ERROR: failed to mount ${ro_driver} to ${root_rw_mnt}/${ro_driver##*/}"
-            exit 0
-        fi
-        log_end_msg 0
+    # Validate source directory exists
+    if [ ! -d "${ro_driver}" ]; then
+        log_failure_msg "ERROR: directory ${ro_driver} does not exist — cannot mount overlay"
+        return 1
     fi
+
+    # Skip if already mounted as overlay (idempotent — safe to call twice).
+    # findmnt is more precise than grepping /proc/self/mounts: it matches the
+    # exact mountpoint rather than any path that contains the directory name.
+    if findmnt -n -t overlay "${ro_driver}" > /dev/null 2>&1; then
+        log_warning_msg "WARNING: ${ro_driver} is already mounted as overlay — skipping"
+        return 0
+    fi
+
+    # ---- Ensure upper-dir exists and is populated ----
+
+    if [ ! -d "${upper_dir}" ]; then
+        # First boot: create upper-dir and copy the full read-only content into it.
+        # --archive (-a) preserves permissions, ownership, timestamps, AND symlinks
+        # (-l is implied by -a).  Do NOT add --no-links: system directories like
+        # /etc contain critical symlinks (localtime, resolv.conf, mtab, etc.) that
+        # must be present in the upper layer for the live system to function.
+        log_warning_msg "First-time mount: synchronising ${ro_driver} → ${upper_dir}"
+        mkdir -p "${upper_dir}"
+        if [ $? -ne 0 ]; then
+            log_failure_msg "ERROR: failed to create upper-dir ${upper_dir}"
+            return 1
+        fi
+        rsync --archive --quiet "${ro_driver}/" "${upper_dir}/"
+    else
+        # Subsequent boots: merge new files added by a system update to the lower
+        # (read-only) layer without overwriting existing user modifications.
+        # --ignore-existing: skip files already present in the upper-dir.
+        # --update:          skip files where lower mtime is older than upper mtime.
+        log_warning_msg "Incremental sync: merging new files from ${ro_driver} → ${upper_dir}"
+        rsync --archive --update --quiet --ignore-existing "${ro_driver}/" "${upper_dir}/"
+    fi
+
+    # ---- Ensure per-mount work-dir exists ----
+    # The work-dir must be on the same filesystem as upper-dir and must NOT be
+    # shared with any other overlay mount (kernel requirement).
+    mkdir -p "${work_dir}"
+    if [ $? -ne 0 ]; then
+        log_failure_msg "ERROR: failed to create work-dir ${work_dir}"
+        return 1
+    fi
+
+    # ---- Mount the overlay ----
+    log_begin_msg "Mounting overlay on ${ro_driver}"
+    mount -t overlay overlay \
+        -o "rw,lowerdir=${ro_driver},upperdir=${upper_dir},workdir=${work_dir}" \
+        "${ro_driver}"
+    if [ $? -ne 0 ]; then
+        log_failure_msg "ERROR: failed to mount overlay on ${ro_driver}"
+        return 1
+    fi
+    log_end_msg 0
 }
 
+# do_unmount <directory>
+# Unmount the overlay on <directory> (stop action).
 do_unmount() {
 
     local ro_driver=$1
 
-    log_begin_msg " Umount driver ${ro_driver}"
-    if [ $(cat /proc/self/mounts | grep -c "overlay.*${ro_driver}") != 0 ]; then
-
+    log_begin_msg "Unmounting overlay on ${ro_driver}"
+    if findmnt -n -t overlay "${ro_driver}" > /dev/null 2>&1; then
         umount "${ro_driver}"
         if [ $? -ne 0 ]; then
-            log_failure_msg "ERROR: failed to umount ${ro_driver}"
-            exit 0
+            log_failure_msg "ERROR: failed to unmount overlay on ${ro_driver}"
+            return 1
         fi
     fi
     log_end_msg 0
 }
 
+# do_swapfile <size>
+# Create (if not present) and enable a swap file of the given size on the
+# persistent data partition.
 do_swapfile() {
 
     local _size=$1
 
-    log_begin_msg "Create and enable swapfile ${_size}.swap in ${swap_rw_mnt} ..."
-    if [ $(cat /proc/self/mounts | grep -c "${swap_rw_mnt}") != 0 ]; then
-        if [ ! -f ${swap_rw_mnt}/${_size}.swap ]; then
-            log_warning_msg "Create swapfile ${_size}.swap in ${swap_rw_mnt} ..."
-            fallocate -l ${_size} ${swap_rw_mnt}/${_size}.swap
-            chmod 600 ${swap_rw_mnt}/${_size}.swap
-            mkswap ${swap_rw_mnt}/${_size}.swap
+    log_begin_msg "Enabling swap file ${_size} on ${swap_rw_mnt}"
+    # Check that the data partition is actually mounted before touching it.
+    if findmnt -n "${swap_rw_mnt}" > /dev/null 2>&1; then
+        if [ ! -f "${swap_rw_mnt}/${_size}.swap" ]; then
+            log_warning_msg "Creating swap file ${_size}.swap in ${swap_rw_mnt}"
+            fallocate -l "${_size}" "${swap_rw_mnt}/${_size}.swap"
+            chmod 600 "${swap_rw_mnt}/${_size}.swap"
+            mkswap "${swap_rw_mnt}/${_size}.swap"
         fi
-        log_warning_msg "Enable swapfile ${_size}.swap in ${swap_rw_mnt} ..."
-        swapon ${swap_rw_mnt}/${_size}.swap
+        swapon "${swap_rw_mnt}/${_size}.swap"
+        log_end_msg 0
+    else
+        log_warning_msg "Data partition ${swap_rw_mnt} not mounted — skipping swap"
     fi
 }
 
-# parse booting command line
+# ------------------------------------
+#   Parse kernel boot parameters
+# ------------------------------------
+
 for param in $(cat /proc/cmdline); do
-    case ${param} in
+    case "${param}" in
         readonlydriver=*)
-            ro_drivers=${param#readonlydriver=}
+            ro_drivers="${param#readonlydriver=}"
             ;;
         swapfilesize=*)
-            swapfilesize=${param#swapfilesize=}
+            swapfilesize="${param#swapfilesize=}"
+            ;;
+        disable_overlay=yes)
+            disable_overlay=yes
             ;;
     esac
 done
 
-# check if ${ro_drivers} is defined, otherwise exist the script
-if [ -z "${ro_drivers}" ] && [ "${ro_drivers}" = "/" ]; then
-    log_warning_msg "WARNING: Invalid parameter or parameter is NOT found, overlay driver will be disabled"
+# In DEBUG boot mode (USR-B), overlays are disabled for diagnostics
+if [ "${disable_overlay}" = "yes" ]; then
+    log_warning_msg "disable_overlay=yes detected — skipping all overlay mounts"
     exit 0
 fi
 
-# check if kernel module exists
-# comment below lines as overlayfs is enabled in default since kernel 4.8
-#modprobe -qb ${module_driver}
-#if [ $? -ne 0 ]; then
-#    log_failure_msg "ERROR: missing kernal module ${driver_module} "
-#    exit 0
-#fi
+# If readonlydriver is not set or empty, there is nothing to do
+if [ -z "${ro_drivers}" ]; then
+    log_warning_msg "readonlydriver parameter not found on kernel command line — overlay disabled"
+    exit 0
+fi
 
-# make the mount point on the read-write driver
-[ -d ${root_rw_mnt} ] || mkdir -p ${root_rw_mnt}
+# ------------------------------------
+#   Ensure overlay infrastructure root exists
+# ------------------------------------
+
+# The root_rw_mnt directory holds all upper-dirs and per-mount work-dirs.
+# It must exist before any overlay is mounted.
+[ -d "${root_rw_mnt}" ] || mkdir -p "${root_rw_mnt}"
 if [ $? -ne 0 ]; then
-    log_failure_msg "ERROR: failed to create ${root_rw_mnt}"
-    exit 0
-fi
-[ -d ${root_rw_work} ] || mkdir -p ${root_rw_work}
-if [ $? -ne 0 ]; then
-    log_failure_msg "ERROR: failed to create ${root_rw_work}"
-    exit 0
+    log_failure_msg "ERROR: failed to create overlay root ${root_rw_mnt}"
+    exit 1
 fi
 
-# remove first and last quote (single and double) if exist
-ro_drivers=$(tr -d \'\" <<< "${ro_drivers}")
-swapfilesize=$(tr -d \'\" <<< "${swapfilesize}")
+# ------------------------------------
+#   Strip enclosing quotes from parameter values
+# ------------------------------------
 
-# get separator character
-if [[ "$ro_drivers" == *","* ]]; then
-    IFS=",";
-elif [[ "$ro_drivers" == *";"* ]]; then
-    IFS=";";
-else
-    IFS="";
-fi
+ro_drivers="$(echo "${ro_drivers}" | tr -d \"\')"
+swapfilesize="$(echo "${swapfilesize}" | tr -d \"\')"
+
+# ------------------------------------
+#   Main action dispatch
+# ------------------------------------
 
 case "$1" in
     start)
-        read -ra _opt <<< "${ro_drivers}"
-        for param in "${_opt[@]}"; do
-            do_mount "${param}"
+        # Split ro_drivers on semicolons or commas (both separators accepted).
+        # IFS is set inline for this read call only — it does not pollute the
+        # surrounding shell environment.
+        IFS=';,' read -ra _dirs <<< "${ro_drivers}"
+        for dir in "${_dirs[@]}"; do
+            do_mount "${dir}"
         done
-        if [ ! -z ${swapfilesize} ]; then
-            do_swapfile ${swapfilesize}
+        if [ -n "${swapfilesize}" ]; then
+            do_swapfile "${swapfilesize}"
         fi
         ;;
     stop)
-        read -ra _opt <<< "${ro_drivers}"
-        for param in "${_opt[@]}"; do
-            do_unmount "${param}"
+        IFS=';,' read -ra _dirs <<< "${ro_drivers}"
+        for dir in "${_dirs[@]}"; do
+            do_unmount "${dir}"
         done
         ;;
     *)
-        echo "Usage $0 start|stop" >&2
+        echo "Usage: $0 {start|stop}" >&2
         exit 3
         ;;
-    esac
-:
+esac

@@ -1,111 +1,165 @@
 # =============================================================================
+# basefs/build-basefs — Step 3: System configuration inside the chroot
+# ======================================================================
+# Runs on: build_rootfs (inside the chroot via Ansible chroot connection)
 #
-# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
-#
-# - This is part of HomeVault imagebuilder project.
-# - This program is distributed in the hope that it will be useful,
-#   but WITHOUT ANY WARRANTY; without even the implied warranty of
-#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-#
+# Responsibilities:
+#   1. Hash and set the root password.
+#   2. Generate en_US.UTF-8 locale, write /etc/default/locale and /etc/profile.d/setenv.sh.
+#   3. Configure Netplan for DHCP with boot-continue-on-timeout behaviour.
+#   4. Configure systemd-networkd-wait-online timeout.
+#   5. Configure chrony NTP pools.
+#   6. Install the overlayfs init script and systemd service unit.
+#   7. Enable the overlayfs systemd service.
+#   8. Set the system timezone.
 # =============================================================================
 
 ---
-- name: encrypt password hash for root user
-  command: >
+# ---- Root password ----
+
+- name: "setup | Hash root password with SHA-512"
+  ansible.builtin.command: >
     mkpasswd --method=sha-512 {{ target_root_password }}
   register: root_password_hash
+  changed_when: false
 
-- name: Set root password
-  user:
+- name: "setup | Set root account password"
+  ansible.builtin.user:
     name: root
     password: "{{ root_password_hash.stdout }}"
 
-- name: Set locale to default profile
-  lineinfile:
+# ---- Locale ----
+# Ansible requires the Python interpreter to run under a UTF-8 locale.
+# 'C' / 'POSIX' locales use ASCII and will cause Ansible to abort with
+# "requires the locale encoding to be UTF-8; detected none".
+#
+# locale-gen compiles locale definitions to /usr/lib/locale/ — this is NOT
+# affected by the 01_nolocales dpkg rule which only strips /usr/share/locale/
+# (gettext message catalogs).  Generating en_US.UTF-8 is therefore safe even
+# in a minimal image with 01_nolocales applied.
+#
+# /etc/default/locale  — read by PAM (login, SSH, su) and systemd units
+# /etc/profile.d/      — read by interactive login shells (fallback)
+
+- name: "setup | Generate en_US.UTF-8 locale"
+  ansible.builtin.command: locale-gen en_US.UTF-8
+  changed_when: false
+
+- name: "setup | Set system-wide default locale in /etc/default/locale"
+  ansible.builtin.copy:
+    dest: "/etc/default/locale"
+    content: |
+      LANG=en_US.UTF-8
+      LC_ALL=en_US.UTF-8
+    owner: root
+    group: root
+    mode: 0644
+
+- name: "setup | Set locale environment variables in /etc/profile.d/setenv.sh"
+  ansible.builtin.lineinfile:
     dest: "/etc/profile.d/setenv.sh"
     line: "{{ item }}"
     create: yes
     state: present
     mode: 0755
-  with_items:
-    - "export LC_ALL=C"
+  loop:
+    - "export LANG=en_US.UTF-8"
+    - "export LC_ALL=en_US.UTF-8"
     - "export DEBIAN_FRONTEND=noninteractive"
 
-- name: Create folder interface.d
-  file:
-    path: /etc/network/interfaces.d
+# ---- Network configuration (Netplan + systemd-networkd) ----
+# Replaces the legacy ifupdown /etc/network/interfaces approach used in Ubuntu 16.
+# Netplan is the default network manager since Ubuntu 18.04.
+
+- name: "setup | Create /etc/netplan directory"
+  ansible.builtin.file:
+    path: /etc/netplan
     state: directory
     mode: 0755
 
-- name: Setup network interface
-  template:
-    src: "{{ item.name }}"
-    dest: "{{ item.dest }}"
+- name: "setup | Deploy Netplan DHCP configuration (01-netcfg.yaml)"
+  ansible.builtin.template:
+    src: "etc-netplan-01-netcfg.yaml.j2"
+    dest: "/etc/netplan/01-netcfg.yaml"
     owner: root
     group: root
-    mode: "{{ item.mode|default('0644') }}"
-  with_items: "{{ basefs_configuration }}"
+    mode: 0600
 
-- name: Change network waiting time for Ubuntu Trusty
-  replace:
-    dest: "/etc/init/failsafe.conf"
-    regexp: "[245][039]$"
-    replace: "3"
-  when: ansible_lsb.major_release|int < 15
+- name: "setup | Create systemd-networkd-wait-online override directory"
+  ansible.builtin.file:
+    path: /etc/systemd/system/systemd-networkd-wait-online.service.d
+    state: directory
+    mode: 0755
 
-- name: Update NTP servers pool
-  lineinfile:
-    dest: "/etc/ntp.conf"
+- name: "setup | Set systemd-networkd-wait-online timeout to {{ target_dhcp_timeout }}s"
+  # This prevents the boot sequence from hanging indefinitely when no DHCP
+  # server is reachable (e.g. network cable unplugged at first boot).
+  ansible.builtin.template:
+    src: "etc-systemd-system-networkd-wait-online-override.conf.j2"
+    dest: "/etc/systemd/system/systemd-networkd-wait-online.service.d/override.conf"
+    owner: root
+    group: root
+    mode: 0644
+
+# ---- NTP configuration (chrony) ----
+# Replaces legacy ntp / ntpdate packages removed in Ubuntu 20+.
+# chrony is the default NTP implementation in Ubuntu 20+.
+
+- name: "setup | Configure chrony NTP pool servers ({{ target_ntpserver }})"
+  ansible.builtin.lineinfile:
+    dest: "/etc/chrony/chrony.conf"
     regexp: "{{ item.regxp }}"
     line: "{{ item.line }}"
-    create: yes
     state: present
+    create: yes
     mode: 0644
-  with_items:
-    - { regxp: '^server 0.*', line: 'server 0.{{ target_ntpserver }}' }
-    - { regxp: '^server 1.*', line: 'server 1.{{ target_ntpserver }}' }
-    - { regxp: '^server 2.*', line: 'server 2.{{ target_ntpserver }}' }
-    - { regxp: '^server 3.*', line: 'server 3.{{ target_ntpserver }}' }
-    - { regxp: '^pool 0.*', line: 'server 0.{{ target_ntpserver }}' }
-    - { regxp: '^pool 1.*', line: 'server 1.{{ target_ntpserver }}' }
-    - { regxp: '^pool 2.*', line: 'server 2.{{ target_ntpserver }}' }
-    - { regxp: '^pool 3.*', line: 'server 3.{{ target_ntpserver }}' }
+  loop:
+    - { regxp: '^pool 0.*',   line: 'pool 0.{{ target_ntpserver }} iburst' }
+    - { regxp: '^pool 1.*',   line: 'pool 1.{{ target_ntpserver }} iburst' }
+    - { regxp: '^pool 2.*',   line: 'pool 2.{{ target_ntpserver }} iburst' }
+    - { regxp: '^pool 3.*',   line: 'pool 3.{{ target_ntpserver }} iburst' }
+    - { regxp: '^server 0.*', line: 'pool 0.{{ target_ntpserver }} iburst' }
+    - { regxp: '^server 1.*', line: 'pool 1.{{ target_ntpserver }} iburst' }
+    - { regxp: '^server 2.*', line: 'pool 2.{{ target_ntpserver }} iburst' }
+    - { regxp: '^server 3.*', line: 'pool 3.{{ target_ntpserver }} iburst' }
 
-- name: Copy init.d script
-  template:
+# ---- OverlayFS boot scripts ----
+# The init.d script provides the start/stop logic for mounting writable overlays.
+# The systemd unit enables this script to run early in the Noble boot sequence
+# (before sysinit.target, so /etc and /var/log are writable from first use).
+
+- name: "setup | Deploy overlayfs init script and systemd unit"
+  ansible.builtin.template:
     src: "{{ item.name }}"
     dest: "{{ item.dest }}"
     owner: root
     group: root
-    mode: "{{ item.mode|default('0644') }}"
-  with_items: "{{ basefs_init_script }}"
+    mode: "{{ item.mode | default('0644') }}"
+  loop: "{{ basefs_init_script }}"
 
-- name: Enable overlayfs in boot time (upstart)
-  command: >
-    update-rc.d mount-overlayfs defaults
-  when: ansible_lsb.major_release|int < 15
+- name: "setup | Enable overlayfs.service to run at boot (systemd)"
+  ansible.builtin.command: systemctl enable overlayfs.service
+  # Note: systemctl --root would be ideal in a chroot, but 'enable' with the
+  # chroot connection correctly writes the symlink into the chroot.
 
-- name: Enable overlayfs in boot time (systemd)
-  command: >
-    systemctl enable overlayfs.service
-  when: ansible_lsb.major_release|int >= 15
+# ---- Timezone ----
 
-- name: Set locale timezone (trusty) 
-  copy:
-    content: "{{ target_timezone }}"
+- name: "setup | Create /etc/localtime symlink for timezone {{ target_timezone }}"
+  ansible.builtin.file:
+    src: "/usr/share/zoneinfo/{{ target_timezone }}"
+    dest: "/etc/localtime"
+    state: link
+    force: yes
+
+- name: "setup | Write /etc/timezone file"
+  ansible.builtin.copy:
+    content: "{{ target_timezone }}\n"
     dest: "/etc/timezone"
     owner: root
     group: root
     mode: 0644
-  when: ansible_lsb.major_release|int < 15
 
-- name: Set locale timezone
-  file:
-    src: "/usr/share/zoneinfo/{{ target_timezone }}"
-    dest: "/etc/localtime"
-    state: link
-  when: ansible_lsb.major_release|int >= 15
-
-- name: Update timezone
-  command: >
-    /usr/sbin/dpkg-reconfigure --frontend noninteractive tzdata
+- name: "setup | Reconfigure tzdata to apply timezone setting"
+  ansible.builtin.command: /usr/sbin/dpkg-reconfigure --frontend noninteractive tzdata
+  environment:
+    DEBIAN_FRONTEND: noninteractive

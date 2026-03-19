@@ -1,42 +1,61 @@
 # =============================================================================
+# basefs/build-basefs — Step 2: Install kernel and packages
+# ==========================================================
+# Runs on: build_rootfs (inside the chroot via Ansible chroot connection)
 #
-# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
-#
-# - This is part of HomeVault imagebuilder project.
-# - This program is distributed in the hope that it will be useful,
-#   but WITHOUT ANY WARRANTY; without even the implied warranty of
-#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-#
+# Responsibilities:
+#   1. Update apt cache inside the chroot.
+#   2. Install the pinned kernel version (no meta-packages).
+#   3. Install all base and utility packages defined in vars/basefs.yml.
+#   4. Run a full dist-upgrade to apply any security updates.
 # =============================================================================
 
 ---
-- name: Update repository cache
-  apt:
-    update_cache: yes
+# ---- Refresh package index ----
 
-- name: Install Linux kernel
-  apt:
+- name: "build-basefs | Update apt package cache"
+  ansible.builtin.apt:
+    update_cache: yes
+  environment:
+    DEBIAN_FRONTEND: noninteractive
+
+# ---- Kernel installation ----
+# NOTE: Always use an exact kernel version (build_kernel_version) — never use
+# the 'linux-image-generic' meta-package, as it pulls in HWE dependencies and
+# significantly increases image size.
+
+- name: "build-basefs | Install pinned Linux kernel {{ build_kernel_version }}"
+  ansible.builtin.apt:
     name: "linux-image-{{ build_kernel_version }}"
-
-- name: Install Linux kernel extra
-  apt:
-    name: "linux-image-extra-{{ build_kernel_version }}"
-
-- name: Install additional packages
-  apt:
-    name: "{{ item.package }}={{ item.version|default('*') }}"
+    state: present
     install_recommends: no
-    update_cache: yes
+  environment:
+    DEBIAN_FRONTEND: noninteractive
+  # NOTE: linux-image-extra-* was merged into the main kernel package in Ubuntu 20+.
+  # Do NOT install linux-image-extra-{{ build_kernel_version }} — it does not exist.
+
+# ---- Base and utility packages ----
+
+- name: "build-basefs | Install base and utility packages"
+  ansible.builtin.apt:
+    name: "{{ item.package }}{% if item.version is defined and item.version != '*' %}={{ item.version }}{% endif %}"
+    state: present
+    install_recommends: no
+    update_cache: no
   register: install_pkgs
-  until: install_pkgs|success
+  until: install_pkgs is success
   retries: 2
   delay: 5
-  with_flattened:
-    - "{{ basefs_base_packages }}"
-    - "{{ basefs_packages }}"
+  environment:
+    DEBIAN_FRONTEND: noninteractive
+  loop: "{{ basefs_base_packages + basefs_packages }}"
 
-- name: System upgrade
-  apt:
+# ---- Distribution upgrade ----
+
+- name: "build-basefs | Run dist-upgrade to apply latest security updates"
+  ansible.builtin.apt:
     upgrade: dist
     update_cache: yes
     dpkg_options: 'force-confold,force-confdef'
+  environment:
+    DEBIAN_FRONTEND: noninteractive
