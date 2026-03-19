@@ -1,0 +1,9 @@
+# =============================================================================
+# services/mariadb11 — Task entry point
+# ======================================
+# Runs install-debian.yml then setup.yml in sequence.
+# =============================================================================
+
+---
+- ansible.builtin.import_tasks: install-debian.yml
+- ansible.builtin.import_tasks: setup.yml

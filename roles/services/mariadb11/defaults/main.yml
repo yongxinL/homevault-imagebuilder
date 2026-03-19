@@ -1,0 +1,168 @@
+# =============================================================================
+#
+# - Copyright (C) 2026     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# =============================================================================
+
+# Default variables for the services/mariadb11 role
+# ==================================================
+# Installs MariaDB 11.4 LTS from the MariaDB Foundation repository.
+#
+# Why a new role folder (mariadb11) instead of updating mariadb10?
+#   MariaDB 11.x is a major version change with breaking configuration changes.
+#   Keeping mariadb10 intact allows building Ubuntu 22.x images (which use 10.x)
+#   while Noble images use this role.  See README for Ubuntu 22.x notes.
+#
+# Changes from mariadb10:
+#   CHANGED  mariadb_version: 10.1 → 11.4 (LTS)
+#   CHANGED  Repository mirror: mirror.aarnet.edu.au → downloads.mariadb.org
+#   CHANGED  GPG key: keyserver.ubuntu.com → MariaDB Foundation key URL
+#   CHANGED  GPG key approach: apt-key (deprecated) → signed-by keyring file
+#   REMOVED  python-mysqldb    → Python 2, not in Noble; replaced by python3-mysqldb
+#   ADDED    python3-mysqldb   → Python 3 MySQL client library
+#   REMOVED  innodb_support_xa         → removed in MariaDB 10.3
+#   REMOVED  innodb_use_mtflush        → removed in MariaDB 10.3
+#   REMOVED  innodb_mtflush_threads    → removed in MariaDB 10.3
+#   REMOVED  innodb_use_fallocate      → removed in MariaDB 10.3
+#   REMOVED  query_cache_limit         → query cache removed in MariaDB 10.3
+#   REMOVED  query_cache_size          → query cache removed in MariaDB 10.3
+#   REMOVED  innodb_compression_algorithm → plugin-specific, not valid in 11.x
+#   CHANGED  innodb_use_native_aio     → still valid in 11.4, kept
+
+# .. envvar:: install_role_name
+install_role_name: 'mariadb'
+
+# .. envvar:: mariadb_version
+#
+# MariaDB major.minor version to install.
+# LTS releases: 10.11 (until 2028), 11.4 (until 2029)
+# See https://mariadb.org/about/#maintenance-policy for support schedule.
+mariadb_version: '11.4'
+
+# .. envvar:: mariadb_repo_keyring
+#
+# Path where the MariaDB Foundation GPG key is stored in dearmored binary format.
+mariadb_repo_keyring: '/etc/apt/keyrings/mariadb.gpg'
+
+# .. envvar:: mariadb_repo_key_url
+#
+# URL of the MariaDB Foundation GPG signing key (armored ASCII format).
+mariadb_repo_key_url: 'https://mariadb.org/mariadb_release_signing_key.pgp'
+
+# .. envvar:: mariadb_repository
+#
+# APT source entry for MariaDB 11.4 LTS.
+# Uses the AARNet mirror (Australia) for faster downloads in AU/NZ.
+# Alternative global mirror: https://downloads.mariadb.org/rest-api/mariadb/
+mariadb_repository:
+  - dest: '/etc/apt/sources.list.d/{{ install_role_name }}.list'
+    line: >-
+      deb [arch=amd64 signed-by={{ mariadb_repo_keyring }}]
+      https://mirror.aarnet.edu.au/pub/MariaDB/repo/{{ mariadb_version }}/{{ ansible_distribution | lower }}
+      {{ ansible_distribution_release }} main
+
+# .. envvar:: target_root_password
+#
+# Root password used to initialise the MariaDB root account.
+# The plain-text password is hashed during the build and stored only as a hash.
+target_root_password: 'secret'
+
+# .. envvar:: target_data_root
+# .. envvar:: target_appdata_root
+#
+# Directory where MariaDB stores its data files on the persistent data partition.
+# The init script (init-mariadb.sh) creates this directory on first boot and
+# extracts the initial database snapshot (mysqldb_init.tar.gz) into it.
+target_data_root: '/var'
+target_appdata_root: '{{ target_data_root }}/lib'
+
+# .. envvar:: mariadb_base_packages
+#
+# Core MariaDB packages to install.
+# NOTE: python-mysqldb (Python 2) is replaced by python3-mysqldb (Python 3).
+mariadb_base_packages:
+  - { package: 'mariadb-server' }
+  - { package: 'mariadb-client' }
+  - { package: 'mariadb-common' }
+  - { package: 'mysql-common' }
+  - { package: 'python3-mysqldb' }    # Python 3 MySQL client (replaces python-mysqldb)
+
+# .. envvar:: mariadb_packages
+#
+# Additional MariaDB-related packages (none by default).
+mariadb_packages: []
+
+# .. envvar:: mariadb_configuration
+#
+# Configuration files deployed into the overlay layer for MariaDB.
+mariadb_configuration:
+  - { name: 'etc-mysql-my.cnf.j2',
+      dest: '/etc/mysql/my.cnf' }
+  - { name: 'etc-systemd-service.d-mysql.conf.j2',
+      dest: '/etc/systemd/system/mariadb.service.d/mysql.conf' }
+  - { name: 'etc-init.d-init-mariadb.sh.j2',
+      dest: '/etc/init.d/init-mariadb.sh',
+      mode: "0755" }
+
+# .. envvar:: mariadb_mysqld_conf
+#
+# MariaDB [mysqld] configuration key-value pairs rendered into my.cnf.
+# Deprecated options removed for MariaDB 11.4 compatibility:
+#   innodb_support_xa          — removed in 10.3
+#   innodb_use_mtflush         — removed in 10.3
+#   innodb_mtflush_threads     — removed in 10.3
+#   innodb_use_fallocate       — removed in 10.3
+#   query_cache_limit          — query cache removed in 10.3
+#   query_cache_size           — query cache removed in 10.3
+#   innodb_compression_algorithm — plugin-specific, not valid in 11.x
+mariadb_mysqld_conf:
+  # Basic settings
+  user: 'root'
+  port: '3306'
+  datadir: '{{ target_appdata_root }}/mysql'
+  bind-address: '127.0.0.1'
+  # Connection tuning
+  max_connections: 100
+  connect_timeout: 5
+  wait_timeout: 600
+  max_allowed_packet: 16M
+  thread_cache_size: 128
+  sort_buffer_size: 4M
+  bulk_insert_buffer_size: 16M
+  tmp_table_size: 32M
+  max_heap_table_size: 32M
+  # InnoDB performance
+  innodb_checksums: 1
+  innodb_checksum_algorithm: crc32
+  innodb_doublewrite: 0
+  innodb_thread_concurrency: 0
+  innodb_flush_log_at_trx_commit: 1
+  innodb_max_dirty_pages_pct: 90
+  innodb_max_dirty_pages_pct_lwm: 10
+  innodb_lru_scan_depth: 4000
+  join_buffer_size: 32K
+  innodb_use_native_aio: 1
+  innodb_stats_persistent: 1
+  innodb_spin_wait_delay: 6
+  # InnoDB adaptive behaviour
+  innodb_adaptive_flushing: 1
+  innodb_flush_neighbors: 0
+  innodb_read_io_threads: 16
+  innodb_write_io_threads: 16
+  innodb_purge_threads: 4
+  innodb_max_purge_lag_delay: 10000000
+  innodb_max_purge_lag: 1000000
+  innodb_adaptive_hash_index: 0
+  # InnoDB storage
+  default_storage_engine: InnoDB
+  innodb_buffer_pool_size: 256M
+  innodb_log_buffer_size: 8M
+  innodb_file_per_table: 1
+  innodb_open_files: 400
+  innodb_io_capacity: 1500
+  innodb_flush_method: O_DIRECT

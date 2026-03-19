@@ -1,0 +1,57 @@
+#!/bin/bash
+### BEGIN INIT INFO
+# Provides:          init-{{ install_role_name }}.sh
+# Required-Start:
+# Required-Stop:
+# Default-Start:
+# Default-Stop:
+# Short-Description: Initialise MariaDB data directory on first boot
+# Description:       On first boot, creates the MariaDB data directory on the
+#                    persistent data partition and restores the initial database
+#                    snapshot.  Runs as ExecStartPre in mariadb.service.
+### END INIT INFO
+
+# =============================================================================
+#
+# - Copyright (C) 2026     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - init-mariadb.sh — MariaDB first-boot initialisation script
+#
+# How it works:
+#   On first boot (no stamp file exists):
+#     1. Creates {{ target_appdata_root }}/mysql if it does not exist.
+#     2. Extracts the initial database snapshot from /etc/mysql/mysqldb_init.tar.gz.
+#     3. Sets the root password using the hash generated at image build time.
+#     4. Creates the stamp file to skip initialisation on subsequent boots.
+#
+# The stamp file (/etc/setup_{{ install_role_name }}.stamp) prevents re-initialisation
+# after the first successful boot.
+# =============================================================================
+
+. /lib/lsb/init-functions
+
+STAMP_FILE="/etc/setup_{{ install_role_name }}.stamp"
+DATA_DIR="{{ target_appdata_root }}/mysql"
+SNAPSHOT="/etc/mysql/mysqldb_init.tar.gz"
+
+if [ ! -f "${STAMP_FILE}" ]; then
+
+    log_begin_msg "Initialising MariaDB data directory on first boot"
+
+    # Create data directory on persistent partition if it does not exist
+    [ ! -d "${DATA_DIR}" ] && /bin/mkdir -p "${DATA_DIR}" && /bin/chmod -R 755 "${DATA_DIR}"
+
+    # Extract initial database snapshot
+    tar -xzf "${SNAPSHOT}" -C "{{ target_appdata_root }}" > /dev/null
+
+    # Set root password using hash generated at build time
+    echo "UPDATE mysql.user SET Password='{{ mysql_password_hash.stdout }}' WHERE User='root';" \
+        | mysqld --bootstrap > /dev/null
+
+    chown -R root:root "${DATA_DIR}"
+
+    touch "${STAMP_FILE}"
+    log_end_msg 0
+
+fi

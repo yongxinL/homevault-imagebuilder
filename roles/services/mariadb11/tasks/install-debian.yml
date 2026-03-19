@@ -1,0 +1,67 @@
+# =============================================================================
+# services/mariadb11 — Install MariaDB 11.4 LTS
+# ==============================================
+# Runs on: build_rootfs (inside the chroot)
+#
+# Steps:
+#   1. Create /etc/apt/keyrings directory.
+#   2. Download and dearmor the MariaDB Foundation GPG signing key.
+#   3. Add the MariaDB 11.4 apt source entry (signed-by reference).
+#   4. Install MariaDB server, client, and Python 3 connector packages.
+#   5. Remove the build-time apt source entry (key is retained).
+# =============================================================================
+
+---
+# ---- GPG keyring setup ----
+
+- name: "mariadb11 | Create /etc/apt/keyrings directory"
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: 0755
+
+- name: "mariadb11 | Download and dearmor MariaDB Foundation GPG signing key"
+  ansible.builtin.shell: >
+    curl -fsSL {{ mariadb_repo_key_url }}
+    | gpg --dearmor -o {{ mariadb_repo_keyring }}
+  args:
+    creates: "{{ mariadb_repo_keyring }}"
+
+- name: "mariadb11 | Set permissions on MariaDB keyring"
+  ansible.builtin.file:
+    path: "{{ mariadb_repo_keyring }}"
+    mode: 0644
+
+# ---- APT source entry ----
+
+- name: "mariadb11 | Add MariaDB {{ mariadb_version }} LTS apt repository"
+  ansible.builtin.lineinfile:
+    dest: "{{ item.dest }}"
+    line: "{{ item.line }}"
+    create: true
+    state: present
+  loop: "{{ mariadb_repository }}"
+
+# ---- Install MariaDB packages ----
+
+- name: "mariadb11 | Install MariaDB {{ mariadb_version }} server and client packages"
+  ansible.builtin.apt:
+    name: "{{ item.package }}{% if item.version is defined and item.version != '*' %}={{ item.version }}{% endif %}"
+    state: present
+    install_recommends: false
+    update_cache: true
+  register: install_pkgs
+  until: install_pkgs is success
+  retries: 2
+  delay: 5
+  environment:
+    DEBIAN_FRONTEND: noninteractive
+  loop: "{{ mariadb_base_packages + mariadb_packages }}"
+
+# ---- Remove build-time apt source entry ----
+
+- name: "mariadb11 | Remove MariaDB apt source entry (key retained for live updates)"
+  ansible.builtin.file:
+    path: "{{ item.dest }}"
+    state: absent
+  loop: "{{ mariadb_repository }}"

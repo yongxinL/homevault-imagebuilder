@@ -1,0 +1,19 @@
+# =============================================================================
+# /etc/systemd/system/mariadb.service.d/mysql.conf
+# ==================================================
+# Managed by Ansible (HomeVault imagebuilder — services/mariadb11 role)
+#
+# Systemd service drop-in for MariaDB 11.4.
+# Redirects MariaDB log output to the system journal via syslog.
+# Running as root is required so the init script can access the overlay
+# data partition before normal user namespacing applies.
+# =============================================================================
+
+[Service]
+
+User=root
+StandardOutput=syslog
+StandardError=syslog
+SyslogFacility=daemon
+SyslogLevel=err
+SyslogIdentifier=mysqld

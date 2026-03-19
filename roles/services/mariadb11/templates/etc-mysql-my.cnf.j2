@@ -1,0 +1,72 @@
+# =============================================================================
+# /etc/mysql/my.cnf — MariaDB 11.4 LTS configuration
+# =====================================================
+# Managed by Ansible (HomeVault imagebuilder — services/mariadb11 role)
+#
+# The [mysqld] tuning section (marked MANAGED BLOCK) is generated from the
+# mariadb_mysqld_conf dictionary in defaults/main.yml.
+#
+# IMPORTANT: Options removed in MariaDB 10.3+ are NOT included here:
+#   - innodb_support_xa, innodb_use_mtflush, innodb_mtflush_threads,
+#     innodb_use_fallocate, query_cache_limit, query_cache_size,
+#     innodb_compression_algorithm
+# =============================================================================
+
+#======================= MariaDB 11.4 Settings =======================
+
+[client]
+    port                      = 3306
+    socket                    = /var/run/mysqld/mysqld.sock
+
+[mysqld_safe]
+    socket                    = /var/run/mysqld/mysqld.sock
+    nice                      = 0
+
+[mysqld]
+    # * Basic Settings
+    pid-file                  = /var/run/mysqld/mysqld.pid
+    socket                    = /var/run/mysqld/mysqld.sock
+    basedir                   = /usr
+    tmpdir                    = /tmp
+    lc_messages_dir           = /usr/share/mysql
+    lc_messages               = en_US
+    skip-external-locking
+
+    # * MyISAM
+    myisam-recover-options    = BACKUP
+    key_buffer_size           = 128M
+    table_open_cache          = 400
+    myisam_sort_buffer_size   = 512M
+    concurrent_insert         = 2
+    read_buffer_size          = 2M
+    read_rnd_buffer_size      = 1M
+
+    # * Logging and Replication
+    log_warnings              = 2
+    slow_query_log_file       = /var/log/mysql/mariadb-slow.log
+    long_query_time           = 10
+    log_slow_verbosity        = query_plan
+
+    # * Fine Tuning and InnoDB — Managed by Ansible
+    # BEGIN MANAGED mariadb BLOCK
+{% if mariadb_mysqld_conf is defined and mariadb_mysqld_conf %}
+{% for key, value in mariadb_mysqld_conf.items() %}
+    {{ "%-35s" | format(key) }} = {{ value }}
+{% endfor %}
+{% endif %}
+    # END MANAGED mariadb BLOCK
+
+[mysqldump]
+    quick
+    quote-names
+    max_allowed_packet        = 16M
+
+[mysql]
+    # no-auto-rehash: faster start of mysql but disables tab completion
+    #no-auto-rehash
+
+[isamchk]
+    key_buffer                = 16M
+
+# Include additional configuration files from conf.d/
+!includedir /etc/mysql/conf.d/

@@ -1,0 +1,115 @@
+# =============================================================================
+# services/mariadb11 — Configure MariaDB 11.4 after installation
+# ==============================================================
+# Runs on: build_rootfs (inside the chroot)
+#
+# Steps:
+#   1. Create initial database snapshot (mysqldb_init.tar.gz) for first-boot use.
+#   2. Temporarily start MariaDB to hash the root password.
+#   3. Stop MariaDB and remove the runtime database directory.
+#   4. Deploy my.cnf, systemd service override, and init script.
+#   5. Configure the mariadb.service systemd unit to run as root and use the
+#      persistent data partition path.
+#   6. Disable mariadb from auto-starting at boot (the init script handles it
+#      after the data partition is mounted).
+#
+# Design rationale:
+#   MariaDB data must live on the persistent data partition (target_appdata_root)
+#   rather than in the read-only squashfs.  The init script (init-mariadb.sh)
+#   creates the data directory and extracts the snapshot on first boot, then
+#   starts the MariaDB service.
+# =============================================================================
+
+---
+# ---- Create initial database snapshot ----
+
+- name: "mariadb11 | Create initial database snapshot for first-boot restore"
+  ansible.builtin.command: "{{ item }}"
+  args:
+    chdir: /var/lib
+  loop:
+    - rm -rf /var/lib/mysql/ib_logfile*
+    - chown -R root:root mysql
+    - tar -czf /etc/mysql/mysqldb_init.tar.gz mysql
+    - chown -R mysql:mysql mysql
+
+# ---- Hash root password via temporary MariaDB start ----
+
+- name: "mariadb11 | Start MariaDB temporarily to hash root password"
+  ansible.builtin.command: service mariadb start
+  args:
+    chdir: /var/lib
+
+- name: "mariadb11 | Hash MariaDB root password"
+  ansible.builtin.command: >
+    mysql -NBe "SELECT PASSWORD('{{ target_root_password }}')"
+  register: mysql_password_hash
+
+- name: "mariadb11 | Stop MariaDB"
+  ansible.builtin.command: service mariadb stop
+  args:
+    chdir: /var/lib
+
+# ---- Remove runtime database directory ----
+# The data directory is recreated on first boot by init-mariadb.sh from the
+# snapshot stored in /etc/mysql/mysqldb_init.tar.gz.
+
+- name: "mariadb11 | Remove runtime database directory (recreated on first boot)"
+  ansible.builtin.file:
+    path: /var/lib/mysql
+    state: absent
+
+# ---- Systemd service configuration ----
+
+- name: "mariadb11 | Check whether mariadb.service file exists"
+  ansible.builtin.stat:
+    path: "/lib/systemd/system/mariadb.service"
+  register: mariadb_service_file
+
+- name: "mariadb11 | Remove auto-generated migration config (if present)"
+  ansible.builtin.file:
+    path: /etc/systemd/system/mariadb.service.d/migrated-from-my.cnf-settings.conf
+    state: absent
+
+- name: "mariadb11 | Deploy MariaDB configuration files (my.cnf, systemd override, init script)"
+  ansible.builtin.template:
+    src: "{{ item.name }}"
+    dest: "{{ item.dest }}"
+    owner: root
+    group: root
+    mode: "{{ item.mode | default('0644') }}"
+  loop: "{{ mariadb_configuration }}"
+
+- name: "mariadb11 | Prepend init script call to mariadb.service ExecStart"
+  ansible.builtin.lineinfile:
+    dest: "/lib/systemd/system/mariadb.service"
+    line: 'ExecStartPre=/etc/init.d/init-mariadb.sh'
+    insertbefore: "^ExecStart.*"
+    state: present
+  when: mariadb_service_file.stat.exists
+
+- name: "mariadb11 | Apply service overrides (run as root, correct socket path)"
+  ansible.builtin.lineinfile:
+    dest: "/lib/systemd/system/mariadb.service"
+    regexp: "{{ item.regxp }}"
+    line: "{{ item.line }}"
+    state: present
+  loop:
+    - { regxp: '^User.*',
+        line: 'User=root' }
+    - { regxp: '^Group.*',
+        line: 'Group=root' }
+    - { regxp: '^CapabilityBoundingSet.*',
+        line: '#CapabilityBoundingSet=CAP_IPC_LOCK' }
+    - { regxp: '^ProtectSystem.*',
+        line: '#ProtectSystem=full' }
+    - { regxp: '^ExecStartPre=/usr/bin/install.*',
+        line: 'ExecStartPre=/usr/bin/install -m 755 -o root -g root -d /var/run/mysqld' }
+  when: mariadb_service_file.stat.exists
+
+# ---- Disable auto-start at boot ----
+# MariaDB is started by init-mariadb.sh after the data partition is mounted.
+
+- name: "mariadb11 | Disable mariadb from auto-starting at boot (managed by init script)"
+  ansible.builtin.command: update-rc.d -f mariadb remove
+  ignore_errors: true
