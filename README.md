@@ -4,7 +4,11 @@ Ansible-based build system that produces a bootable Ubuntu live ISO for the Home
 home server / NAS appliance.  The image runs entirely from RAM with a read-only squashfs
 base and writable overlayfs layers, and is designed to run inside a VMware ESXi 7.0 VM.
 
+<<<<<<< HEAD
 Copyright (C) 2026  George Li <yongxinl@outlook.com>
+=======
+Copyright (C) 2016  George Li <yongxinl@outlook.com>
+>>>>>>> 4539c2a754d07aec36681d6a33c379c451d9a8e4
 
 ---
 
@@ -319,6 +323,10 @@ homevault-imagebuilder/
     ├── imgbuild/             # ISO assembly stages
     ├── hardware/
     │   ├── vmtools/          # VMware open-vm-tools
+<<<<<<< HEAD
+=======
+    │   └── hpgen8/           # HP ProLiant Gen8 hardware tools
+>>>>>>> 4539c2a754d07aec36681d6a33c379c451d9a8e4
     └── services/
         ├── users/            # User accounts and groups
         ├── openssh/          # SSH server
