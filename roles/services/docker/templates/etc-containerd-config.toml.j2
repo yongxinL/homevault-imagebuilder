@@ -1,0 +1,11 @@
+# /etc/containerd/config.toml
+#
+# Redirect containerd's data root to the persistent ext4 data partition.
+#
+# Why: The live system rootfs is an overlayfs (casper). Containerd's overlayfs
+# snapshotter (used to layer container images) cannot be nested inside another
+# overlayfs — the kernel returns EINVAL even with index=off. Moving root to
+# the ext4 data partition avoids this nesting.
+#
+root = "{{ target_appdata_root }}/containerd"
+state = "/run/containerd"

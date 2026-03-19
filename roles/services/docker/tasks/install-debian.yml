@@ -1,77 +1,100 @@
 # =============================================================================
+# services/docker — Install Docker CE from the official Docker repository
+# ========================================================================
+# Runs on: build_rootfs (inside the chroot)
 #
-# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+# Steps:
+#   1. Create /etc/apt/keyrings directory.
+#   2. Download and dearmor the Docker GPG signing key.
+#   3. Add the Docker CE apt source entry (signed-by reference).
+#   4. Install prerequisite packages (apt-transport-https, ca-certificates, etc.).
+#   5. Install Docker CE packages (docker-ce, cli, containerd, buildx, compose-plugin).
+#   6. Add configured user accounts to the docker group.
+#   7. Remove the build-time apt source entry (key is retained for live updates).
 #
-# - This is part of HomeVault imagebuilder project.
-# - This program is distributed in the hope that it will be useful,
-#   but WITHOUT ANY WARRANTY; without even the implied warranty of
-#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-#
+# Docker Compose v2 note:
+#   This role installs docker-compose-plugin which provides 'docker compose'
+#   (with a space).  The old standalone 'docker-compose' binary (v1) is removed.
+#   Scripts using 'docker-compose' (hyphen) must be updated to 'docker compose'.
 # =============================================================================
 
 ---
-- name: check if pip is already install
-  command: "pip --version"
-  ignore_errors: true
-  changed_when: false
-  check_mode: no
-  register: pip_installed
+# ---- GPG keyring setup ----
 
-- name: add {{ install_role_name }} repository key
-  apt_key: 
-    keyserver: "{{ docker_repo_keyserver }}"
-    id: "{{ docker_repo_keyid }}"
-    state: present
+- name: "docker | Create {{ docker_repo_keyring }} directory"
+  ansible.builtin.file:
+    path: "{{ docker_repo_keyring }}"
+    state: directory
+    mode: 0755
 
-- name: add {{ install_role_name }} repository list
-  lineinfile: 
+- name: "docker | Download and dearmor Docker GPG signing key"
+  ansible.builtin.shell: >
+    curl -fsSL {{ docker_repo_key_url }}
+    | gpg --dearmor -o {{ docker_repo_keyring ~ '/' ~ install_role_name ~ '.gpg' }}
+  args:
+    creates: "{{ docker_repo_keyring ~ '/' ~ install_role_name ~ '.gpg' }}"
+
+- name: "docker | Set permissions on Docker keyring"
+  ansible.builtin.file:
+    path: "{{ docker_repo_keyring ~ '/' ~ install_role_name ~ '.gpg' }}"
+    mode: 0644
+
+# ---- APT source entry ----
+
+- name: "docker | Add Docker CE stable apt repository"
+  ansible.builtin.lineinfile:
     dest: "{{ item.dest }}"
     line: "{{ item.line }}"
-    create: yes
+    create: true
     state: present
-  with_items: "{{ docker_repository }}"
+  loop: "{{ docker_repository }}"
 
-- name: verify APT is pulling from right repository
-  command: >
-    apt-cache policy docker-engine
+# ---- Install prerequisite packages ----
 
-- name: install required {{ install_role_name }} packages (apt)
-  apt: 
-    name: "{{ item.package }}={{ item.version|default('*') }}"
-    install_recommends: no
-    update_cache: yes
+- name: "docker | Install Docker prerequisite packages"
+  ansible.builtin.apt:
+    name: "{{ item.package }}"
+    state: present
+    install_recommends: false
+    update_cache: true
   register: install_pkgs
-  until: install_pkgs|success
+  until: install_pkgs is success
   retries: 2
   delay: 5
-  with_flattened:
-    - "{{ docker_base_packages }}"
-    - "{{ docker_packages }}"
+  environment:
+    DEBIAN_FRONTEND: noninteractive
+  loop: "{{ docker_base_packages }}"
 
-- name: install required {{ install_role_name }} packages (pip)
-  pip: 
-    name: "{{ item.package }}"
-  with_items: "{{ docker_pip_packages }}"
-  when: pip_installed.rc == 0
+# ---- Install Docker CE packages ----
 
-- name: add users to {{ install_role_name }} group
-  user:
+- name: "docker | Install Docker CE, CLI, containerd, buildx, and compose plugin"
+  ansible.builtin.apt:
+    name: "{{ item.package }}{% if item.version is defined and item.version != '*' %}={{ item.version }}{% endif %}"
+    state: present
+    install_recommends: false
+    update_cache: true
+  register: install_pkgs
+  until: install_pkgs is success
+  retries: 2
+  delay: 5
+  environment:
+    DEBIAN_FRONTEND: noninteractive
+  loop: "{{ docker_packages }}"
+
+# ---- Group membership ----
+
+- name: "docker | Add users to docker group"
+  ansible.builtin.user:
     name: '{{ item }}'
     groups: 'docker'
-    append: yes
-  with_items: "{{ docker_admins }}"
+    append: true
+  loop: "{{ docker_admins }}"
   when: docker_admins is defined
 
-- name: remove {{ install_role_name }} repository list
-  file: 
+# ---- Remove build-time apt source entry ----
+
+- name: "docker | Remove Docker apt source entry (key retained for live updates)"
+  ansible.builtin.file:
     path: "{{ item.dest }}"
     state: absent
-  with_flattened:
-    - "{{ docker_repository }}"
-
-- name: install {{ install_role_name }} compose from github
-  get_url:
-    url: "https://github.com/docker/compose/releases/download/{{ docker_compose_version }}/docker-compose-linux-x86_64"
-    dest: /usr/bin/docker-compose
-    mode: 0755
-  when: pip_installed.rc != 0
+  loop: "{{ docker_repository }}"

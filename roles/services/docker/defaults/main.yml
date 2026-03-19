@@ -1,6 +1,6 @@
 # =============================================================================
 #
-# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+# - Copyright (C) 2026     George Li <yongxinl@outlook.com>
 #
 # - This is part of HomeVault imagebuilder project.
 # - This program is distributed in the hope that it will be useful,
@@ -9,85 +9,96 @@
 #
 # =============================================================================
 
-# Default variables
-# =================
-
-# .. contents:: Sections
-#    :local:
+# Default variables for the services/docker role
+# ===============================================
+# Installs Docker CE from the official Docker Inc. APT repository.
 #
-# ------------------------------------
-#   Packages and installation
-# ------------------------------------
+# Changes from Ubuntu 16 (Xenial):
+#   CHANGED  Repository URL: apt.dockerproject.org → download.docker.com
+#   CHANGED  GPG key:        sks-keyservers.net (defunct) → download.docker.com/linux/ubuntu/gpg
+#   CHANGED  Package:        docker-engine → docker-ce + docker-ce-cli + containerd.io
+#   REMOVED  aufs-tools      → aufs kernel module removed in Ubuntu 20+; overlayfs is used
+#   REMOVED  pip docker-compose (v1) → replaced by docker-compose-plugin (v2, apt package)
+#   ADDED    docker-buildx-plugin  → BuildKit multi-platform builds
+#   ADDED    docker-compose-plugin → Docker Compose v2 (replaces standalone docker-compose)
+
+# .. envvar:: install_role_name
+#
+# Internal name used for log messages and repository file naming.
 install_role_name: 'docker'
 
 # .. envvar:: target_appdata_root
 #
-# Specify folder that will be use as new location of application data files
-# in case if you want to collect all appdata files in one
+# Directory where Docker stores its data (images, containers, volumes).
+# Relocated to the persistent data partition so container data survives reboots.
 target_appdata_root: '/var/lib'
 
-# .. envvar:: docker_repo_keyserver
-# .. envvar:: docker_repo_keyid
+# .. envvar:: docker_repo_keyring
 #
-# APT GPG key server and id used to sign the Docker packages.
-docker_repo_keyserver: 'hkp://p80.pool.sks-keyservers.net:80'
-docker_repo_keyid: '58118E89F3A912897C070ADBF76221572C52609D'
+# Path where the Docker GPG signing key is stored in dearmored binary format.
+docker_repo_keyring: '/etc/apt/trusted.gpg.d'
 
-# .. envvar:: apt_proxy
+# .. envvar:: docker_repo_key_url
 #
-# Specify apt cacher / proxy link, like 'x.x.x.x:3142/'
-apt_proxy:
+# URL of the Docker GPG signing key (armored ASCII format).
+docker_repo_key_url: 'https://download.docker.com/linux/ubuntu/gpg'
 
 # .. envvar:: docker_repository
 #
-# address of the Docker upstream APT repository.
+# APT source entry for the Docker CE stable repository.
+# Uses 'signed-by' (modern apt approach, replaces deprecated apt-key).
+# Proxy is handled transparently by /etc/apt/apt.conf.d/00proxy — no proxy
+# prefix needed in the URL.
 docker_repository:
-  - { dest: '/etc/apt/sources.list.d/{{ install_role_name }}.list', line: 'deb http://{{ apt_proxy }}apt.dockerproject.org/repo {{ ansible_distribution | lower }}-{{ ansible_distribution_release }} main' }
-
-# .. envvar:: docker_compose_version
-#
-# Specify docker compose version to install
-docker_compose_version: '1.18.0'
+  - dest: '/etc/apt/sources.list.d/{{ install_role_name }}.list'
+    line: >-
+      deb [arch=amd64 signed-by={{ docker_repo_keyring ~ '/' ~ install_role_name ~ '.gpg' }}]
+      https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable
 
 # .. envvar:: docker_base_packages
 #
-# List of base packages to install by Ansible
-# package: package will be installed
-# version: package version, default is '*'
-# example: - { package: 'package', version: '1.2' }
-docker_base_packages:
-  - { package: "apt-transport-https" }
-  - { package: 'aufs-tools' }
-  - { package: "ca-certificates" }
+# Prerequisite packages required before Docker CE can be installed.
+# NOTE: ca-certificates and curl are already installed by basefs (vars/basefs.yml)
+#       and do not need to be re-declared here.
+# NOTE: aufs-tools removed — aufs kernel module does not exist in Ubuntu 20+.
+#       Docker automatically uses the overlayfs2 storage driver on Noble.
+docker_base_packages: []
 
 # .. envvar:: docker_packages
 #
-# List of additional packages to install by Ansible
-# package: package will be installed
-# version: package version, default is '*'
-# example: - { package: 'package', version: '1.2' }
-docker_packages:
-  - { package: "docker-engine" }
-
-# .. envvar:: docker_pip_packages
+# Docker CE packages to install from the official Docker repository.
+#   docker-ce             — Docker daemon
+#   docker-ce-cli         — Docker command-line client
+#   containerd.io         — Container runtime
+#   docker-buildx-plugin  — BuildKit multi-platform build plugin
+#   docker-compose-plugin — Docker Compose v2 (replaces standalone docker-compose v1)
 #
-# List of docker packages to install by pip
-# package: package will be installed
-# version: package version, default is '*'
-# example: - { package: 'package', version: '1.2' }
-docker_pip_packages:
-  - { package: "docker" }
-  - { package: "docker-compose" }
+# After install, 'docker compose' (space, not hyphen) invokes Compose v2.
+docker_packages:
+  - { package: 'docker-ce' }
+  - { package: 'docker-ce-cli' }
+  - { package: 'containerd.io' }
+  - { package: 'docker-buildx-plugin' }
+  - { package: 'docker-compose-plugin' }
 
 # .. envvar:: docker_configuration
 #
-# List of configuration file will be copy to Linux base filesystems
+# Configuration files deployed into the base filesystem for Docker.
+#   etc-docker-daemon.json.j2 — /etc/docker/daemon.json: sets data-root (Ubuntu 22/24, systemd)
+#
+# NOTE: etc-default-docker (DOCKER_OPTS) was removed — ignored by systemd.
+#       The pre-start init script was removed — Docker auto-creates data-root on first start.
 docker_configuration:
-  - { name: 'etc-default-docker.j2', dest: '/etc/default/docker' }
-  - { name: 'etc-init.d-init-docker.sh.j2', dest: '/etc/init.d/init-docker.sh', mode: "0755" }
+  - { name: 'etc-docker-daemon.json.j2',
+      dest: '/etc/docker/daemon.json' }
+  - { name: 'etc-containerd-config.toml.j2',
+      dest: '/etc/containerd/config.toml' }
+  - { name: 'etc-init.d-init-docker.sh.j2',
+      dest: '/etc/init.d/init-docker.sh', mode: "0755" }
 
 # .. envvar:: docker_admins
 #
-# List of UNIX accounts which should be added to ``docker`` system group which
-# has access to the Docker UNIX socket.
-docker_admins: [ 'root' ]
+# List of UNIX accounts added to the 'docker' group, granting access to the
+# Docker UNIX socket without requiring sudo.
+docker_admins:
+  - root
