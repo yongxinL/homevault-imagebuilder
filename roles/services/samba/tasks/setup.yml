@@ -1,84 +1,99 @@
 # =============================================================================
+# services/samba — Post-install configuration
+# ============================================
+# Runs on: build_rootfs (inside the chroot)
 #
-# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+# Steps:
+#   1. Ensure the data partition mount point exists in the squashfs so casper
+#      can mount the data partition at boot.  Share subdirectories (dataLibrary
+#      etc.) live on the data partition and are created at first boot by the
+#      init-samba.sh ExecStartPre script — not here.
+#   2. Deploy smb.conf and the init-samba.sh first-boot init script.
+#   3. Create a systemd drop-in for smbd so init-samba.sh runs as ExecStartPre
+#      before smbd starts (creates share dirs, patches netbios name in smb.conf).
+#   4. Disable samba-ad-dc (not used in standalone file-server mode).
+#   5. Enable smbd and nmbd via systemd (replaces the legacy rc.local approach).
 #
-# - This is part of HomeVault imagebuilder project.
-# - This program is distributed in the hope that it will be useful,
-#   but WITHOUT ANY WARRANTY; without even the implied warranty of
-#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# Why systemd instead of rc.local?
+#   rc.local is a legacy Ubuntu 14/16 mechanism. On Noble (systemd-only), it
+#   requires an extra rc-local.service shim and runs with no dependency ordering
+#   guarantees relative to network or filesystem mounts. Using systemd enables
+#   and an ExecStartPre drop-in is the correct modern approach.
 #
+# Why ExecStartPre for init-samba.sh instead of building it into smb.conf?
+#   - The netbios name must match the runtime hostname (set by casper), which
+#     is not known at build time.
+#   - Share directories live on the data partition (/oneLijia) which is mounted
+#     by casper before systemd starts — but only at runtime, not in the squashfs.
+#   - init-samba.sh is guarded by a stamp file so it runs only on first boot.
 # =============================================================================
 
 ---
-- name: create {{ install_role_name }} sharing directory
-  file:
-    path: "{{ item.value.path }}"
-    state: directory
-    mode: 0644
-  with_dict: "{{ samba_conf_share }}"
+# ---- Ensure data partition mount point exists in squashfs ----
+# casper mounts the data partition at {{ target_data_root }} during initrd.
+# The mount point must exist as a directory in the squashfs before the mount.
+# Share subdirectories are created on the data partition by init-samba.sh.
 
-- name: copy {{ install_role_name }} configure files
-  template:
+- name: "setup | Ensure data partition mount point exists in squashfs"
+  ansible.builtin.file:
+    path: "{{ target_data_root }}"
+    state: directory
+    mode: 0755
+
+# ---- Deploy samba configuration files ----
+
+- name: "setup | Deploy samba configuration files"
+  ansible.builtin.template:
     src: "{{ item.name }}"
     dest: "{{ item.dest }}"
     owner: root
     group: root
-    mode: "{{ item.mode|default('0644') }}"
+    mode: "{{ item.mode | default('0644') }}"
   with_items: "{{ samba_configuration }}"
 
-- name: remove {{ install_role_name }} services from booting
-  command: update-rc.d -f {{ item }} remove
-  with_items:
-    - smbd
-    - nmbd
-    - samba-ad-dc
-  
-- name: remove {{ install_role_name }} services from booting
-  lineinfile:
-    dest: "{{ item }}"
-    line: "manual"
+# ---- systemd drop-in: run init-samba.sh before smbd starts ----
+# init-samba.sh (first-boot guard):
+#   - patches netbios name in smb.conf to match runtime hostname
+#   - creates share directories on the data partition
+# The drop-in is on smbd only; nmbd inherits the share directories via smbd.
+
+- name: "setup | Create smbd systemd drop-in directory"
+  ansible.builtin.file:
+    path: /etc/systemd/system/smbd.service.d
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+
+- name: "setup | Deploy smbd drop-in to run init-samba.sh as ExecStartPre"
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/smbd.service.d/pre-start.conf
     owner: root
     group: root
     mode: 0644
-    state: present
-    create: yes
+    content: |
+      [Service]
+      ExecStartPre=/etc/init.d/init-samba.sh
+
+# ---- Service management ----
+
+- name: "setup | Disable samba-ad-dc (not used in standalone file-server mode)"
+  ansible.builtin.command: systemctl disable samba-ad-dc
+  ignore_errors: true
+
+- name: "setup | Enable smbd and nmbd to start at boot via systemd"
+  ansible.builtin.command: systemctl enable {{ item }}
   with_items:
-    - /etc/init/smbd.override
-    - /etc/init/nmbd.override
-    - /etc/init/samba-ad-dc.override
+    - smbd
+    - nmbd
 
-- name: include init-functions into rc.local
-  lineinfile:
-    dest: "/etc/rc.local"
-    line: ". /lib/lsb/init-functions"
-    insertafter: "# By default this script does nothing."
-    owner: root
-    group: root
-    mode: 0755
-    state: present
-    create: yes
+# ---- UFW firewall rule ----
 
-- name: configure {{ install_role_name }} to start by rc.local
-  blockinfile:
-    dest: "/etc/rc.local"
-    insertbefore: "exit 0"
-    marker: "# {mark} MANAGED {{ install_role_name }} BLOCK"
-    owner: root
-    group: root
-    mode: 0755
-    state: present
-    create: yes    
-    block: |
-      /etc/init.d/init-{{ install_role_name }}.sh
-      log_begin_msg "Starting {{ install_role_name }} daemon"
-      if [ $(ps -ef | grep -c smbd) != 1 ]; then
-        service smbd restart > /dev/null
-      else
-        service smbd start > /dev/null
-      fi
-      if [ $(ps -ef | grep -c nmbd) != 1 ]; then
-        service nmbd restart > /dev/null
-      else
-        service nmbd start > /dev/null
-      fi
-      log_end_msg 0
+- name: "samba | Check if ufw is available"
+  ansible.builtin.stat:
+    path: /usr/sbin/ufw
+  register: ufw_bin
+
+- name: "samba | Allow Samba through ufw (ports 137/138 UDP, 139/445 TCP)"
+  ansible.builtin.command: ufw allow Samba
+  when: ufw_bin.stat.exists

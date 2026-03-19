@@ -1,5 +1,5 @@
 {% macro generate_output(hash) %}
-  {% for key, value in hash.iteritems() %}
+  {% for key, value in hash.items() %}
   {{"%-25s" | format(key) | replace("_"," ") }} = {{ value }}
   {% endfor %}
 {% endmacro %}
@@ -8,41 +8,46 @@
 #
 #=======================Samba Settings =======================
 [global]
-    guest account             = nobody
+    server role               = standalone server
     server string             = %h file storage
-    show add printer wizard   = no
-    create mask               = 0660
-    invalid users             = bin daemon adm sync shutdown halt mail news uucp proxy www-data backup sshd
-    disable spoolss           = yes
-    unix charset              = UTF8
-    hide files                = /.*/lost+found/
     netbios name              = {{ target_host_name }}
-    syslog                    = 0
-    deadtime                  = 10
-    name resolve order        = lmhosts host wins bcast
-    use sendfile              = yes
-    map to guest              = Bad User
-    browseable                = yes
-    max log size              = 1000
-    wins support              = no
-    locking                   = yes
-    directory mask            = 0770
-    dont descend              = ./lost+found
-    wide links                = yes
-    encrypt passwords         = yes
-    obey pam restrictions     = yes
     workgroup                 = WORKGROUP
-    unix extensions           = no
     passdb backend            = tdbsam
-    printcap name             = /dev/null
-    dns proxy                 = no
-    unix password sync        = no
-    load printers             = no
-    printing                  = bsd
-    hide unreadable           = yes
+
+    # Protocol
+    server min protocol       = SMB2
+    server max protocol       = SMB3
+
+    # Guest access
     security                  = user
+    map to guest              = Bad User
+    guest account             = nobody
+    # obey pam restrictions must be no — Ubuntu's nobody user has a locked
+    # account; with yes, PAM rejects the guest session and the client sees
+    # "share does not exist" instead of being served the share.
+    obey pam restrictions     = no
+
+    # File/directory defaults
+    create mask               = 0660
+    directory mask            = 0770
+    hide files                = /.*/lost+found/
+    hide unreadable           = yes
+    unix extensions           = no
+    wide links                = yes
     follow symlinks           = yes
+    use sendfile              = yes
+
+    # Misc
+    unix charset              = UTF8
+    deadtime                  = 10
+    max log size              = 1000
+    locking                   = yes
+    unix password sync        = no
+    browseable                = yes
+    wins support              = no
+    invalid users             = bin daemon adm sync shutdown halt mail news uucp proxy www-data backup sshd
     log file                  = /var/log/samba/log.%m
+    log level                 = 1
 {% if samba_conf_global is defined and samba_conf_global %}
 {{ generate_output(hash=samba_conf_global) }}
 {% endif %}

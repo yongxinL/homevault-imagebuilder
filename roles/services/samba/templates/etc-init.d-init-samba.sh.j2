@@ -11,7 +11,7 @@
 
 # =============================================================================
 #
-# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+# - Copyright (C) 2026     George Li <yongxinl@outlook.com>
 #
 # - This is part of HomeVault imagebuilder project.
 # - Initialization before starting {{ install_role_name }}services
@@ -27,14 +27,16 @@
 # check {{ install_role_name }} setup stamp
 if [ ! -f "/etc/setup_{{ install_role_name }}.stamp" ]; then
     log_begin_msg "initializing environment before starting {{ install_role_name }} services"
-    sed -i 's/.*netbios.*/    netbios name              = '$(hostname)'/' /etc/samba/smb.conf
+    sed -i "s/.*netbios.*/    netbios name              = $(hostname)/" /etc/samba/smb.conf
 
 {% if samba_conf_share is defined and samba_conf_share %}
 {% for item in samba_conf_share.keys() %}
-    [ ! -d "{{ samba_conf_share[item].path }}" ] && { /bin/mkdir -p "{{ samba_conf_share[item].path }}" && /bin/chmod -R 644 "{{ samba_conf_share[item].path }}"; }
+    [ ! -d "{{ samba_conf_share[item].path }}" ] && { /bin/mkdir -p "{{ samba_conf_share[item].path }}" && /bin/chmod 755 "{{ samba_conf_share[item].path }}"; }
 {% endfor %}
 {% endif %}
 
     touch "/etc/setup_{{ install_role_name }}.stamp"
     log_end_msg 0
 fi
+
+exit 0

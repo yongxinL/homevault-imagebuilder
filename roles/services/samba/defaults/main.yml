@@ -1,6 +1,6 @@
 # =============================================================================
 #
-# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+# - Copyright (C) 2026     George Li <yongxinl@outlook.com>
 #
 # - This is part of HomeVault imagebuilder project.
 # - This program is distributed in the hope that it will be useful,
@@ -24,8 +24,8 @@ install_role_name: 'samba'
 # .. envvar:: target_host_domain
 #
 # Specify hostname and domain that should be set in the target image.
-target_host_name: 'captainL'
-target_host_domain: 'lifamilyclub.com'
+target_host_name: 'server'
+target_host_domain: 'myhome.local'
 
 # .. envvar:: target_data_root
 #
@@ -50,8 +50,8 @@ samba_base_packages:
 # package: package will be installed
 # version: package version, default is '*'
 # example: - { package: 'package', version: '1.2' }
-samba_packages:
-  - { package: 'smbldap-tools' }
+# Note: smbldap-tools pulls LDAP dependencies — only add if using LDAP auth backend
+samba_packages: []
 
 # .. envvar:: samba_configuration
 #
