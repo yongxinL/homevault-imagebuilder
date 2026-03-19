@@ -1,0 +1,26 @@
+# =============================================================================
+# services/users — Install controller-side Python dependencies
+# ============================================================
+# Runs on: localhost (Ansible controller / build host)
+#
+# Steps:
+#   1. Install passlib via pip3 on the controller.
+#
+# Why on the controller (delegate_to: localhost)?
+#   - The password_hash('sha512') Jinja2 filter is evaluated on the Ansible
+#     controller before the task is dispatched to the chroot target.
+#   - passlib must therefore be present on the build host, not inside the chroot.
+#
+# Note: --break-system-packages is required on Ubuntu 24 (Noble) / Python 3.12+
+#   due to PEP 668. Safe in this isolated build environment.
+# =============================================================================
+
+---
+- name: "users | Install passlib on controller for password_hash filter"
+  ansible.builtin.pip:
+    name: passlib
+    state: present
+    executable: pip3
+    extra_args: "--break-system-packages"
+  delegate_to: localhost
+  run_once: true

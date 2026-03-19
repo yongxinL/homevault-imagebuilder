@@ -1,0 +1,85 @@
+# =============================================================================
+#
+# - Copyright (C) 2026     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# =============================================================================
+
+# Default variables
+# =================
+
+# .. contents:: Sections
+#    :local:
+#
+# ------------------------------------
+#   Packages and installation
+# ------------------------------------
+install_role_name: "users"
+
+# .. envvar:: default_
+#
+# Specify default user configuration
+default_password: ""
+default_shell: "/bin/bash"
+
+# .. envvar:: group_lists
+#
+# Specify default user configuration
+groups_lists:
+    - { name: "oneLijia", gid: "500" }
+
+# Passwords are stored as SHA-512 crypt hashes (format: $6$...).
+# To generate a new hash:  python3 -c "from passlib.hash import sha512_crypt; print(sha512_crypt.hash('yourpassword'))"
+users_lists:
+    - comment: "Captain Li (Storage Owner)"
+      name: "captain.Li"
+      create_home: True
+      password: "$6$rounds=656000$4yB.s89LU88wsV1O$o5xJGeKwsVHf1PP8v3TSOmScTaBB698/LN67i3EAmaVIt2V5Fx6/JqKfD2DLTym0aPFwYYi0fV7WXuknFUMlz1"
+      uid: 500
+      group: oneLijia
+      groups:
+          - docker
+          - oneLijia
+          - sudo
+      shell: "/bin/bash"
+      system: True
+    - comment: "George Li"
+      name: "yongxin.Li"
+      create_home: True
+      password: "$6$rounds=656000$2obWOW0gqNELW.KT$9pzj6FIiwtra.TKvlWZLJFEBWrI9BHV4w1/VAUIDqBf2wFBSnqm.GHOGZK/g7dAiaxSzK.MC.CsMqx6MpYGES."
+      uid: 556
+      group: oneLijia
+      groups:
+          - docker
+          - oneLijia
+          - sudo
+      shell: "/bin/bash"
+      system: True
+    - comment: "Maggie Jin"
+      name: "maggie.Jin"
+      create_home: True
+      password: "$6$rounds=656000$8OX/KQ5dxWNQYeIK$QnyNndC889uBmexjtbWcr430HWLXraZQszVUvrgkWSA6me2TLVQ7o.yX8vy8bDxbYHT35hp.dXunnOOOzXQ67/"
+      uid: 558
+      group: oneLijia
+      groups:
+          - oneLijia
+    - comment: "Ricky Li"
+      name: "ricky.Li"
+      create_home: True
+      password: "$6$rounds=656000$GJLWbfjH1qVfZe8S$WG6easO.33lcv/tmLorO.x7qRHegw8jf9yV.Xb.sZyY.XF1nPtl0jJhE1rCQ18kkADuquCakwchWVMF0/3252/"
+      uid: 585
+      group: oneLijia
+      groups:
+          - oneLijia
+    - comment: "Eric Li"
+      name: "eric.Li"
+      create_home: True
+      password: "$6$rounds=656000$MxymRX//ZD7m6ZXX$82RqoJhmwaQQnAQOCjazwiWW7iNkkxq4qkDK.gcrb.OmAP0YVYWcVwEktPUlGcsjdYS3aN8FYSHo/t3yAjCVj1"
+      uid: 586
+      group: oneLijia
+      groups:
+          - oneLijia

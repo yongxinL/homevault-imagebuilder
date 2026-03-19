@@ -1,0 +1,46 @@
+# =============================================================================
+#
+# - Copyright (C) 2026     George Li <yongxinl@outlook.com>
+#
+# - This is part of HomeVault imagebuilder project.
+# - This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# =============================================================================
+
+---
+- name: Creating users and groups ...
+  block:
+      - group:
+            name: "{{ item.name }}"
+            gid: "{{ item.gid }}"
+        with_items: "{{ groups_lists }}"
+
+      - user:
+            name: "{{ item.name }}"
+            comment: "{{ item.comment }}"
+            createhome: "{{ item.create_home }}"
+            password: "{{ item.password }}"
+            expires: 0
+            uid: "{{ item.uid | default(omit, True) }}"
+            group: "{{ item.group }}"
+            groups: "{{ item.groups | default(omit) }}"
+            shell: "/bin/bash"
+            system: "{{ item.system | default(omit) }}"
+            state: present
+            append: True
+        with_items: "{{ users_lists }}"
+
+      - lineinfile:
+            path: /etc/sudoers
+            line: "{{ item.name }} ALL=(ALL) NOPASSWD:ALL"
+            validate: visudo -cf %s
+            state: present
+        with_items: "{{ users_lists }}"
+        when: item.system | default(false) | bool
+
+      - name: Lock root account (disable password-based login)
+        user:
+            name: root
+            password: '!'
