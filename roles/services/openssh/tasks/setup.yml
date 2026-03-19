@@ -1,6 +1,6 @@
 # =============================================================================
 #
-# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+# - Copyright (C) 2026     George Li <yongxinl@outlook.com>
 #
 # - This is part of HomeVault imagebuilder project.
 # - This program is distributed in the hope that it will be useful,
@@ -39,3 +39,14 @@
     - { regxp: '^PermitRootLogin.*', line: 'PermitRootLogin yes' }
     - { regxp: '^#Banner.*', line: 'Banner /etc/issue.net' }
     - { regxp: '^##GSSAPIAuthentication.*', line: 'GSSAPIAuthentication no' }
+
+# ---- UFW firewall rule ----
+
+- name: "openssh | Check if ufw is available"
+  ansible.builtin.stat:
+    path: /usr/sbin/ufw
+  register: ufw_bin
+
+- name: "openssh | Allow OpenSSH through ufw (port 22/tcp)"
+  ansible.builtin.command: ufw allow OpenSSH
+  when: ufw_bin.stat.exists

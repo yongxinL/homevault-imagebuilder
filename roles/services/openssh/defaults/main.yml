@@ -1,6 +1,6 @@
 # =============================================================================
 #
-# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+# - Copyright (C) 2026     George Li <yongxinl@outlook.com>
 #
 # - This is part of HomeVault imagebuilder project.
 # - This program is distributed in the hope that it will be useful,
@@ -9,59 +9,80 @@
 #
 # =============================================================================
 
-# Default variables
-# =================
-
-# .. contents:: Sections
-#    :local:
+# Default variables for the services/openssh role
+# ================================================
+# Installs OpenSSH server and client, and deploys login banners, MOTD,
+# and pre-generated host keys.
 #
-# ------------------------------------
-#   Packages and installation
-# ------------------------------------
+# Changes from Ubuntu 16 (Xenial):
+#   REMOVED  openssh-blacklist       → package removed in Ubuntu 20+.
+#                                      The blacklist approach (blocking weak keys)
+#                                      is superseded by modern OpenSSH's built-in
+#                                      key strength validation.
+#   REMOVED  openssh-blacklist-extra → same reason as above.
+
+# .. envvar:: install_role_name
 install_role_name: 'openssh'
 
 # .. envvar:: target_host_name
 # .. envvar:: target_host_domain
 #
-# Specify hostname and domain that should be set in the target.
-target_host_name: 'homevault'
-target_host_domain: 'lifamilyclub.com'
+# Target system identity used in login banners and MOTD.
+target_host_name: 'server'
+target_host_domain: 'myhome.local'
 
 # .. envvar:: openssh_base_packages
 #
-# List of base packages to install by Ansible
-# package: package will be installed
-# version: package version, default is '*'
-# example: - { package: 'package', version: '1.2' }
+# Core OpenSSH packages.  Ubuntu 24 (Noble) ships OpenSSH 9.6+.
 openssh_base_packages:
   - { package: 'openssh-server' }
   - { package: 'openssh-client' }
+  # openssh-blacklist:       REMOVED — not available in Ubuntu 20+
+  # openssh-blacklist-extra: REMOVED — not available in Ubuntu 20+
 
 # .. envvar:: openssh_packages
 #
-# List of additional packages to install by Ansible
-# package: package will be installed
-# version: package version, default is '*'
-# example: - { package: 'package', version: '1.2' }
-openssh_packages:
-  - { package: 'openssh-blacklist' }
-  - { package: 'openssh-blacklist-extra' }
+# Additional OpenSSH-related packages (none required for Noble).
+openssh_packages: []
 
 # .. envvar:: openssh_configuration
 #
-# List of configuration file will be copy to target filesystems
+# Templates deployed for OpenSSH login presentation.
+# Includes pre-generated host keys for reproducible builds.
+# NOTE: For production deployments, regenerate host keys on first boot
+# with:  dpkg-reconfigure openssh-server
 openssh_configuration:
-  - { name: 'etc-issue.j2', dest: '/etc/issue' }
-  - { name: 'etc-issue.net.j2', dest: '/etc/issue.net' }
-  - { name: 'etc-motd.footer.j2', dest: '/etc/motd.footer' }
-  - { name: 'etc-motd.tail.j2', dest: '/etc/motd.tail' }
-  - { name: 'etc-motd-00-header.j2', dest: '/etc/update-motd.d/00-header', mode: '0755' }
-  - { name: 'etc-motd-99-info-text.j2', dest: '/etc/update-motd.d/99-info-text', mode: '0755' }
-  - { name: 'etc-ssh-ssh_host_dsa_key.j2', dest: '/etc/ssh/ssh_host_dsa_key', mode: '0600' }
-  - { name: 'etc-ssh-ssh_host_dsa_key.pub.j2', dest: '/etc/ssh/ssh_host_dsa_key.pub' }
-  - { name: 'etc-ssh-ssh_host_ecdsa_key.j2', dest: '/etc/ssh/ssh_host_ecdsa_key', mode: '0600' }
-  - { name: 'etc-ssh-ssh_host_ecdsa_key.pub.j2', dest: '/etc/ssh/ssh_host_ecdsa_key.pub' }
-  - { name: 'etc-ssh-ssh_host_ed25519_key.j2', dest: '/etc/ssh/ssh_host_ed25519_key', mode: '0600' }
-  - { name: 'etc-ssh-ssh_host_ed25519_key.pub.j2', dest: '/etc/ssh/ssh_host_ed25519_key.pub' }
-  - { name: 'etc-ssh-ssh_host_rsa_key.j2', dest: '/etc/ssh/ssh_host_rsa_key', mode: '0600' }
-  - { name: 'etc-ssh-ssh_host_rsa_key.pub.j2', dest: '/etc/ssh/ssh_host_rsa_key.pub' }
+  - { name: 'etc-issue.j2',
+      dest: '/etc/issue' }
+  - { name: 'etc-issue.net.j2',
+      dest: '/etc/issue.net' }
+  - { name: 'etc-motd.footer.j2',
+      dest: '/etc/motd.footer' }
+  - { name: 'etc-motd.tail.j2',
+      dest: '/etc/motd.tail' }
+  - { name: 'etc-motd-00-header.j2',
+      dest: '/etc/update-motd.d/00-header',
+      mode: '0755' }
+  - { name: 'etc-motd-99-info-text.j2',
+      dest: '/etc/update-motd.d/99-info-text',
+      mode: '0755' }
+  - { name: 'etc-ssh-ssh_host_dsa_key.j2',
+      dest: '/etc/ssh/ssh_host_dsa_key',
+      mode: '0600' }
+  - { name: 'etc-ssh-ssh_host_dsa_key.pub.j2',
+      dest: '/etc/ssh/ssh_host_dsa_key.pub' }
+  - { name: 'etc-ssh-ssh_host_ecdsa_key.j2',
+      dest: '/etc/ssh/ssh_host_ecdsa_key',
+      mode: '0600' }
+  - { name: 'etc-ssh-ssh_host_ecdsa_key.pub.j2',
+      dest: '/etc/ssh/ssh_host_ecdsa_key.pub' }
+  - { name: 'etc-ssh-ssh_host_ed25519_key.j2',
+      dest: '/etc/ssh/ssh_host_ed25519_key',
+      mode: '0600' }
+  - { name: 'etc-ssh-ssh_host_ed25519_key.pub.j2',
+      dest: '/etc/ssh/ssh_host_ed25519_key.pub' }
+  - { name: 'etc-ssh-ssh_host_rsa_key.j2',
+      dest: '/etc/ssh/ssh_host_rsa_key',
+      mode: '0600' }
+  - { name: 'etc-ssh-ssh_host_rsa_key.pub.j2',
+      dest: '/etc/ssh/ssh_host_rsa_key.pub' }
