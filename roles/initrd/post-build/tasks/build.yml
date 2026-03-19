@@ -1,6 +1,6 @@
 # =============================================================================
 #
-# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+# - Copyright (C) 2026     George Li <yongxinl@outlook.com>
 #
 # - This is part of HomeVault imagebuilder project.
 # - This program is distributed in the hope that it will be useful,
@@ -26,6 +26,7 @@
     - "{{ build_root }}/etc/hostname"
     - "{{ build_root }}/etc/hosts"
     - "{{ build_root }}/etc/resolv.conf"
+    - "{{ build_root }}/etc/apt/apt.conf.d/00proxy"
     - "{{ build_image_root }}/casper/{{ build_image_initrd }}"
     - "{{ build_image_root }}/casper/{{ build_image_vmlinuz }}"
 

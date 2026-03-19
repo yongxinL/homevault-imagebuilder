@@ -1,6 +1,6 @@
 # =============================================================================
 #
-# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+# - Copyright (C) 2026     George Li <yongxinl@outlook.com>
 #
 # - This is part of HomeVault imagebuilder project.
 # - This program is distributed in the hope that it will be useful,
@@ -25,13 +25,12 @@ target_data_root: '/var'
 # List of Disk label and mountas will be use to mount partition when booting up
 # this will be setup in script/casper-bottom/12fstab
 target_mount_device:
-  - { label: 'data1', mountas: '{{ target_data_root }}' }
-  - { label: 'data2', mountas: '{{ target_data_root }}/archive' }
+  - { label: 'data', mountas: '{{ target_data_root }}' }
 
 # .. envvar:: target_host_domain
 #
 # Specify hostname and domain that should be set in the target image.
-target_host_domain: 'lifamilyclub.com'
+target_host_domain: 'myhome.local'
 
 # .. envvar:: initrd_custom_casper_script
 #
@@ -42,8 +41,16 @@ initrd_custom_casper_script:
 # .. envvar:: initrd_script_removal_list
 #
 # List of casper sciprt will be remove
+# 10adduser  — creates 'ubuntu' user and chowns /home/ubuntu (not needed; causes
+#              "chown: invalid user: ubuntu:ubuntu" at boot if user does not exist)
+# 20unattended_upgrades — greps /root/etc/apt/apt.conf.d/50unattended-upgrades
+#              which does not exist in this image (causes grep error at boot)
 initrd_script_removal_list:
+  # Ubuntu 16–22 names (kept for older builds)
   - { dest: "casper-bottom/ORDER", name: "/scripts/casper-bottom/25adduser" }
+  # Ubuntu 24 (Noble) renames: 25adduser → 10adduser; 20unattended_upgrades added
+  - { dest: "casper-bottom/ORDER", name: "/scripts/casper-bottom/10adduser" }
+  - { dest: "casper-bottom/ORDER", name: "/scripts/casper-bottom/20unattended_upgrades" }
   - { dest: "casper-bottom/ORDER", name: "/scripts/casper-bottom/30accessibility" }
   - { dest: "casper-bottom/ORDER", name: "/scripts/casper-bottom/31disable_update_notifier" }
   - { dest: "casper-bottom/ORDER", name: "/scripts/casper-bottom/32disable_hibernation" }

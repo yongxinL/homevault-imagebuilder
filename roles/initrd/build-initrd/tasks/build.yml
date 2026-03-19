@@ -1,42 +1,61 @@
 # =============================================================================
+# initrd/build-initrd — Install kernel and live-boot packages
+# =============================================================
+# Runs on: build_rootfs (inside the initrd chroot)
 #
-# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+# Responsibilities:
+#   1. Update apt cache.
+#   2. Install the pinned kernel version (build_kernel_version).
+#   3. Install casper (live-boot) and filesystem utility packages.
+#   4. Run a full dist-upgrade.
 #
-# - This is part of HomeVault imagebuilder project.
-# - This program is distributed in the hope that it will be useful,
-#   but WITHOUT ANY WARRANTY; without even the implied warranty of
-#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-#
+# NOTE: linux-image-extra-* does not exist in Ubuntu 20+; the kernel is a
+# single package.  Do NOT attempt to install linux-image-extra-<version>.
 # =============================================================================
 
 ---
-- name: Update repository cache
-  apt:
-    update_cache: yes
+# ---- Refresh package index ----
 
-- name: Install Linux kernel {{ build_kernel_version }}
-  apt:
+- name: "build-initrd | Update apt package cache"
+  ansible.builtin.apt:
+    update_cache: true
+  environment:
+    DEBIAN_FRONTEND: noninteractive
+
+# ---- Kernel installation ----
+# NOTE: linux-image-extra-* was merged into the main kernel package in Ubuntu 20+.
+# Do NOT install linux-image-extra-{{ build_kernel_version }} on Noble.
+
+- name: "build-initrd | Install pinned Linux kernel {{ build_kernel_version }}"
+  ansible.builtin.apt:
     name: "linux-image-{{ build_kernel_version }}"
+    state: present
+    install_recommends: false
+  environment:
+    DEBIAN_FRONTEND: noninteractive
 
-- name: Install Linux kernel {{ build_kernel_version }} extra
-  apt:
-    name: "linux-image-extra-{{ build_kernel_version }}"
+# ---- casper and filesystem packages ----
 
-- name: Install additional packages
-  apt:
-    name: "{{ item.package }}={{ item.version|default('*') }}"
-    install_recommends: no
-    update_cache: yes
+- name: "build-initrd | Install casper live-boot and filesystem utility packages"
+  ansible.builtin.apt:
+    name: "{{ item.package }}{% if item.version is defined and item.version != '*' %}={{ item.version }}{% endif %}"
+    state: present
+    install_recommends: false
+    update_cache: false
   register: install_pkgs
-  until: install_pkgs|success
+  until: install_pkgs is success
   retries: 2
   delay: 5
-  with_flattened:
-    - "{{ initrd_base_packages }}"
-    - "{{ initrd_packages }}"
+  environment:
+    DEBIAN_FRONTEND: noninteractive
+  loop: "{{ initrd_base_packages + initrd_packages }}"
 
-- name: System upgrade
-  apt:
+# ---- Distribution upgrade ----
+
+- name: "build-initrd | Run dist-upgrade to apply latest security updates"
+  ansible.builtin.apt:
     upgrade: dist
-    update_cache: yes
+    update_cache: true
     dpkg_options: 'force-confold,force-confdef'
+  environment:
+    DEBIAN_FRONTEND: noninteractive

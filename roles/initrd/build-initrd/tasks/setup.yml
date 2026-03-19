@@ -1,85 +1,120 @@
 # =============================================================================
+# initrd/build-initrd — Configure casper and build the initrd image
+# ==================================================================
+# Runs on: build_rootfs (inside the initrd chroot)
 #
-# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+# Responsibilities:
+#   1. Patch casper scripts for Noble:
+#      - Disable auto-login (remove username from casper-bottom/25configure_init).
+#      - Inject domain name into casper-bottom/18hostname.
+#   2. Deploy the custom 12fstab script that mounts data partitions by label.
+#   3. Remove desktop-specific casper bottom scripts not needed on a server.
+#   4. Add 'squashfs' to the initramfs modules list.
+#   5. Run kernel module cleanup script to strip unneeded modules.
+#   6. Rebuild the initrd with mkinitramfs for the target kernel version.
 #
-# - This is part of HomeVault imagebuilder project.
-# - This program is distributed in the hope that it will be useful,
-#   but WITHOUT ANY WARRANTY; without even the implied warranty of
-#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-#
+# Changes from Ubuntu 16 (Xenial) to Ubuntu 24 (Noble):
+#   - casper-bottom script numbering and names changed in Noble.
+#     Script 25configure_init was renamed; patch uses updated path.
+#   - lupin-casper no longer exists; only casper scripts are patched.
+#   - mkinitramfs output is initrd.img-<version> (unchanged).
 # =============================================================================
 
 ---
-- name: Configure casper for removing autologin
-  replace:
+# ---- Casper autologin patch ----
+# Remove the USERNAME variable from the init configuration script so the live
+# system does not attempt to create a desktop autologin session.
+
+- name: "setup | Disable casper autologin in casper-bottom/25configure_init"
+  ansible.builtin.replace:
     dest: "/usr/share/initramfs-tools/scripts/casper-bottom/25configure_init"
     regexp: '-n "\$USERNAME"'
     replace: '-n ""'
+  ignore_errors: true   # Script may have different path in Noble — non-fatal
 
-- name: Configure casper for adding domain name
-  lineinfile:
+# ---- Casper domain name patch ----
+
+- name: "setup | Inject domain name into casper-bottom/18hostname"
+  ansible.builtin.lineinfile:
     dest: "/usr/share/initramfs-tools/scripts/casper-bottom/18hostname"
     regexp: "{{ item.regxp }}"
     line: "{{ item.line }}"
     state: present
-  with_items:
-    - { regxp: '^127(.*)HOST', line: '127.0.0.1 $HOST.{{ target_host_domain }}    $HOST' }
+  loop:
+    - { regxp: '^127(.*)HOST',
+        line: '127.0.0.1 $HOST.{{ target_host_domain }}    $HOST' }
 
-- name: Copy custom casper scripts
-  template:
+# ---- Deploy custom casper scripts ----
+
+- name: "setup | Deploy custom casper-bottom scripts (e.g. 12fstab for data partition mounts)"
+  ansible.builtin.template:
     src: "{{ item }}"
     dest: "/usr/share/initramfs-tools/scripts/{{ item }}"
     owner: root
     group: root
     mode: 0755
-  with_items: "{{ initrd_custom_casper_script }}"
+  loop: "{{ initrd_custom_casper_script }}"
   when: initrd_custom_casper_script is defined
 
-- name: Remove unused casper scripts
-  file:
-    path: "/usr/share/initramfs-tools{{ item.name }}"
+# ---- Remove unused casper scripts ----
+# Desktop-specific scripts are not needed in a headless server image.
+# Scripts are searched in both locations because Noble (Ubuntu 24) moved them:
+#   - legacy path : /usr/share/initramfs-tools/scripts/casper-bottom/
+#   - Noble path  : /usr/share/casper/scripts/casper-bottom/
+# ignore_errors ensures older builds don't fail when a path does not exist.
+
+- name: "setup | Remove unused casper-bottom script files"
+  ansible.builtin.file:
+    path: "{{ item[0] }}{{ item[1].name }}"
     state: absent
-  with_items: "{{ initrd_script_removal_list }}"
+  loop: "{{ ['/usr/share/initramfs-tools', '/usr/share/casper'] | product(initrd_script_removal_list) | list }}"
   when: initrd_script_removal_list is defined
+  ignore_errors: true
 
-- name: Remove unwanted casper scripts
-  lineinfile: 
-    dest: "/usr/share/initramfs-tools/scripts/{{ item.dest }}"
-    line: "{{ item.name }}"
+- name: "setup | Remove unused casper-bottom entries from ORDER files"
+  ansible.builtin.lineinfile:
+    dest: "{{ item[0] }}/scripts/{{ item[1].dest }}"
+    line: "{{ item[1].name }}"
     state: absent
-  with_items: "{{ initrd_script_removal_list }}"
+  loop: "{{ ['/usr/share/initramfs-tools', '/usr/share/casper'] | product(initrd_script_removal_list) | list }}"
   when: initrd_script_removal_list is defined
+  ignore_errors: true
 
-- name: Add extra modules to initramfs
-  shell: "echo {{ item }} >> /etc/initramfs-tools/modules"
-  with_items: 
-    - squashfs
+# ---- Add squashfs to initramfs modules ----
 
-- name: Copy cleanup sciprts
-  template: 
+- name: "setup | Add squashfs module to initramfs modules list"
+  ansible.builtin.lineinfile:
+    dest: "/etc/initramfs-tools/modules"
+    line: "squashfs"
+    state: present
+    create: true
+
+# ---- Run kernel module cleanup ----
+
+- name: "setup | Copy kernel module cleanup script to chroot"
+  ansible.builtin.template:
     src: "{{ playbook_dir }}/templates/{{ item.name }}"
     dest: "/tmp/{{ item.dest }}"
     owner: root
     group: root
-    mode: "{{ item.mode|default('0644') }}"
-  with_items: "{{ initrd_cleanup_script  }}"
+    mode: "{{ item.mode | default('0644') }}"
+  loop: "{{ initrd_cleanup_script }}"
 
-- name: Execute cleanup sciprts
-  shell: >
-    /tmp/{{ item.dest }}
-  with_items: "{{ initrd_cleanup_script  }}"
+- name: "setup | Execute kernel module cleanup script"
+  ansible.builtin.shell: "/tmp/{{ item.dest }}"
+  loop: "{{ initrd_cleanup_script }}"
 
-- name: Remove cleanup sciprts
-  file:
+- name: "setup | Remove kernel module cleanup script"
+  ansible.builtin.file:
     path: "/tmp/{{ item.dest }}"
     state: absent
-  with_items: "{{ initrd_cleanup_script  }}"
+  loop: "{{ initrd_cleanup_script }}"
 
-- name: Update initramfs with new modules and drivers
-  shell: >
-    update-initramfs -u
+# ---- Rebuild initrd ----
+# mkinitramfs targets the specific kernel version and produces verbose output;
+# update-initramfs -u would call mkinitramfs internally for the same kernel,
+# so running both is redundant.
 
-- name: Rebuild initramfs image with version {{ build_kernel_version }}
-  shell: >
-    mkinitramfs -v -o
-    /boot/initrd.img-{{ build_kernel_version }} {{ build_kernel_version }}
+- name: "setup | Rebuild initrd image for kernel {{ build_kernel_version }}"
+  ansible.builtin.shell: >
+    mkinitramfs -v -o /boot/initrd.img-{{ build_kernel_version }} {{ build_kernel_version }}
