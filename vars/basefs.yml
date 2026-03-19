@@ -1,6 +1,6 @@
 # =============================================================================
 #
-# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+# - Copyright (C) 2026     George Li <yongxinl@outlook.com>
 #
 # - This is part of HomeVault imagebuilder project.
 # - This program is distributed in the hope that it will be useful,
@@ -9,81 +9,147 @@
 #
 # =============================================================================
 
-# Default playbook variables
-# =================
+# Build phase 2 variables — base filesystem (build_basefs.yml)
+# =============================================================
+# These variables configure the debootstrap environment and the package sets
+# installed into the base filesystem (basefs.squashfs).  They are loaded only
+# by roles/common/basefs_wrapper.yml and apply to the basefs build phase only.
 
 # .. contents:: Sections
 #    :local:
-#
+
 # ------------------------------------
-#   Linux base filesystems and installation
+#   Build environment sizing
 # ------------------------------------
+
 # .. envvar:: build_root
+#
+# Path to the chroot that acts as the build root for the base filesystem.
+# Resolved from the inventory variable defined in hosts.yml.
+build_root: '{{ build_rootfs }}'
+
 # .. envvar:: build_root_size
 #
-# Specify chroot mount point and size for building Linux base filesystems
-build_root: '{{ build_rootfs }}'
-build_root_size: '1500m'
+# Size of the tmpfs volume mounted at build_root.
+# Must be large enough to hold the kernel, all base packages, and service
+# packages installed in this phase.  1 500 MB is sufficient for Ubuntu 24.
+build_root_size: '1800m'
+
+# ------------------------------------
+#   Debootstrap exclusions
+# ------------------------------------
 
 # .. envvar:: basefs_exclude_packages
 #
-# List of packages that will no be include in debootstrap
+# Comma-separated list of packages excluded from the initial debootstrap run.
+# Grub and initramfs tools are excluded here because:
+#   - Grub is not needed inside a squashfs live image.
+#   - initramfs-tools is excluded to keep the base image lean; the initrd is
+#     built separately in build_initrd.yml using a dedicated chroot.
+# busybox-initramfs is excluded because the live boot uses casper's initrd.
 basefs_exclude_packages: 'initramfs-tools,initramfs-tools-bin,busybox-initramfs,\
                           grub-common,grub-gfxpayload-lists,grub-pc,grub-pc-bin,grub2-common,\
                           busybox-initramfs'
 
+# ------------------------------------
+#   Base packages (minimal runtime)
+# ------------------------------------
+
 # .. envvar:: basefs_base_packages
 #
-# List of base packages to install with Linux base filesystems.
-# package: package will be installed
-# version: package version, default is '*'
-# example: - { package: 'package', version: '1.2' }
+# Minimal set of packages required for the system to boot and operate on the
+# network.  Installed in every image regardless of hardware profile.
+#
+# Changes from Ubuntu 16 (Xenial) to Ubuntu 24 (Noble):
+#   REMOVED  btrfs-tools     → renamed to btrfs-progs in Ubuntu 18+
+#   REMOVED  exfat-utils     → merged into exfat-fuse in Ubuntu 22+
+#   REMOVED  ifupdown        → replaced by netplan.io (default in Ubuntu 18+)
+#   REMOVED  isc-dhcp-client → DHCP now handled by systemd-networkd via netplan
+#   REMOVED  ebtables        → not used by Docker on Noble; iptables handles bridging
+#   REMOVED  exfat-fuse      → superseded by exfatprogs (kernel 6.8 has native exFAT)
+#   REMOVED  net-tools       → fully superseded by iproute2 (ifconfig/route not needed)
+#   ADDED    btrfs-progs     → replacement for btrfs-tools
+#   ADDED    netplan.io      → network configuration (Netplan + networkd backend)
+#   ADDED    systemd-resolved → local DNS resolver integrated with netplan
+#
+# package: apt package name (required)
+# version: pinned version string, default '*' (latest available)
 basefs_base_packages:
   - { package: 'apt-utils' }
-  - { package: 'btrfs-tools' }
+  - { package: 'btrfs-progs' }           # btrfs filesystem tools (renamed from btrfs-tools in Ubuntu 18+)
   - { package: 'console-setup' }
+  - { package: "cpio" }
   - { package: 'curl' }
   - { package: 'dosfstools' }
-  - { package: 'exfat-fuse' }
-  - { package: 'exfat-utils' }
+  - { package: "ethtool" }
+  - { package: "exfatprogs" }            # exFAT userspace tools (kernel 6.8 has native exFAT; exfat-fuse removed)
+  - { package: "fdisk" }
+  - { package: "gnupg" }
   - { package: 'iproute2' }
   - { package: 'iptables' }
   - { package: 'iputils-ping' }
-  - { package: 'ifupdown' }
-  - { package: 'isc-dhcp-client' }
   - { package: 'mtools' }
   - { package: 'lshw' }
   - { package: 'nano' }
-  - { package: 'net-tools' }
   - { package: 'netbase' }
+  - { package: 'netplan.io' }            # network configuration manager (replaces ifupdown)
   - { package: 'ntfs-3g' }
   - { package: 'parted' }
   - { package: 'pciutils' }
   - { package: 'rsync' }
   - { package: 'rsyslog' }
   - { package: 'sudo' }
+  - { package: 'systemd-sysv' }          # provides /sbin/init symlink → /usr/lib/systemd/systemd
+                                          # Noble does NOT install this via systemd's Recommends when
+                                          # install_recommends=false, so it must be explicit
+  - { package: 'systemd-resolved' }      # local DNS resolver — integrates with netplan
   - { package: 'wget' }
   - { package: 'xz-utils' }
+  - { package: "zfsutils-linux" }
+
+# ------------------------------------
+#   Additional utility packages
+# ------------------------------------
 
 # .. envvar:: basefs_packages
 #
-# List of additional packages to install with Linux base filesystems.
-# package: package will be installed
-# version: package version, default is '*'
-# example: - { package: 'package', version: '1.2' }
+# Additional utility and system management packages installed on top of the
+# base set.
+#
+# Changes from Ubuntu 16 (Xenial) to Ubuntu 24 (Noble):
+#   REMOVED  ntp           → replaced by chrony (ntp package not in Noble main)
+#   REMOVED  ntpdate       → functionality covered by chrony and systemd-timesyncd
+#   REMOVED  anacron       → server is always-on; standard cron is sufficient
+#   REMOVED  firewalld     → replaced by ufw (Ubuntu-native firewall frontend)
+#   REMOVED  glibc-source  → C library source code, no runtime use
+#   REMOVED  network-manager → project uses netplan + systemd-networkd backend; NetworkManager not needed
+#   ADDED    chrony        → modern NTP client/server (default in Ubuntu 20+)
+#   ADDED    ufw           → Uncomplicated Firewall (Ubuntu-native, replaces firewalld)
+#
+# NOTE: biosdevname REMOVED — not available in Ubuntu 20+; systemd predictable
+#       network interface names (en*, eth*) supersede it since Ubuntu 18+.
+# NOTE: tcptrack is available in Noble universe.
 basefs_packages:
   - { package: 'at' }
   - { package: 'apt-show-versions' }
-  - { package: 'biosdevname' }  
+  - { package: "apt-transport-https" }
+  - { package: "bridge-utils" }
+  - { package: "ca-certificates" }
+  - { package: 'chrony' }                # NTP client/server (replaces ntp + ntpdate)
   - { package: 'cron' }
+  - { package: "gdisk" }
+  - { package: "htop" }
   - { package: 'logrotate' }
+  - { package: 'locales' }               # locale-gen / update-locale (required by Ansible for UTF-8)
   - { package: 'lvm2' }
+  - { package: "jq" }
   - { package: 'mdadm' }
-  - { package: 'ntp' }
-  - { package: 'ntpdate' }
   - { package: 'tcptrack' }
   - { package: 'tcpdump' }
-  - { package: "lsof" }
-  - { package: "unzip" }
-  - { package: "whois" }
-  - { package: "zip" }
+  - { package: 'tmux' }
+  - { package: 'lsof' }
+  - { package: 'ufw' }                   # Uncomplicated Firewall (replaces firewalld; Ubuntu-native)
+  - { package: 'unzip' }
+  - { package: 'whois' }
+  - { package: "udisks2" }
+  - { package: 'zip' }

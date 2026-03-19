@@ -1,6 +1,6 @@
 # =============================================================================
 #
-# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+# - Copyright (C) 2026     George Li <yongxinl@outlook.com>
 #
 # - This is part of HomeVault imagebuilder project.
 # - This program is distributed in the hope that it will be useful,
@@ -9,17 +9,20 @@
 #
 # =============================================================================
 
-# Default playbook variables
-# =================
+# Build phase 3 variables — overlay filesystem (build_overlayfs.yml)
+# ==================================================================
+# These variables configure the overlayfs build phase that installs the
+# application services (Nginx, PHP-FPM, MariaDB, Webmin) on top of the
+# read-only base filesystem to produce filesystem.squashfs.
+# Loaded only by roles/common/overlayfs_wrapper.yml.
 
 # .. contents:: Sections
 #    :local:
-#
-# ------------------------------------
-#   building image
-# ------------------------------------
 
 # .. envvar:: build_root
 #
-# Specify chroot mount point building image
+# Path to the overlayfs merged mount point used as the chroot in this phase.
+# The kernel overlayfs driver merges basefs.squashfs (lower/read-only) with the
+# upper directory (read-write) at this path so service packages are installed
+# into the overlay layer only.
 build_root: '{{ build_rootfs }}'

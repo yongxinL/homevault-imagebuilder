@@ -1,6 +1,6 @@
 # =============================================================================
 #
-# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+# - Copyright (C) 2026     George Li <yongxinl@outlook.com>
 #
 # - This is part of HomeVault imagebuilder project.
 # - This program is distributed in the hope that it will be useful,
@@ -9,17 +9,18 @@
 #
 # =============================================================================
 
-# Default playbook variables
-# =================
+# Build phase 4 variables — ISO image assembly (build_image.yml)
+# ==============================================================
+# These variables configure the image-build phase that assembles the final
+# bootable ISO from the artefacts produced in phases 1–3.
+# Loaded only by roles/common/image_wrapper.yml.
 
 # .. contents:: Sections
 #    :local:
-#
-# ------------------------------------
-#   building image
-# ------------------------------------
 
 # .. envvar:: build_root
 #
-# Specify chroot mount point building image
+# Path to the chroot used during the image-build phase.
+# In this phase the chroot is only used to copy syslinux binaries out of the
+# rootfs into the ISO directory tree; no new packages are installed here.
 build_root: '{{ build_rootfs }}'

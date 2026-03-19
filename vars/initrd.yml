@@ -1,6 +1,6 @@
 # =============================================================================
 #
-# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+# - Copyright (C) 2026     George Li <yongxinl@outlook.com>
 #
 # - This is part of HomeVault imagebuilder project.
 # - This program is distributed in the hope that it will be useful,
@@ -9,49 +9,84 @@
 #
 # =============================================================================
 
-# Default playbook variables
-# =================
+# Build phase 1 variables — kernel and initial ramdisk (build_initrd.yml)
+# ========================================================================
+# These variables configure the debootstrap environment used to build the
+# live-boot initrd and extract the vmlinuz kernel image.  A separate chroot
+# is used for this phase (rather than the basefs chroot) so the initrd can be
+# built cleanly with only the packages needed for live-boot.
 
 # .. contents:: Sections
 #    :local:
+
+# ------------------------------------
+#   Build environment sizing
+# ------------------------------------
+
+# .. envvar:: build_root
 #
-# ------------------------------------
-#   Linux kernel packages and installation
-# ------------------------------------
+# Path to the chroot used for the initrd build phase.
+# Reuses the same inventory variable as the basefs phase.
+build_root: '{{ build_rootfs }}'
 
 # .. envvar:: build_root_size
 #
-# Specify chroot mount point and size for building Linux kernel images
-build_root: '{{ build_rootfs }}'
+# Size of the tmpfs volume for the initrd chroot.
+# 1 000 MB is sufficient because only the kernel and casper packages are installed.
 build_root_size: 1000m
+
+# ------------------------------------
+#   Debootstrap exclusions
+# ------------------------------------
 
 # .. envvar:: initrd_exclude_packages
 #
-# List of packages that will no be include in debootstrap
+# Packages excluded from the initrd debootstrap run.
+# Grub is excluded because the ISO uses syslinux/isolinux (BIOS) and
+# grub-efi (EFI), which are managed separately in the image-build phase.
 initrd_exclude_packages: 'grub-common,grub-gfxpayload-lists,grub-pc,grub-pc-bin,grub2-common'
+
+# ------------------------------------
+#   Live-boot packages (casper)
+# ------------------------------------
 
 # .. envvar:: initrd_base_packages
 #
-# List of base packages to install with Linux kernel image.
-# package: package will be installed
-# version: package version, default is '*'
-# example: - { package: 'package', version: '1.2' }
+# Core packages that provide the Ubuntu live-boot environment.
+#
+# Changes from Ubuntu 16 (Xenial) to Ubuntu 24 (Noble):
+#   REMOVED  lupin-casper  → removed upstream in Ubuntu 20+; the standard casper
+#                            package now handles all live-boot scenarios including
+#                            USB and ISO boot.  No functional replacement needed.
+#   KEPT     casper        → live-boot framework, rewritten for Ubuntu 20+.
+#                            NOTE: casper hook scripts under
+#                            /usr/share/initramfs-tools/scripts/casper-bottom/
+#                            changed significantly; the custom 12fstab script
+#                            has been updated accordingly.
 initrd_base_packages:
   - { package: 'casper' }
-  - { package: 'lupin-casper' }
+
+# ------------------------------------
+#   Additional initrd utility packages
+# ------------------------------------
 
 # .. envvar:: initrd_packages
 #
-# List of additional packages to install with Linux kernel image.
-# package: package will be installed
-# version: package version, default is '*'
-# example: - { package: 'package', version: '1.2' }
+# Filesystem and storage support packages included in the initrd so the
+# live system can mount common disk formats at boot time.
+#
+# Changes from Ubuntu 16 (Xenial) to Ubuntu 24 (Noble):
+#   REMOVED  aufs-tools    → aufs kernel module removed in Ubuntu 20+.
+#                            Kernel overlayfs (used since Linux 4.8) replaces it.
+#                            No package replacement needed — overlayfs is built-in.
+#   REMOVED  btrfs-tools   → renamed to btrfs-progs in Ubuntu 18+
+#   ADDED    btrfs-progs   → replacement for btrfs-tools
+#
+# NOTE: exfat-fuse covers all exFAT needs (exfat-utils merged into it in Ubuntu 22+).
 initrd_packages:
-  - { package: 'aufs-tools' }
-  - { package: 'biosdevname' }
-  - { package: 'btrfs-tools' }
+  - { package: 'btrfs-progs' }   # btrfs filesystem tools (renamed from btrfs-tools in Ubuntu 18+)
   - { package: 'dosfstools' }
-  - { package: 'exfat-fuse' }
+  - { package: 'exfat-fuse' }    # exFAT support (exfat-utils merged into this in Ubuntu 22+)
   - { package: 'mdadm' }
   - { package: 'lvm2' }
   - { package: 'ntfs-3g' }

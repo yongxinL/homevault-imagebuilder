@@ -1,6 +1,6 @@
 # =============================================================================
 #
-# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+# - Copyright (C) 2026     George Li <yongxinl@outlook.com>
 #
 # - This is part of HomeVault imagebuilder project.
 # - This program is distributed in the hope that it will be useful,
@@ -9,114 +9,239 @@
 #
 # =============================================================================
 
-# Default group variables
-# =================
+# Default group variables — shared across all build hosts
+# =======================================================
+# These variables apply to every playbook in the build pipeline (basefs, initrd,
+# overlayfs, image). Override in a per-playbook vars/ file when a value only
+# applies to a single build phase.
 
 # .. contents:: Sections
 #    :local:
-#
+
+# ------------------------------------
+#   Target system identity
+# ------------------------------------
 
 # .. envvar:: target_host_name
 # .. envvar:: target_host_domain
 #
-# Specify hostname and domain that should be set in the target image.
+# Hostname and fully-qualified domain name written into the target image.
+# Also used in the boot menu label and the output ISO file name.
 target_host_name: 'captainL'
-target_host_domain: 'lifamilyclub.com'
+target_host_domain: 'onelijia.com'
 
 # .. envvar:: target_root_password
 #
-# Specify root password
+# Plain-text root password. It is hashed with SHA-512 (mkpasswd) during the
+# build and never stored as plain text in the final image.
 target_root_password: 'secret'
 
 # .. envvar:: target_timezone
 #
-# Specify timezone in target host
+# IANA timezone string for the target system.
+# Examples: 'Australia/Sydney', 'UTC', 'Asia/Shanghai', 'America/New_York'
 target_timezone: 'Australia/Sydney'
+
+# .. envvar:: target_ntpserver
+#
+# NTP pool server address used to configure chrony in the target image.
+# The build inserts pool entries 0–3 using this base name
+# (e.g. 0.au.pool.ntp.org … 3.au.pool.ntp.org).
+target_ntpserver: 'au.pool.ntp.org'
+
+# .. envvar:: target_dns_resolver
+#
+# Default DNS resolver written to /etc/resolv.conf during the build phase.
+# This is only a build-time resolver; the live system uses systemd-resolved.
+target_dns_resolver: '8.8.8.8'
+
+# .. envvar:: target_dhcp_timeout
+#
+# How many seconds systemd-networkd-wait-online will wait for a DHCP address
+# before giving up and allowing the boot sequence to continue.
+# Setting this prevents the system from hanging indefinitely when no DHCP
+# server is available at boot time.
+target_dhcp_timeout: 30
+
+# ------------------------------------
+#   Storage and data layout
+# ------------------------------------
 
 # .. envvar:: target_data_root
 #
-# Specify folder that will be use as root of user data directory
-target_data_root: '/yongxin'
+# Root directory for all user data partitions on the running system.
+# Disk partitions identified by label (target_mount_device) are mounted
+# relative to this path.
+target_data_root: '/oneLijia'
 
 # .. envvar:: target_mount_device
 #
-# List of Disk label and mountas will be use to mount partition when booting up
-# this will be setup in script/casper-bottom/12fstab
+# List of disk-label / mount-point pairs written into /scripts/casper-bottom/12fstab.
+# At live-boot time casper mounts each partition by its filesystem label.
+#   label   – ext4 filesystem label (e2label) on the data disk
+#   mountas – absolute path where the partition is mounted
 target_mount_device:
-  - { label: 'data1', mountas: '{{ target_data_root }}' }
-  - { label: 'vmfs', mountas: '{{ target_data_root }}/vmfs' }
-  - { label: 'archive', mountas: '{{ target_data_root }}/archive' }
+  - { label: "dat01", mountas: "{{ target_data_root }}" }
+  - { label: "vmf01", mountas: "{{ target_data_root }}/vmfs" }
+  - { label: "dwn01", mountas: "{{ target_data_root }}/downloading" }
+  - { label: "arc01", mountas: "{{ target_data_root }}/archive" }
 
 # .. envvar:: target_appdata_root
 #
-# Specify folder that will be use as new location of application data files
-# in case if you want to collect all appdata files in one
+# Relocated application data directory. Services (MariaDB, Docker, etc.) store
+# their data here so it lands on the persistent overlay rather than in the
+# read-only squashfs.
 target_appdata_root: '{{ target_data_root }}/private/var'
 
-# .. envvar:: private_overlay_root
+# ------------------------------------
+#   OverlayFS (read-write layer)
+# ------------------------------------
+
+# .. envvar:: overylay_private_root
 #
-# Specify the folder that will be use to mount as overlay
+# Base directory on the persistent data partition where the read-write overlay
+# upper-dirs are created. Each directory listed in overylay_private_folder gets
+# a sub-directory here as its writable upper layer.
 overylay_private_root: '{{ target_data_root }}/private'
 
-# .. envvar:: private_overlay_default
+# .. envvar:: overylay_private_folder
 #
-# List of folders that will be overlay when booting up
-# separate by  , or ;
-overylay_private_folder: '/etc;/var/log'
+# Semicolon-separated list of root-filesystem directories that are mounted as
+# writable overlays at boot time by /etc/init.d/mount-overlayfs (via the
+# overlayfs.service systemd unit).
+# Changes to these directories survive reboots (stored on the data partition).
+overylay_private_folder: '/etc;/var/log;/home;/opt'
+
+# ------------------------------------
+#   Build artefact file names
+# ------------------------------------
 
 # .. envvar:: build_image_initrd
+#
+# File name for the initial ramdisk copied into the casper/ directory of the ISO.
+build_image_initrd: 'initrd.lz'
+
 # .. envvar:: build_image_vmlinuz
+#
+# File name for the kernel image copied into the casper/ directory of the ISO.
+build_image_vmlinuz: 'vmlinuz'
+
 # .. envvar:: build_base_image
 #
-# Specify file name for initrd, vmlinuz, base and overlay squashfs
-build_image_initrd: 'initrd.lz'
-build_image_vmlinuz: 'vmlinuz'
+# File name for the base squashfs image (produced by build_basefs.yml).
 build_base_image: 'basefs.squashfs'
+
+# .. envvar:: build_overlay_image
+#
+# File name for the overlay squashfs image (produced by build_overlayfs.yml).
 build_overlay_image: 'filesystem.squashfs'
 
 # .. envvar:: build_image_iso
 #
-# Specify target iso file name
+# Output ISO file name. Auto-generated from hostname, distribution, and suite.
+# Example: captainL_ubuntu_noble.iso
 build_image_iso: '{{ target_host_name }}_{{ debstrap_dist }}_{{ debstrap_suite }}.iso'
+
+# ------------------------------------
+#   Kernel version
+# ------------------------------------
 
 # .. envvar:: build_kernel_version
 #
-# Specify Linux kernel version will be use in the target image.
-# Available version for ubuntu
-# http://mirror.optus.net/ubuntu/pool/main/l/linux/
-# - 4.4.0-51-generic  => trusty
-# - 3.16.0-60-generic => trusty
-build_kernel_version: '4.10.0-37-generic'
+# Exact kernel package version installed in both the base filesystem (basefs)
+# and the initrd chroot. Always specify a full version string — NEVER use the
+# 'linux-image-generic' meta-package, as that pulls in HWE dependencies and
+# significantly increases image size.
+#
+# Known working versions by Ubuntu release:
+#   Ubuntu 24.04 Noble  — 6.8.0-100-generic   (default, recommended)
+#   Ubuntu 22.04 Jammy  — 5.15.0-158-generic  (see README: Ubuntu 22.x changes)
+#   Ubuntu 20.04 Focal  — 5.4.0-200-generic
+#   Ubuntu 18.04 Bionic — 4.15.0-213-generic
+#
+# Browse available kernel versions at:
+#   https://au.archive.ubuntu.com/ubuntu/pool/main/l/linux/
+build_kernel_version: '6.8.0-100-generic'
+
+# ------------------------------------
+#   Debootstrap / Ubuntu release target
+# ------------------------------------
 
 # .. envvar:: debstrap_dist
 # .. envvar:: debstrap_arch
 # .. envvar:: debstrap_suite
+# .. envvar:: debstrap_version
 #
-# Specify target debootstrap will be build
+# Controls which Ubuntu release and architecture debootstrap bootstraps.
+#
+# debstrap_suite options:
+#   noble   = Ubuntu 24.04 LTS  (default — recommended)
+#   jammy   = Ubuntu 22.04 LTS  (see README for 22.x-specific notes)
+#   focal   = Ubuntu 20.04 LTS
+#   xenial  = Ubuntu 16.04      (legacy — original target)
+#
+# NOTE: When changing debstrap_suite, also update build_kernel_version above.
+#
+# debstrap_version: pinned debootstrap package version downloaded from the
+# Ubuntu archive pool. Used by the initrd pre-build to ensure a current
+# version is installed regardless of what apt provides on the build host.
+# Browse available versions at:
+#   http://au.archive.ubuntu.com/ubuntu/pool/main/d/debootstrap/
 debstrap_dist: 'ubuntu'
 debstrap_arch: 'amd64'
-debstrap_suite: 'xenial'
-debstrap_version: '1.0.81ubuntu3'
+debstrap_suite: 'noble'
+debstrap_version: '1.0.142ubuntu1'
+
+# ------------------------------------
+#   APT mirror and proxy
+# ------------------------------------
 
 # .. envvar:: apt_proxy
 #
-# Specify apt cacher / proxy link, like '127.0.0.1:3142/'
-apt_proxy:
+# Optional APT caching proxy (e.g. apt-cacher-ng) to accelerate repeated builds.
+# Format: 'host:port'  — example: '127.0.0.1:3142'
+# Leave empty (apt_proxy: '') to download directly from the archive mirror.
+#
+# When set, the proxy is prepended to mirror URLs in apt-cacher-ng pass-through
+# format:  http://<proxy>/<mirror>/<path>
+# The proxy entry is REMOVED from the final image by the cleanup task so the
+# live system fetches packages directly from the archive.
+apt_proxy: ''
 
 # .. envvar:: debstrap_base_mirror
 #
-# Specify debootstrap mirror link
-debstrap_base_mirror: '{{ apt_proxy }}mirror.optus.net'
-debstrap_mirror: 'http://{{ debstrap_base_mirror }}/{{ debstrap_dist }}'
+# Hostname of the Ubuntu archive mirror used for both debootstrap bootstrap and
+# all subsequent apt-get operations inside the chroot.
+# Change this to your nearest mirror to improve download speed.
+# Australia examples:
+#   au.archive.ubuntu.com      (default — Canonical CDN, anycast AU)
+#   mirror.aarnet.edu.au       (AARNet — academic network mirror)
+#   mirror.internode.on.net    (Internode)
+debstrap_base_mirror: 'au.archive.ubuntu.com'
+
+# .. envvar:: debstrap_mirror
+#
+# Full base URL for the Ubuntu APT repository — clean, no proxy prefix.
+# Used by debootstrap (proxy passed via http_proxy env var instead) and as
+# the apt sources.list URL inside the chroot (proxy handled by 00proxy).
+# Do NOT add the apt_proxy prefix here — it would cause a double-proxy when
+# apt reads both this URL and /etc/apt/apt.conf.d/00proxy simultaneously.
+debstrap_mirror: "http://{{ debstrap_base_mirror }}/{{ debstrap_dist }}"
 
 # .. envvar:: debstrap_include_packages
 #
-# Specify base packages that will be included when debootstrap environment.
-debstrap_include_packages: 'python,python-apt'
+# Minimal package set included by debootstrap at bootstrap time (before the
+# main package installation phase). Uses the python3 interpreter bundled with
+# the target Ubuntu release — no separate Python installation needed.
+debstrap_include_packages: 'python3,python3-apt'
 
 # .. envvar:: ubuntu_repo_lists
 #
-# Specify apt repository for ubuntu
+# APT repository source lines written into the chroot during the build phase.
+# These use direct mirror URLs — the build-time proxy is handled transparently
+# by /etc/apt/apt.conf.d/00proxy (written by pre-build, removed by post-build).
+# The post-build task replaces these with production mirror entries before
+# creating the squashfs image.
 ubuntu_repo_lists:
   - { dest: '/etc/apt/sources.list', line: 'deb {{ debstrap_mirror }} {{ debstrap_suite }} main' }
   - { dest: '/etc/apt/sources.list.d/updates.list', line: 'deb {{ debstrap_mirror }} {{ debstrap_suite }}-updates main' }
