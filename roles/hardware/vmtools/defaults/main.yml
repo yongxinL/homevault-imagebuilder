@@ -1,6 +1,6 @@
 # =============================================================================
 #
-# - Copyright (C) 2016     George Li <yongxinl@outlook.com>
+# - Copyright (C) 2026     George Li <yongxinl@outlook.com>
 #
 # - This is part of HomeVault imagebuilder project.
 # - This program is distributed in the hope that it will be useful,
@@ -37,10 +37,54 @@ vmtools_base_packages:
 # example: - { package: 'package', version: '1.2' }
 vmtools_packages: []
 
+# ------------------------------------
+#   VMware NIC — static IP (Netplan)
+# ------------------------------------
+
+# .. envvar:: vmtools_primary_nic
+#
+# Name of the primary VMware NIC.  Always written into the Netplan config —
+# as a static interface when vmtools_static_nic matches, or as DHCP fallback
+# when vmtools_static_nic is empty.
+vmtools_primary_nic: 'ens192'
+
+# .. envvar:: vmtools_static_nic
+#
+# Set to the primary NIC name (e.g. 'ens192') to assign a static IP.
+# Set to '' to fall back to DHCP on vmtools_primary_nic instead.
+vmtools_static_nic: 'ens192'
+
+# .. envvar:: vmtools_static_address
+#
+# Static IPv4 address in CIDR notation assigned to vmtools_static_nic.
+vmtools_static_address: '192.168.0.1/24'
+
+# .. envvar:: vmtools_static_gateway
+#
+# Default gateway for the VMware NIC.  Leave '' to omit the route stanza
+# (useful when the NIC is management-only on a local subnet).
+vmtools_static_gateway: '192.168.0.1'
+
+# .. envvar:: vmtools_static_dns
+#
+# List of DNS server addresses for the VMware NIC.
+# Leave [] to omit the nameservers stanza and inherit from DHCP on other NICs.
+vmtools_static_dns: ['8.8.8.8', '192.168.0.1']
+
+# .. envvar:: vmtools_dhcp_nic
+#
+# VMware NIC interface name to configure with DHCP via Netplan.
+# Typically 'ens225' for a second VMXNET3 adapter.
+# Set to '' to skip adding a DHCP NIC to the Netplan config.
+vmtools_dhcp_nic: 'ens224'
+
+# ------------------------------------
+#   Configuration files
+# ------------------------------------
+
 # .. envvar:: docker_configuration
 #
 # List of configuration file will be copy to Linux base filesystems
-vmtools_configuration:
-  - { name: "etc-network-interfaces.j2", dest: "/etc/network/interfaces" }
-  - { name: "etc-network-interfaces.d-{{ install_role_name }}.cfg.j2", dest: "/etc/network/interfaces.d/{{ install_role_name }}.cfg" }
-  - { name: "etc-init.d-init-{{ install_role_name }}.sh.j2", dest: "etc/init.d/init-{{ install_role_name }}.sh", mode: "0755" }
+vmtools_configuration: []
+# All legacy ifupdown config and init scripts have been removed.
+# Network configuration is now handled by Netplan (02-vmware-static.yaml above).

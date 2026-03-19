@@ -1,0 +1,54 @@
+# =============================================================================
+# /etc/netplan/02-vmware-static.yaml — VMware NIC configuration
+# =============================================================
+# Managed by Ansible (HomeVault imagebuilder — hardware/vmtools role)
+#
+# Configures VMware NICs explicitly, taking precedence over the DHCP wildcard
+# in 01-netcfg.yaml (networkd applies explicit interface names over wildcards).
+#
+# Variables (set in roles/hardware/vmtools/defaults/main.yml or group_vars):
+#   vmtools_primary_nic     — primary NIC name, always configured (e.g. ens192)
+#   vmtools_static_nic      — set to primary NIC name for static IP, '' for DHCP
+#   vmtools_static_address  — static address in CIDR notation, e.g. 192.168.0.1/24
+#   vmtools_static_gateway  — default gateway IP (optional, leave '' to skip)
+#   vmtools_static_dns      — list of DNS servers (optional, leave [] to skip)
+#   vmtools_dhcp_nic        — second NIC, always DHCP (e.g. ens224, '' to skip)
+#
+# Behaviour:
+#   vmtools_static_nic set  → primary NIC gets static IP, vmtools_dhcp_nic gets DHCP
+#   vmtools_static_nic ''   → both primary NIC and vmtools_dhcp_nic get DHCP
+# =============================================================================
+
+network:
+  version: 2
+  renderer: networkd
+
+  ethernets:
+{% if vmtools_static_nic | length > 0 %}
+    # Primary NIC — static IP
+    {{ vmtools_static_nic }}:
+      addresses:
+        - {{ vmtools_static_address }}
+{% if vmtools_static_gateway %}
+      routes:
+        - to: default
+          via: {{ vmtools_static_gateway }}
+{% endif %}
+{% if vmtools_static_dns %}
+      nameservers:
+        addresses: {{ vmtools_static_dns | to_yaml | trim }}
+{% endif %}
+{% else %}
+    # Primary NIC — DHCP fallback (vmtools_static_nic is unset)
+    {{ vmtools_primary_nic }}:
+      dhcp4: true
+      dhcp6: false
+      optional: true
+{% endif %}
+{% if vmtools_dhcp_nic | length > 0 %}
+    # Second NIC — DHCP
+    {{ vmtools_dhcp_nic }}:
+      dhcp4: true
+      dhcp6: false
+      optional: true
+{% endif %}
