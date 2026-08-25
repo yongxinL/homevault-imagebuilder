@@ -37,7 +37,7 @@ install_role_name: 'ansible'
 # The ansible-core version to install via pip3.
 # Use '2.20.*' to allow patch releases, or pin to an exact version like '2.20.0'.
 # See https://pypi.org/project/ansible-core/#history for available versions.
-ansible_core_version: '2.20.*'
+ansible_core_version: '2.21.*'
 
 # .. envvar:: ansible_base_packages
 #
