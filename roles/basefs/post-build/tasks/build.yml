@@ -27,7 +27,7 @@
 
 - name: "post-build | Unmount /proc, /dev, /dev/pts bind mounts from chroot"
   ansible.builtin.mount:
-    name: "{{ build_root }}/{{ item }}"
+    path: "{{ build_root }}/{{ item }}"
     src: none
     fstype: none
     state: unmounted

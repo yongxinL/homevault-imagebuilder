@@ -161,7 +161,7 @@ build_image_iso: '{{ target_host_name }}_{{ debstrap_dist }}_{{ debstrap_suite }
 #
 # Browse available kernel versions at:
 #   https://au.archive.ubuntu.com/ubuntu/pool/main/l/linux/
-build_kernel_version: '6.8.0-100-generic'
+build_kernel_version: '6.8.0-136-generic'
 
 # ------------------------------------
 #   Debootstrap / Ubuntu release target
@@ -190,7 +190,7 @@ build_kernel_version: '6.8.0-100-generic'
 debstrap_dist: 'ubuntu'
 debstrap_arch: 'amd64'
 debstrap_suite: 'noble'
-debstrap_version: '1.0.142ubuntu1'
+debstrap_version: '1.0.142ubuntu2'
 
 # ------------------------------------
 #   APT mirror and proxy

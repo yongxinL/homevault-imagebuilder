@@ -40,8 +40,13 @@
     url: "{{ debstrap_mirror }}/pool/main/s/syslinux/{{ item }}"
     dest: "/tmp/{{ item }}"
     force: true
+  register: syslinux_download
+  # Retries absorb transient DNS / network failures on the build host.
+  until: syslinux_download is success
+  retries: 3
+  delay: 10
   loop: "{{ syslinux_ubuntu_packages }}"
-  when: ansible_distribution == "Ubuntu"
+  when: ansible_facts['distribution'] == "Ubuntu"
   # get_url uses Python urllib, not apt — pass proxy via environment variable.
   environment:
     http_proxy: "{% if apt_proxy | default('') %}http://{{ apt_proxy }}/{% endif %}"
@@ -49,4 +54,4 @@
 - name: "build-image | Install syslinux packages into chroot (dpkg)"
   ansible.builtin.command: "dpkg -i /tmp/{{ item }}"
   loop: "{{ syslinux_ubuntu_packages }}"
-  when: ansible_distribution == "Ubuntu"
+  when: ansible_facts['distribution'] == "Ubuntu"

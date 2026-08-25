@@ -10,22 +10,30 @@
 # =============================================================================
 
 ---
-- name: add {{ install_role_name }} repository key
+- name: add {{ install_role_name }} repository keys and source list
   block:
-    - apt_key:
-        keyserver: "{{ item.server }}"
-        id: "{{ item.keyid }}"
-        state: present
-      with_items:
-        - "{{ repo_key | default([]) }}"
+    - ansible.builtin.file:
+        path: "/etc/apt/keyrings"
+        state: directory
+        mode: '0755'
 
-    - apt_key:
+    # Keyserver lookup over HTTPS returns the ASCII-armored public key,
+    # saved directly into the APT keyrings directory.
+    - ansible.builtin.get_url:
+        url: "https://{{ item.server }}/pks/lookup?op=get&search=0x{{ item.keyid }}"
+        dest: "{{ phpfpm_repo_keyring }}"
+        mode: '0644'
+        force: true
+      loop: "{{ repo_key | default([]) }}"
+
+    - ansible.builtin.get_url:
         url: "{{ item }}"
-        state: present
-      with_items:
-        - "{{ repo_gpg | default([]) }}"
+        dest: "{{ phpfpm_repo_keyring }}"
+        mode: '0644'
+        force: true
+      loop: "{{ repo_gpg | default([]) }}"
 
-    - lineinfile:
+    - ansible.builtin.lineinfile:
         dest: "{{ item.dest }}"
         line: "{{ item.line }}"
         create: yes

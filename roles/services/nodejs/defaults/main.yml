@@ -57,6 +57,22 @@ nodejs_repository:
 nodejs_base_packages:
   - { package: 'nodejs' }
 
+# .. envvar:: nodejs_install_pnpm
+#
+# Whether to install pnpm alongside Node.js.
+# Preferred activation path is corepack (bundled with Node.js >= 16.10 and
+# shipped in the NodeSource packages); if the corepack binary is missing the
+# install task falls back to a global 'npm install -g pnpm'.
+nodejs_install_pnpm: true
+
+# .. envvar:: pnpm_version
+#
+# pnpm version to install/activate.
+# Use 'latest' for the newest release, or pin an exact version (e.g. '10.12.1')
+# for reproducible images.
+# See https://www.npmjs.com/package/pnpm?activeTab=versions
+pnpm_version: 'latest'
+
 # .. envvar:: nodejs_packages
 #
 # Additional packages installed alongside Node.js.

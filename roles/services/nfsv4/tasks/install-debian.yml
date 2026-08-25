@@ -19,6 +19,4 @@
   until: install_pkgs is success
   retries: 2
   delay: 5
-  with_flattened:
-    - "{{ nfsv4_base_packages }}"
-    - "{{ nfsv4_packages }}"
+  loop: "{{ [nfsv4_base_packages, nfsv4_packages] | flatten }}"

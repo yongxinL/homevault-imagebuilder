@@ -10,10 +10,18 @@
 # =============================================================================
 
 ---
-- name: add {{ install_role_name }} repository key
-  apt_key: 
+- name: create /etc/apt/keyrings directory
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: '0755'
+
+- name: download {{ install_role_name }} repository GPG signing key
+  ansible.builtin.get_url:
     url: "{{ beat_repo_key }}"
-    state: present
+    dest: "{{ beat_repo_keyring }}"
+    mode: '0644'
+    force: true
 
 - name: add {{ install_role_name }} repository list
   lineinfile: 
@@ -29,11 +37,10 @@
     install_recommends: no
     update_cache: yes
   register: install_pkgs
-  until: install_pkgs|success
+  until: install_pkgs is success
   retries: 2
   delay: 5
-  with_flattened:
-    - "{{ beat_base_packages }}"
+  loop: "{{ [beat_base_packages] | flatten }}"
 
 - name: copy {{ install_role_name }} configuration files
   copy:
@@ -49,8 +56,7 @@
   file: 
     path: "{{ item.dest }}"
     state: absent
-  with_flattened:
-    - "{{ beat_repository }}"
+  loop: "{{ beat_repository | flatten }}"
 
 - name: disable {{ install_role_name }} service list
   service: 

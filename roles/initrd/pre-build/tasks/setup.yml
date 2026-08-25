@@ -10,6 +10,9 @@
 # =============================================================================
 
 ---
+# Bootstrap the chroot. Retries absorb transient DNS / network failures on
+# the build host (e.g. "Failed getting release file"); debootstrap resumes
+# safely over a partially-populated target directory.
 - name: Create rootfs environment
   command: debootstrap
            --arch={{ debstrap_arch }}
@@ -19,6 +22,10 @@
            {{ debstrap_suite }}
            {{ build_root }}
            {{ debstrap_mirror }}
+  register: bootstrap
+  until: bootstrap is success
+  retries: 3
+  delay: 10
   environment:
     http_proxy: "{% if apt_proxy | default('') %}http://{{ apt_proxy }}/{% endif %}"
 
@@ -82,8 +89,8 @@
   when: apt_proxy | default('') != ''
 
 - name: Bind mount to chroot environment
-  mount:
-    name: "{{ build_root }}/{{ item }}"
+  ansible.builtin.mount:
+    path: "{{ build_root }}/{{ item }}"
     src: "/{{ item }}"
     fstype: none
     opts: "bind"

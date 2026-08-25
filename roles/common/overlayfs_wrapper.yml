@@ -44,7 +44,7 @@
     - ../../{{ config_file }}
   roles:
     - ../services/ansible
-    # - ../services/nodejs
+    - ../services/nodejs
     # - ../services/nginx          # Nginx web server
     # - ../services/phpfpm8        # PHP 8.3 + extensions (via ondrej/php PPA)
     #- ../services/mariadb11      # MariaDB 11.4 LTS (replaces mariadb10 for Noble)

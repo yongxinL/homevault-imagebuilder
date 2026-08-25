@@ -9,7 +9,8 @@
 #   3. Add the NodeSource apt source entry (signed-by reference).
 #   4. Remove any conflicting pre-existing packages (nodejs, libdbus).
 #   5. Install Node.js and companion packages.
-#   6. Remove the temporary apt source entry (key remains for live-system updates).
+#   6. Install pnpm (via corepack, npm fallback).
+#   7. Remove the temporary apt source entry (key remains for live-system updates).
 # =============================================================================
 
 ---
@@ -69,6 +70,37 @@
   environment:
     DEBIAN_FRONTEND: noninteractive
   loop: "{{ nodejs_base_packages + nodejs_packages }}"
+
+# ---- pnpm ----
+# pnpm is the preferred package manager for Node.js projects. It is activated
+# through corepack (bundled with Node.js >= 16.10, shipped in NodeSource debs).
+# COREPACK_ENABLE_DOWNLOAD_PROMPT=0 prevents an interactive Y/n prompt when
+# corepack downloads pnpm from the npm registry during image build.
+
+- name: "nodejs | Check if corepack is available"
+  ansible.builtin.command: which corepack
+  register: nodejs_corepack_bin
+  failed_when: false
+  changed_when: false
+
+- name: "nodejs | Activate pnpm {{ pnpm_version }} via corepack"
+  ansible.builtin.shell: >
+    corepack enable pnpm &&
+    corepack prepare pnpm@{{ pnpm_version }} --activate
+  register: nodejs_pnpm_corepack
+  when: nodejs_install_pnpm | bool and nodejs_corepack_bin.rc == 0
+  environment:
+    COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'
+    http_proxy: "{% if apt_proxy | default('') %}http://{{ apt_proxy }}/{% endif %}"
+    https_proxy: "{% if apt_proxy | default('') %}http://{{ apt_proxy }}/{% endif %}"
+
+- name: "nodejs | Install pnpm {{ pnpm_version }} via npm (corepack fallback)"
+  ansible.builtin.shell: npm install -g pnpm@{{ pnpm_version }}
+  register: nodejs_pnpm_npm
+  when: nodejs_install_pnpm | bool and nodejs_corepack_bin.rc != 0
+  environment:
+    http_proxy: "{% if apt_proxy | default('') %}http://{{ apt_proxy }}/{% endif %}"
+    https_proxy: "{% if apt_proxy | default('') %}http://{{ apt_proxy }}/{% endif %}"
 
 # ---- Remove build-time apt source entry ----
 # The GPG keyring is kept so the live system can run apt-get upgrade.

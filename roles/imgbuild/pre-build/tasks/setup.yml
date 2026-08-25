@@ -11,13 +11,14 @@
 
 ---
 - name: pre-check {{ build_overlay_image }} image file
-  stat:
+  ansible.builtin.stat:
     path: "{{ build_image_root }}/casper/{{ build_overlay_image }}"
   register: squashfs_exist
 
-- fail:
+- name: fail if {{ build_overlay_image }} file does not exist
+  ansible.builtin.fail:
     msg: "Whoops! {{ build_overlay_image }} file does not exist"
-  when: squashfs_exist.stat.exists == False
+  when: not squashfs_exist.stat.exists
 
 - name: update target and setup hostname and network services
   file:
@@ -70,8 +71,8 @@
   with_items: "{{ ubuntu_repo_lists }}"
 
 - name: bind mount to chroot environment
-  mount:
-    name: "{{ build_root }}/{{ item }}"
+  ansible.builtin.mount:
+    path: "{{ build_root }}/{{ item }}"
     src: "/{{ item }}"
     fstype: none
     opts: "bind"

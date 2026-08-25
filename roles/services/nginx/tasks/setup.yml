@@ -15,7 +15,7 @@
     path: "{{ item }}"
     state: directory
     mode: 0644
-  with_flattened:
+  loop:
     - "/etc/nginx/conf.d"
     - "/etc/nginx/conf-available"
     - "/etc/nginx/httpd-enabled"
@@ -34,7 +34,7 @@
   command: update-rc.d -f {{ item }} remove
   with_items:
     - nginx
-  when: ansible_lsb.major_release|int < 15
+  when: ansible_facts['lsb']['major_release']|int < 15
 
 - name: include init-functions into rc.local
   lineinfile:
@@ -46,7 +46,7 @@
     mode: 0755
     state: present
     create: yes
-  when: ansible_lsb.major_release|int < 15
+  when: ansible_facts['lsb']['major_release']|int < 15
 
 - name: start {{ install_role_name }} from rc.local
   blockinfile:
@@ -67,7 +67,7 @@
         service nginx start > /dev/null
       fi
       log_end_msg 0
-  when: ansible_lsb.major_release|int < 15
+  when: ansible_facts['lsb']['major_release']|int < 15
 
 - name: Check {{ install_role_name }} service file (systemd)
   stat:
@@ -80,7 +80,7 @@
     line: 'ExecStartPre=/etc/init.d/init-{{ install_role_name }}.sh'
     insertbefore: "^ExecStart.*"
     state: present
-  when: service_file.stat.exists == True
+  when: service_file.stat.exists
 
 # ---- UFW firewall rules ----
 

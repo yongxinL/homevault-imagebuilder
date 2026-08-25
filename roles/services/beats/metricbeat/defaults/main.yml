@@ -22,8 +22,15 @@ install_role_name: 'metricbeat'
 
 # .. envvar:: beat_repo_key
 #
-# APT GPG key server and id used to sign the Docker packages.
+# URL of the Elastic APT repository GPG signing key (ASCII-armored).
 beat_repo_key: 'https://artifacts.elastic.co/GPG-KEY-elasticsearch'
+
+# .. envvar:: beat_repo_keyring
+#
+# Path where the signing key is stored inside the target image.
+# Referenced by the signed-by= option in beat_repository.
+# NOTE: armored .asc keys in signed-by require apt >= 2.4 (Ubuntu 22.04+).
+beat_repo_keyring: '/etc/apt/keyrings/{{ install_role_name }}.asc'
 
 # .. envvar:: beat_version
 #
@@ -37,9 +44,10 @@ apt_proxy:
 
 # .. envvar:: beat_repository
 #
-# address of the Docker upstream APT repository.
+# Address of the Elastic upstream APT repository, authenticated via the
+# keyring downloaded from beat_repo_key.
 beat_repository:
-  - { dest: '/etc/apt/sources.list.d/{{ install_role_name }}.list', line: 'deb https://artifacts.elastic.co/packages/{{ beat_version }}/apt stable main' }
+  - { dest: '/etc/apt/sources.list.d/{{ install_role_name }}.list', line: 'deb [signed-by={{ beat_repo_keyring }}] https://artifacts.elastic.co/packages/{{ beat_version }}/apt stable main' }
 
 # .. envvar:: beat_base_packages
 #

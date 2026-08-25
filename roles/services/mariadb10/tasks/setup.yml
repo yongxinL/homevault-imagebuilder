@@ -79,7 +79,7 @@
     mode: 0755
     state: present
     create: yes
-  when: ansible_lsb.major_release|int < 15
+  when: ansible_facts['lsb']['major_release']|int < 15
 
 - name: update target and start {{ install_role_name }} from rc.local
   blockinfile:
@@ -100,7 +100,7 @@
         service mysql start
       fi
       log_end_msg 0
-  when: ansible_lsb.major_release|int < 15
+  when: ansible_facts['lsb']['major_release']|int < 15
 
 - name: configure {{ install_role_name }} service (systemd)
   lineinfile:
@@ -108,7 +108,7 @@
     line: 'ExecStartPre=/etc/init.d/init-{{ install_role_name }}.sh'
     insertbefore: "^ExecStart.*"
     state: present
-  when: service_file.stat.exists == True
+  when: service_file.stat.exists
 
 - name: setup {{ install_role_name }} service files (systemd)
   lineinfile:
@@ -122,4 +122,4 @@
     - { regxp: '^CapabilityBoundingSet.*', line: '#CapabilityBoundingSet=CAP_IPC_LOCK' }  # comment this line for working on RAID 1 disk
     - { regxp: '^ProtectSystem.*', line: '#ProtectSystem=full' }  # comment this line for writing stamp file to /etc
     - { regxp: '^ExecStartPre=/usr/bin/install.*', line: 'ExecStartPre=/usr/bin/install -m 755 -o root -g root -d /var/run/mysqld' }
-  when: service_file.stat.exists == True
+  when: service_file.stat.exists

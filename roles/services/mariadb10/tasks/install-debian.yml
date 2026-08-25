@@ -10,19 +10,23 @@
 # =============================================================================
 
 ---
-- name: add {{ install_role_name }} repository key
-  apt_key:
-    keyserver: "{{ mariadb_repo_keyserver }}"
-    id: "{{ mariadb_repo_keyid_trusty }}"
-    state: present
-  when: ansible_lsb.major_release|int < 15
+- name: create /etc/apt/keyrings directory
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: '0755'
 
-- name: add {{ install_role_name }} repository key
-  apt_key:
-    keyserver: "{{ mariadb_repo_keyserver }}"
-    id: "{{ mariadb_repo_keyid }}"
-    state: present
-  when: ansible_lsb.major_release|int >= 15
+# Both the legacy and current MariaDB signing keys are retrieved over HTTPS
+# from the keyserver (replaces apt_key keyserver= lookups). Downloading both
+# unconditionally avoids depending on ansible_lsb facts, which are unavailable
+# in a minimal chroot.
+- name: download {{ install_role_name }} repository GPG signing keys from keyserver
+  ansible.builtin.get_url:
+    url: "https://{{ mariadb_repo_keyserver }}/pks/lookup?op=get&search=0x{{ item }}"
+    dest: "/etc/apt/keyrings/{{ install_role_name }}-{{ item }}.asc"
+    mode: '0644'
+    force: true
+  loop: "{{ mariadb_repo_keys }}"
 
 - name: add {{ install_role_name }} repository list
   lineinfile: 
@@ -41,9 +45,7 @@
   until: install_pkgs is success
   retries: 2
   delay: 5
-  with_flattened:
-    - "{{ mariadb_base_packages }}"
-    - "{{ mariadb_packages }}"
+  loop: "{{ [mariadb_base_packages, mariadb_packages] | flatten }}"
 
 - name: remove {{ install_role_name }} repository list
   file: 

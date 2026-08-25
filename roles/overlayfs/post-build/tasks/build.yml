@@ -18,8 +18,8 @@
     - casper
 
 - name: update local and unmount rootfs in build directory
-  mount: 
-    name: "{{ build_root }}/{{ item }}"
+  ansible.builtin.mount:
+    path: "{{ build_root }}/{{ item }}"
     src: none
     fstype: none
     state: unmounted
@@ -32,8 +32,7 @@
   file:
     path: "{{ build_root }}/{{ item.dest }}"
     state: absent
-  with_flattened:
-    - "{{ ubuntu_repo_lists }}"
+  loop: "{{ ubuntu_repo_lists | flatten }}"
 
 - name: update target and update repository list to target rootfs
   lineinfile:
@@ -42,8 +41,8 @@
     state: present
     create: yes
   with_items:
-    - { dest: '/etc/apt/sources.list', line: 'deb http://au.archive.ubuntu.com/ubuntu/ {{ debstrap_suite }} main' }
-    - { dest: '/etc/apt/sources.list.d/universe.list', line: 'deb http://au.archive.ubuntu.com/ubuntu/ {{ debstrap_suite }} universe' }
+    - { dest: '/etc/apt/sources.list', line: 'deb http://{{ debstrap_base_mirror }}/{{ debstrap_dist }}/ {{ debstrap_suite }} main' }
+    - { dest: '/etc/apt/sources.list.d/universe.list', line: 'deb http://{{ debstrap_base_mirror }}/{{ debstrap_dist }}/ {{ debstrap_suite }} universe' }
 
 - name: update target and remove unused files before creating image
   file:

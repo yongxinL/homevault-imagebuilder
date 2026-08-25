@@ -11,8 +11,8 @@
 
 ---
 - name: mount rootfs in build directory {{ build_root }}
-  mount: 
-    name: "{{ build_root }}"
+  ansible.builtin.mount:
+    path: "{{ build_root }}"
     src: tmpfs
     fstype: tmpfs
     opts: "size={{ build_root_size }}"

@@ -10,7 +10,7 @@ Copyright (C) 2026  George Li <yongxinl@outlook.com>
 
 | Feature | Detail |
 |---------|--------|
-| Target OS | Ubuntu 24.04 LTS (Noble Numbat) — kernel 6.8.0-100-generic |
+| Target OS | Ubuntu 24.04 LTS (Noble Numbat) — kernel 6.8.0-136-generic |
 | Boot firmware | Hybrid BIOS (syslinux/isolinux) **and** UEFI (GRUB EFI) |
 | Filesystem | Read-only squashfs + kernel overlayfs writable layers |
 | Network | Netplan + systemd-networkd, DHCP with configurable timeout |
@@ -47,11 +47,29 @@ Step 4:  ansible-playbook -i hosts.yml build_image.yml
 Each step must complete successfully before the next step can run.
 Steps 1 and 2 can be run in parallel (they use separate chroot environments).
 
+### Run the Playbooks as Root
+
+**Recommendation:** execute `ansible-playbook` as the **root** user.  Many tasks
+require root privileges and the playbooks do not use `become`, for example:
+
+- the `chroot` connection plugin (all in-target tasks run inside `/opt/in_target/build/rootfs`)
+- `mount` / `umount` of squashfs and overlayfs layers
+- `debootstrap` and package installation inside the chroot
+- `mksquashfs` ownership preservation
+
+If the root account is locked (no password / no direct login) on your build host,
+a sudoer can obtain a full root login shell first:
+
+```bash
+sudo -i
+# then run the ansible-playbook commands below as root
+```
+
 ### Build Host Requirements
 
 - Ubuntu 22.04 or 24.04 (amd64)
 - Ansible 2.15 or later
-- root / sudo access (required for `mount` operations)
+- root access — run `ansible-playbook` as root (see [Run the Playbooks as Root](#run-the-playbooks-as-root)); if the root account is locked, use `sudo -i` first
 - Internet access or a configured apt-cacher-ng proxy
 
 ### Install Dependencies on the Build Host
@@ -84,7 +102,7 @@ customise the image.  Per-phase variable overrides live in `vars/basefs.yml`,
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `build_kernel_version` | `6.8.0-100-generic` | **Exact** kernel version to install. Never use `linux-image-generic` — it pulls HWE meta-packages and bloats the image. See group_vars/in_target.yml for version table. |
+| `build_kernel_version` | `6.8.0-136-generic` | **Exact** kernel version to install. Never use `linux-image-generic` — it pulls HWE meta-packages and bloats the image. See group_vars/in_target.yml for version table. |
 | `debstrap_suite` | `noble` | Ubuntu release codename: `noble`, `jammy`, `focal`, `xenial` |
 | `debstrap_arch` | `amd64` | Target CPU architecture |
 
@@ -93,7 +111,7 @@ customise the image.  Per-phase variable overrides live in `vars/basefs.yml`,
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `debstrap_base_mirror` | `au.archive.ubuntu.com` | Ubuntu archive mirror hostname. Change to your nearest mirror. |
-| `apt_proxy` | *(empty)* | apt-cacher-ng proxy — format `host:port` e.g. `127.0.0.1:3142`. Proxy is removed from the final image automatically. |
+| `apt_proxy` | *(empty)* | apt-cacher-ng proxy — format `host:port`. **Recommended** for faster repeat builds; see [Using an APT Proxy](#using-an-apt-proxy-apt-cacher-ng). Proxy is removed from the final image automatically. |
 
 ### Network
 
@@ -133,7 +151,7 @@ customise the image.  Per-phase variable overrides live in `vars/basefs.yml`,
 | Git | Ubuntu default | Version control |
 | Ansible Core | 2.20.x | Installed via pip3 |
 | Docker CE | Latest stable | docker-compose-plugin (Compose v2) included |
-| Node.js | 24.x LTS | Via NodeSource repository |
+| Node.js + pnpm | 24.x LTS / latest | Via NodeSource repository; pnpm via corepack (npm fallback) |
 | open-vm-tools | Ubuntu default | VMware guest tools |
 | chrony | Ubuntu default | NTP client (replaces ntp/ntpdate) |
 | netplan.io | Ubuntu default | Network configuration |
@@ -253,7 +271,9 @@ Additional manual changes required:
 
 ## Using an APT Proxy (apt-cacher-ng)
 
-Set `apt_proxy` in `group_vars/in_target.yml` to cache packages locally:
+**Recommended:** run an apt-cacher-ng cache for builds — it speeds up repeated
+builds substantially and saves bandwidth.  Set `apt_proxy` in
+`group_vars/in_target.yml` to point at your cache:
 
 ```yaml
 apt_proxy: '127.0.0.1:3142'
@@ -263,7 +283,27 @@ The proxy prefix is automatically prepended to all mirror URLs during the build.
 The cleanup task removes the proxy configuration from the final image so the
 live system fetches packages directly from the archive.
 
-### Install apt-cacher-ng on the build host
+### Run apt-cacher-ng in Docker (recommended)
+
+On a Docker host, start the cache using the `sameersbn/apt-cacher-ng` image:
+
+```bash
+docker run --name apt-cacher-ng --init -d --restart=always \
+  --publish 3142:3142 \
+  --volume /opt/containerd/apt-cacher-ng:/var/cache/apt-cacher-ng \
+  sameersbn/apt-cacher-ng:latest
+```
+
+> **Note:** update the `--volume` host path (`/opt/containerd/apt-cacher-ng`) to a
+> valid folder on your Docker host — this is where downloaded .deb packages are
+> cached and persist across container restarts.
+>
+> Then point `apt_proxy` at that host, e.g. `apt_proxy: '<docker-host-ip>:3142'`.
+> Image page: <https://hub.docker.com/r/sameersbn/apt-cacher-ng>
+
+### Install apt-cacher-ng directly on the build host
+
+Alternatively, install it natively on the build host:
 
 ```bash
 sudo apt-get install -y apt-cacher-ng

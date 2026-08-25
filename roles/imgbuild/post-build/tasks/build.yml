@@ -14,7 +14,7 @@
 #        isolinux.cfg  — BIOS CD-ROM boot menu
 #        grub.cfg      — UEFI GRUB boot menu (same entries as syslinux)
 #        install.sh    — automated disk installer helper script
-#   7. Install xorriso and grub-efi-amd64-bin on the build host.
+#   7. Install xorriso, grub-efi-amd64-bin, dosfstools and mtools on the build host.
 #   8. Create the GRUB EFI standalone image (EFI/boot/bootx64.efi).
 #   9. Create the EFI disk image (efiboot.img) for embedding in the ISO.
 #  10. Move basefs.squashfs out of the ISO tree temporarily.
@@ -38,7 +38,7 @@
 
 - name: "post-build | Unmount /proc, /dev, /dev/pts bind mounts from chroot"
   ansible.builtin.mount:
-    name: "{{ build_root }}/{{ item }}"
+    path: "{{ build_root }}/{{ item }}"
     src: none
     fstype: none
     state: unmounted
@@ -54,6 +54,11 @@
     url: "{{ pciid_base_mirror }}"
     dest: "{{ build_image_root }}/syslinux/pci.ids"
     force: true
+  register: pciid_download
+  # Retries absorb transient DNS / network failures on the build host.
+  until: pciid_download is success
+  retries: 3
+  delay: 10
 
 # ---- Copy syslinux bootloader files from chroot ----
 
@@ -78,9 +83,9 @@
     mode: "{{ item.mode | default('0644') }}"
   loop: "{{ syslinux_configuration }}"
 
-# ---- Install EFI build tools on the build host ----
+# ---- Install ISO/EFI build tools on the build host ----
 
-- name: "post-build | Install xorriso and grub-efi-amd64-bin on build host"
+- name: "post-build | Install ISO and EFI build tools on build host"
   ansible.builtin.apt:
     name: "{{ item }}"
     state: present
@@ -90,6 +95,8 @@
     - xorriso
     - grub-efi-amd64-bin
     - grub-pc-bin        # needed for grub-mkstandalone to include PC BIOS modules
+    - dosfstools         # mkfs.vfat — formats the efiboot.img FAT filesystem
+    - mtools             # mmd/mcopy — injects bootloader files into efiboot.img
 
 # ---- Create GRUB EFI standalone bootloader ----
 # grub-mkstandalone creates a single self-contained EFI binary (bootx64.efi)
