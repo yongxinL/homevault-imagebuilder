@@ -41,14 +41,19 @@ initrd_custom_casper_script:
 # .. envvar:: initrd_script_removal_list
 #
 # List of casper sciprt will be remove
-# 10adduser  — creates 'ubuntu' user and chowns /home/ubuntu (not needed; causes
-#              "chown: invalid user: ubuntu:ubuntu" at boot if user does not exist)
-# 20unattended_upgrades — greps /root/etc/apt/apt.conf.d/50unattended-upgrades
-#              which does not exist in this image (causes grep error at boot)
+# 25adduser   — creates the live-session 'ubuntu' user (not needed on this
+#               headless image, which uses its own root account)
+# 52gnome_initial_setup / 59disable_mozc_autosetup — both run
+#               "chown -R $USERNAME.$USERNAME /home/$USERNAME/.config"; with
+#               25adduser removed the 'ubuntu' user does not exist, producing
+#               "chown: invalid user: 'ubuntu.ubuntu'" at boot
+# 53disable_unattended_upgrades — greps /root/etc/apt/apt.conf.d/50unattended-upgrades,
+#               which does not exist in this image ("grep: No such file or directory")
 initrd_script_removal_list:
   # Ubuntu 16–22 names (kept for older builds)
   - { dest: "casper-bottom/ORDER", name: "/scripts/casper-bottom/25adduser" }
-  # Ubuntu 24 (Noble) renames: 25adduser → 10adduser; 20unattended_upgrades added
+  # Ubuntu 24 (Noble): no 10adduser / 20unattended_upgrades exist — entries kept
+  # for backwards compatibility with older casper versions only.
   - { dest: "casper-bottom/ORDER", name: "/scripts/casper-bottom/10adduser" }
   - { dest: "casper-bottom/ORDER", name: "/scripts/casper-bottom/20unattended_upgrades" }
   - { dest: "casper-bottom/ORDER", name: "/scripts/casper-bottom/30accessibility" }
@@ -60,6 +65,10 @@ initrd_script_removal_list:
   - { dest: "casper-bottom/ORDER", name: "/scripts/casper-bottom/48kubuntu_disable_restart_notifications" }
   - { dest: "casper-bottom/ORDER", name: "/scripts/casper-bottom/49kubuntu_mobile_session" }
   - { dest: "casper-bottom/ORDER", name: "/scripts/casper-bottom/50ubiquity-bluetooth-agent" }
+  # Ubuntu 24 (Noble) desktop scripts that emit boot errors on a headless image:
+  - { dest: "casper-bottom/ORDER", name: "/scripts/casper-bottom/52gnome_initial_setup" }
+  - { dest: "casper-bottom/ORDER", name: "/scripts/casper-bottom/53disable_unattended_upgrades" }
+  - { dest: "casper-bottom/ORDER", name: "/scripts/casper-bottom/59disable_mozc_autosetup" }
 
 # .. envvar:: initrd_cleanup_script
 #
