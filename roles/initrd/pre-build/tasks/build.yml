@@ -11,7 +11,7 @@
 
 ---
 - name: install build dependencies
-  apt: 
+  apt:
     name: "{{ item }}"
     state: present
     install_recommends: no
@@ -26,22 +26,44 @@
 - name: check debootstrap version
   command: dpkg-query -W -f='${Version}' debootstrap
   register: deb_version
+  changed_when: false
 
-- name: download latest version of debootstrap
+# Compare using dpkg version semantics rather than string equality so that a
+# NEWER installed version (e.g. 1.0.142ubuntu2) does not trigger a downgrade
+# to the pinned version (1.0.142ubuntu1). Exit code 0 means installed >= pin.
+- name: check installed debootstrap is at least {{ debstrap_version }}
+  ansible.builtin.command:
+    argv:
+      - dpkg
+      - --compare-versions
+      - "{{ deb_version.stdout }}"
+      - ge
+      - "{{ debstrap_version }}"
+  register: deb_version_ok
+  changed_when: false
+  failed_when: false
+
+- name: download debootstrap {{ debstrap_version }}
   get_url:
     url: "http://{{ debstrap_base_mirror }}/ubuntu/pool/main/d/debootstrap/debootstrap_{{ debstrap_version }}_all.deb"
     dest: "/tmp/debootstrap_{{ debstrap_version }}_all.deb"
-  when: deb_version.stdout != debstrap_version
+    mode: '0644'
+  register: deb_download
+  # Retries absorb transient DNS / network failures on the build host.
+  until: deb_download is success
+  retries: 3
+  delay: 10
+  when: deb_version_ok.rc != 0
   environment:
     http_proxy: "{% if apt_proxy | default('') %}http://{{ apt_proxy }}/{% endif %}"
 
 - name: upgrade debootstrap to {{ debstrap_version }}
   apt:
     deb: "/tmp/debootstrap_{{ debstrap_version }}_all.deb"
-  when: deb_version.stdout != debstrap_version
+  when: deb_version_ok.rc != 0
 
 - name: remove debootstrap package
   file:
     path: "/tmp/debootstrap_{{ debstrap_version }}_all.deb"
     state: absent
-  when: deb_version.stdout != debstrap_version
+  when: deb_version_ok.rc != 0
