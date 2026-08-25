@@ -63,8 +63,8 @@ mariadb_repository:
   - dest: '/etc/apt/sources.list.d/{{ install_role_name }}.list'
     line: >-
       deb [arch=amd64 signed-by={{ mariadb_repo_keyring }}]
-      https://mirror.aarnet.edu.au/pub/MariaDB/repo/{{ mariadb_version }}/{{ ansible_distribution | lower }}
-      {{ ansible_distribution_release }} main
+      https://mirror.aarnet.edu.au/pub/MariaDB/repo/{{ mariadb_version }}/{{ ansible_facts['distribution'] | lower }}
+      {{ ansible_facts['distribution_release'] }} main
 
 # .. envvar:: target_root_password
 #
