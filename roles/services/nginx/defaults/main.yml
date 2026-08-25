@@ -44,14 +44,22 @@ target_root_password: 'secret'
 
 # .. envvar:: nginx_repo_key
 #
-# APT GPG key server and id used to sign the ansible packages.
+# URL of the nginx.org APT repository GPG signing key (ASCII-armored).
 nginx_repo_key: 'http://nginx.org/keys/nginx_signing.key'
+
+# .. envvar:: nginx_repo_keyring
+#
+# Path where the signing key is stored inside the target image.
+# Referenced by the signed-by= option in nginx_repository.
+# NOTE: armored .asc keys in signed-by require apt >= 2.4 (Ubuntu 22.04+).
+nginx_repo_keyring: '/etc/apt/keyrings/{{ install_role_name }}.asc'
 
 # .. envvar:: nginx_repository
 #
-# Address of the ansible APT repository.
+# Address of the ansible APT repository, authenticated via the keyring
+# downloaded from nginx_repo_key.
 nginx_repository:
-  - { dest: '/etc/apt/sources.list.d/{{ install_role_name }}.list', line: 'deb http://nginx.org/packages/mainline/{{ ansible_distribution | lower }}/ {{ ansible_distribution_release }} nginx' }
+  - { dest: '/etc/apt/sources.list.d/{{ install_role_name }}.list', line: 'deb [signed-by={{ nginx_repo_keyring }}] http://nginx.org/packages/mainline/{{ ansible_facts[''distribution''] | lower }}/ {{ ansible_facts[''distribution_release''] }} nginx' }
 
 # .. envvar:: nginx_service_user
 #

@@ -30,13 +30,21 @@ install_role_name: 'webmin'
 # may no longer be reliable).
 webmin_repo_key: 'https://www.webmin.com/jcameron-key.asc'
 
+# .. envvar:: webmin_repo_keyring
+#
+# Path where the signing key is stored inside the target image.
+# Referenced by the signed-by= option in webmin_repository.
+# NOTE: armored .asc keys in signed-by require apt >= 2.4 (Ubuntu 22.04+).
+webmin_repo_keyring: '/etc/apt/keyrings/{{ install_role_name }}.asc'
+
 # .. envvar:: webmin_repository
 #
-# APT source entry for the Webmin repository.
+# APT source entry for the Webmin repository, authenticated via the keyring
+# downloaded from webmin_repo_key.
 # 'sarge' is used as the distribution name (Webmin's own repo label, not Ubuntu).
 webmin_repository:
   - dest: '/etc/apt/sources.list.d/{{ install_role_name }}.list'
-    line: 'deb http://download.webmin.com/download/repository sarge contrib'
+    line: 'deb [signed-by={{ webmin_repo_keyring }}] http://download.webmin.com/download/repository sarge contrib'
 
 # .. envvar:: target_root_password
 #

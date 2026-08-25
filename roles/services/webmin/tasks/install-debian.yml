@@ -4,22 +4,31 @@
 # Runs on: build_rootfs (inside the chroot)
 #
 # Steps:
-#   1. Download and add the Webmin repository GPG key.
-#   2. Add the Webmin apt source entry.
-#   3. Disable GzipIndexes in apt.conf (required by the Webmin repository).
-#   4. Install Webmin and Perl dependency packages.
-#   5. Remove the build-time apt source entry.
+#   1. Create the APT keyrings directory.
+#   2. Download the Webmin repository GPG key into /etc/apt/keyrings.
+#   3. Add the Webmin apt source entry (signed-by reference).
+#   4. Disable GzipIndexes in apt.conf (required by the Webmin repository).
+#   5. Install Webmin and Perl dependency packages.
+#   6. Remove the build-time apt source entry (key is retained for live updates).
 # =============================================================================
 
 ---
 # ---- GPG key ----
-# Webmin uses apt-key style key addition via apt_key URL.
-# The Webmin repo uses a legacy single-key approach compatible with Noble.
+# The signing key is downloaded to /etc/apt/keyrings and referenced by the
+# signed-by= option in the apt source entry (modern replacement for apt_key).
 
-- name: "webmin | Add Webmin GPG repository signing key"
-  ansible.builtin.apt_key:
+- name: "webmin | Create /etc/apt/keyrings directory"
+  ansible.builtin.file:
+    path: "{{ webmin_repo_keyring | dirname }}"
+    state: directory
+    mode: '0755'
+
+- name: "webmin | Download Webmin GPG repository signing key"
+  ansible.builtin.get_url:
     url: "{{ webmin_repo_key }}"
-    state: present
+    dest: "{{ webmin_repo_keyring }}"
+    mode: '0644'
+    force: true
 
 # ---- APT source entry ----
 

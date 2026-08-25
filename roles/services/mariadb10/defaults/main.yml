@@ -21,12 +21,19 @@
 install_role_name: 'mariadb'
 
 # .. envvar:: mariadb_repo_keyserver
-# .. envvar:: mariadb_repo_keyid
 #
-# APT GPG key server and id used to sign the ansible packages.
+# Keyserver used to retrieve the MariaDB repository signing keys over HTTPS.
 mariadb_repo_keyserver: 'keyserver.ubuntu.com'
-mariadb_repo_keyid_trusty: '0xcbcb082a1bb943db'
-mariadb_repo_keyid: '0xF1656F24C74CD1D8'
+
+# .. envvar:: mariadb_repo_keys
+#
+# MariaDB repository signing key IDs (without the 0x prefix).
+# Both the legacy (cbcb082a…) and current (F1656F24…) signing keys are
+# downloaded to /etc/apt/keyrings/mariadb-<keyid>.asc and referenced by
+# the signed-by= option in mariadb_repository.
+mariadb_repo_keys:
+  - 'cbcb082a1bb943db'
+  - 'F1656F24C74CD1D8'
 
 # .. envvar:: mariadb_version
 #
@@ -35,9 +42,10 @@ mariadb_version: '10.1'
 
 # .. envvar:: mariadb_repository
 #
-# Address of the ansible APT repository.
+# Address of the ansible APT repository, authenticated via the keyrings
+# downloaded from mariadb_repo_keyserver.
 mariadb_repository:
-  - { dest: '/etc/apt/sources.list.d/{{ install_role_name }}.list', line: 'deb http://mirror.aarnet.edu.au/pub/MariaDB/repo/{{ mariadb_version }}/{{ ansible_distribution | lower }} {{ ansible_distribution_release }} main' }
+  - { dest: '/etc/apt/sources.list.d/{{ install_role_name }}.list', line: 'deb [signed-by=/etc/apt/keyrings/{{ install_role_name }}-cbcb082a1bb943db.asc /etc/apt/keyrings/{{ install_role_name }}-F1656F24C74CD1D8.asc] http://mirror.aarnet.edu.au/pub/MariaDB/repo/{{ mariadb_version }}/{{ ansible_facts[''distribution''] | lower }} {{ ansible_facts[''distribution_release''] }} main' }
 
 # .. envvar:: target_root_password
 #

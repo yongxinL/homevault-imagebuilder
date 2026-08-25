@@ -10,10 +10,18 @@
 # =============================================================================
 
 ---
-- name: add {{ install_role_name }} repository key
-  apt_key:
+- name: create /etc/apt/keyrings directory
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: '0755'
+
+- name: download {{ install_role_name }} repository GPG signing key
+  ansible.builtin.get_url:
     url: "{{ nginx_repo_key }}"
-    state: present
+    dest: "{{ nginx_repo_keyring }}"
+    mode: '0644'
+    force: true
 
 - name: add {{ install_role_name }} repository list
   lineinfile: 
@@ -32,16 +40,13 @@
   until: install_pkgs is success
   retries: 2
   delay: 5
-  with_flattened:
-    - "{{ nginx_base_packages }}"
-    - "{{ nginx_packages }}"
+  loop: "{{ [nginx_base_packages, nginx_packages] | flatten }}"
 
 - name: remove {{ install_role_name }} repository list
   file: 
     path: "{{ item.dest }}"
     state: absent
-  with_flattened:
-    - "{{ nginx_repository }}"
+  loop: "{{ nginx_repository | flatten }}"
 
 - name: check {{ target_host_domain }} certificates
   stat:
@@ -59,7 +64,7 @@
     - req -new -subj $SUBJ -key {{ target_host_domain }}.key.secret -out {{ target_host_domain }}.csr -passin env:PASSPHRASE
     - rsa -in {{ target_host_domain }}.key.secret -out {{ target_host_domain }}.key -passin env:PASSPHRASE
     - x509 -req -days 3650 -in {{ target_host_domain }}.csr -signkey {{ target_host_domain }}.key -out {{ target_host_domain }}.crt
-  when: certificate_exist.stat.exists == False
+  when: not certificate_exist.stat.exists
 
 - name: check dh_1024.pem {{ target_host_domain }} certificates
   stat:
@@ -71,4 +76,4 @@
             chdir=/etc/ssl/private
   with_items:
     - dhparam -2 -out dh_1024.pem 1024
-  when: dh_1024_pem_exist.stat.exists == False
+  when: not dh_1024_pem_exist.stat.exists
