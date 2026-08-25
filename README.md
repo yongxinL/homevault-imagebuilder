@@ -151,7 +151,7 @@ customise the image.  Per-phase variable overrides live in `vars/basefs.yml`,
 | Git | Ubuntu default | Version control |
 | Ansible Core | 2.20.x | Installed via pip3 |
 | Docker CE | Latest stable | docker-compose-plugin (Compose v2) included |
-| Node.js | 24.x LTS | Via NodeSource repository |
+| Node.js + pnpm | 24.x LTS / latest | Via NodeSource repository; pnpm via corepack (npm fallback) |
 | open-vm-tools | Ubuntu default | VMware guest tools |
 | chrony | Ubuntu default | NTP client (replaces ntp/ntpdate) |
 | netplan.io | Ubuntu default | Network configuration |
