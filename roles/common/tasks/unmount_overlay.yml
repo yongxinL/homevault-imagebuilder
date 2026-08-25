@@ -11,8 +11,8 @@
 
 ---
 - name: un-mount rootfs in build directory {{ build_root }}
-  mount: 
-    name: "{{ build_root }}/{{ item }}"
+  ansible.builtin.mount:
+    path: "{{ build_root }}/{{ item }}"
     src: none
     fstype: none
     state: unmounted
@@ -22,28 +22,28 @@
     - proc
 
 - name: un-mount squashfs image in build directory {{ build_root }}
-  mount:
-    name: "{{ build_lower_dir }}"
+  ansible.builtin.mount:
+    path: "{{ build_lower_dir }}"
     src: "{{ build_image_root }}/casper/{{ build_base_image }}"
     fstype: squashfs
     state: unmounted
 
 - name: un-mount all overlay in build directory {{ build_root }}
-  mount:
-    name: "{{ build_root }}"
+  ansible.builtin.mount:
+    path: "{{ build_root }}"
     src: "overlay"
     fstype: overlay
     state: unmounted
 
 - name: un-mount if build directory {{ build_root }} is mounted
-  mount: 
-    name: "{{ build_root }}"
+  ansible.builtin.mount:
+    path: "{{ build_root }}"
     src: tmpfs
     fstype: tmpfs
     state: unmounted
 
 - name: remove build directory {{ build_root }} and sub folders
-  file: 
+  ansible.builtin.file:
     path: "{{ item }}"
     state: absent
   with_items:

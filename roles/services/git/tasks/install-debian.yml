@@ -19,6 +19,4 @@
   until: install_pkgs is success
   retries: 2
   delay: 5
-  with_flattened:
-    - "{{ git_base_packages }}"
-    - "{{ git_packages }}"
+  loop: "{{ [git_base_packages, git_packages] | flatten }}"

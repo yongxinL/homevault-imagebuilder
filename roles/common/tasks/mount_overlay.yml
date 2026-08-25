@@ -11,17 +11,18 @@
 
 ---
 - name: environment check - base squashfs image
-  stat:
+  ansible.builtin.stat:
     path: "{{ build_image_root }}/casper/{{ build_base_image }}"
   register: squashfs_exist
 
-- fail:
+- name: fail if base squashfs image does not exist
+  ansible.builtin.fail:
     msg: "Whoops! base squashfs image does not exist"
-  when: squashfs_exist.stat.exists == False
+  when: not squashfs_exist.stat.exists
 
 - name: update local and create overlay directories
-  file:
-    name: "{{ item }}"
+  ansible.builtin.file:
+    path: "{{ item }}"
     state: directory
   with_items:
     - "{{ build_rootfs }}"
@@ -30,16 +31,16 @@
     - "{{ build_work_dir }}"
 
 - name: mount read-only base image in build directory
-  mount:
-    name: "{{ build_lower_dir }}"
+  ansible.builtin.mount:
+    path: "{{ build_lower_dir }}"
     src: "{{ build_image_root }}/casper/{{ build_base_image }}"
     fstype: squashfs
     state: mounted
     opts: "loop"
 
 - name: mount overlay with read-only base image in build directory
-  mount:
-    name: "{{ build_rootfs }}"
+  ansible.builtin.mount:
+    path: "{{ build_rootfs }}"
     src: overlay
     fstype: overlay
     opts: "rw,lowerdir={{ build_lower_dir }},upperdir={{ build_upper_dir }},workdir={{ build_work_dir }}"

@@ -70,8 +70,8 @@
   when: apt_proxy | default('') != ''
 
 - name: bind mount to chroot environment
-  mount:
-    name: "{{ build_root }}/{{ item }}"
+  ansible.builtin.mount:
+    path: "{{ build_root }}/{{ item }}"
     src: "/{{ item }}"
     fstype: none
     opts: "bind"

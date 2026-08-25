@@ -31,6 +31,8 @@
     - squashfs-tools
 
 # ---- Bootstrap the chroot ----
+# Retries absorb transient DNS / network failures on the build host;
+# debootstrap resumes safely over a partially-populated target directory.
 
 - name: "pre-build | Bootstrap Ubuntu {{ debstrap_suite }} chroot at {{ build_root }}"
   ansible.builtin.command: >
@@ -42,6 +44,10 @@
     {{ debstrap_suite }}
     {{ build_root }}
     {{ debstrap_mirror }}
+  register: bootstrap
+  until: bootstrap is success
+  retries: 3
+  delay: 10
   # debootstrap fetches packages directly (no apt.conf.d inside the chroot yet),
   # so pass the proxy via the standard http_proxy environment variable.
   environment:
@@ -124,7 +130,7 @@
 
 - name: "pre-build | Bind-mount /proc and /dev into chroot (required by package post-installs)"
   ansible.builtin.mount:
-    name: "{{ build_root }}/{{ item }}"
+    path: "{{ build_root }}/{{ item }}"
     src: "/{{ item }}"
     fstype: none
     opts: "bind"
