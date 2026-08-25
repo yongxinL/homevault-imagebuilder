@@ -206,6 +206,7 @@ debstrap_version: '1.0.142ubuntu2'
 # format:  http://<proxy>/<mirror>/<path>
 # The proxy entry is REMOVED from the final image by the cleanup task so the
 # live system fetches packages directly from the archive.
+apt_proxy: ''
 
 # .. envvar:: debstrap_base_mirror
 #

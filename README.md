@@ -111,7 +111,7 @@ customise the image.  Per-phase variable overrides live in `vars/basefs.yml`,
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `debstrap_base_mirror` | `au.archive.ubuntu.com` | Ubuntu archive mirror hostname. Change to your nearest mirror. |
-| `apt_proxy` | `10.61.5.10:3142` | apt-cacher-ng proxy — format `host:port`. **Recommended** for faster repeat builds; see [Using an APT Proxy](#using-an-apt-proxy-apt-cacher-ng). Proxy is removed from the final image automatically. |
+| `apt_proxy` | *(empty)* | apt-cacher-ng proxy — format `host:port`. **Recommended** for faster repeat builds; see [Using an APT Proxy](#using-an-apt-proxy-apt-cacher-ng). Proxy is removed from the final image automatically. |
 
 ### Network
 
