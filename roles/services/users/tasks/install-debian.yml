@@ -4,7 +4,8 @@
 # Runs on: localhost (Ansible controller / build host)
 #
 # Steps:
-#   1. Install passlib via pip3 on the controller.
+#   1. Ensure pip3 exists on the controller (bootstraps python3-pip via apt).
+#   2. Install passlib via pip3 on the controller.
 #
 # Why on the controller (delegate_to: localhost)?
 #   - The password_hash('sha512') Jinja2 filter is evaluated on the Ansible
@@ -16,6 +17,23 @@
 # =============================================================================
 
 ---
+- name: "users | Check if pip3 is available on controller"
+  ansible.builtin.command: which pip3
+  register: users_pip3_check
+  failed_when: false
+  changed_when: false
+  delegate_to: localhost
+  run_once: true
+
+- name: "users | Install python3-pip on controller"
+  ansible.builtin.apt:
+    name: python3-pip
+    state: present
+    update_cache: true
+  when: users_pip3_check.rc != 0
+  delegate_to: localhost
+  run_once: true
+
 - name: "users | Install passlib on controller for password_hash filter"
   ansible.builtin.pip:
     name: passlib
